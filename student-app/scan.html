@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoQR Scan Attendance - QR Code Scanner">
+    <title>Scan Attendance - GeoQR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="scan-page">
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+    </div>
+
+    <div class="container scan-container">
+        <!-- Header -->
+        <header class="scan-header">
+            <a href="dashboard.html" class="back-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+                <span>Back</span>
+            </a>
+            <h1 class="page-title">Scan Attendance</h1>
+            <div class="header-spacer"></div>
+        </header>
+
+        <!-- Scanner Section -->
+        <section class="scanner-section">
+            <!-- Initialization State -->
+            <div class="scanner-init" id="scannerInit">
+                <div class="init-animation">
+                    <div class="scan-pulse"></div>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                    </svg>
+                </div>
+                <p class="init-text" id="initText">Initializing camera...</p>
+                <p class="init-hint">Please allow camera access when prompted</p>
+            </div>
+
+            <!-- Scanner Container -->
+            <div class="scanner-container hidden" id="scannerContainer">
+                <div class="scanner-frame">
+                    <div class="scanner-corners">
+                        <span class="corner tl"></span>
+                        <span class="corner tr"></span>
+                        <span class="corner bl"></span>
+                        <span class="corner br"></span>
+                    </div>
+                    <div class="scan-line"></div>
+                </div>
+                <div id="qrReader"></div>
+            </div>
+
+            <!-- Scanner Controls -->
+            <div class="scanner-controls hidden" id="scannerControls">
+                <button class="btn btn-icon" id="switchCameraBtn" title="Switch Camera">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10" />
+                        <polyline points="1 20 1 14 7 14" />
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- Location Section -->
+        <section class="location-section glass-card">
+            <div class="location-header">
+                <div class="location-icon-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                </div>
+                <div class="location-info">
+                    <span class="location-label">Your Location</span>
+                    <span class="location-status" id="locationStatus">Fetching location...</span>
+                </div>
+                <div class="location-indicator" id="locationIndicator">
+                    <span class="indicator-dot pending"></span>
+                </div>
+            </div>
+            <div class="location-coords hidden" id="locationCoords">
+                <div class="coord">
+                    <span class="coord-label">Lat</span>
+                    <span class="coord-value" id="latitude">--</span>
+                </div>
+                <div class="coord-divider"></div>
+                <div class="coord">
+                    <span class="coord-label">Long</span>
+                    <span class="coord-value" id="longitude">--</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Result Section -->
+        <section class="result-section glass-card hidden" id="resultSection">
+            <div class="result-header">
+                <div class="result-icon success">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z" />
+                    </svg>
+                </div>
+                <span>QR Code Scanned</span>
+            </div>
+            <div class="result-token">
+                <span class="token-label">Token:</span>
+                <code id="scannedToken">---</code>
+            </div>
+            <div class="result-actions">
+                <button class="btn btn-primary btn-lg" id="submitBtn">
+                    <span class="btn-content">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span class="btn-text">Submit Attendance</span>
+                    </span>
+                    <span class="btn-loader">
+                        <span class="spinner"></span>
+                    </span>
+                </button>
+                <button class="btn btn-outline" id="rescanBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10" />
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                    </svg>
+                    <span>Scan Again</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Success Modal -->
+        <div class="modal hidden" id="successModal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content glass-card">
+                <div class="modal-icon success">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <div class="modal-icon-ring"></div>
+                </div>
+                <h2>Attendance Marked!</h2>
+                <p class="modal-subtitle">Your attendance has been recorded successfully</p>
+
+                <div class="modal-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Timestamp</span>
+                        <span class="detail-value" id="successTimestamp">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Location</span>
+                        <span class="detail-value" id="successLocation">--</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-lg" id="backToDashboardBtn">
+                    <span>Back to Dashboard</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Error Modal -->
+        <div class="modal hidden" id="errorModal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content glass-card">
+                <div class="modal-icon error">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                    <div class="modal-icon-ring"></div>
+                </div>
+                <h2>Something Went Wrong</h2>
+                <p class="modal-subtitle error-message" id="errorMessage">An error occurred</p>
+
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="tryAgainBtn">
+                        <span>Try Again</span>
+                    </button>
+                    <button class="btn btn-outline" id="goBackBtn">
+                        <span>Go Back</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/scan.js"></script>
+</body>
+
+</html>

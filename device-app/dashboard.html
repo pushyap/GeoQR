@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoQR Device Dashboard - QR Code Generation">
+    <title>GeoQR Device Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="dashboard-page">
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="container dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="20" cy="20" r="18" stroke="url(#gradient1)" stroke-width="3" />
+                        <circle cx="20" cy="20" r="8" fill="url(#gradient1)" />
+                        <circle cx="20" cy="8" r="3" fill="#818cf8" />
+                        <defs>
+                            <linearGradient id="gradient1" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#a855f7" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="logo-title">GeoQR</span>
+            </div>
+            <button class="btn btn-ghost" id="logoutBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Logout</span>
+            </button>
+        </header>
+
+        <!-- Device Info Card -->
+        <section class="device-info-card glass-card">
+            <div class="device-header">
+                <div class="device-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" />
+                        <line x1="12" y1="18" x2="12" y2="18" />
+                    </svg>
+                </div>
+                <div class="device-title">
+                    <h2 id="deviceIdDisplay">DEV-001</h2>
+                    <span class="status-badge online" id="statusBadge">
+                        <span class="status-dot"></span>
+                        Online
+                    </span>
+                </div>
+            </div>
+
+            <div class="device-stats">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Location</span>
+                        <span class="stat-value" id="locationDisplay">Room 101 - CS Lab</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <circle cx="12" cy="12" r="6" />
+                            <circle cx="12" cy="12" r="2" />
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Radius</span>
+                        <span class="stat-value" id="radiusDisplay">50 meters</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- QR Generation Section -->
+        <section class="qr-section">
+            <!-- Control Buttons -->
+            <div class="qr-controls" id="qrControls">
+                <button class="btn btn-primary btn-xl pulse-btn" id="startQrBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    <span>Start QR Generation</span>
+                </button>
+            </div>
+
+            <!-- Active QR Display -->
+            <div class="qr-active-container hidden" id="qrActiveContainer">
+                <!-- Timer Ring -->
+                <div class="timer-container">
+                    <div class="timer-ring">
+                        <svg viewBox="0 0 120 120">
+                            <circle class="timer-bg" cx="60" cy="60" r="54" />
+                            <circle class="timer-progress" cx="60" cy="60" r="54" id="timerCircle" />
+                        </svg>
+                        <div class="timer-inner">
+                            <span class="timer-value" id="timerValue">15</span>
+                            <span class="timer-label">seconds</span>
+                        </div>
+                    </div>
+                    <p class="timer-text">Refreshing in <span id="timerText">15</span>s</p>
+                </div>
+
+                <!-- QR Code Display -->
+                <div class="qr-display glass-card">
+                    <div class="qr-status">
+                        <span class="qr-status-dot active" id="qrStatusDot"></span>
+                        <span id="qrStatusText">QR Active</span>
+                    </div>
+                    <div class="qr-code-wrapper">
+                        <div id="qrCode"></div>
+                    </div>
+                    <div class="qr-token">
+                        <span class="token-label">Token:</span>
+                        <code id="currentToken">---</code>
+                    </div>
+                </div>
+
+                <!-- Stop Button -->
+                <button class="btn btn-danger btn-lg" id="stopQrBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                    <span>Stop Generation</span>
+                </button>
+            </div>
+
+            <!-- Idle State -->
+            <div class="qr-idle" id="qrIdleState">
+                <div class="idle-illustration">
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="40" y="40" width="120" height="120" rx="10" stroke="#475569" stroke-width="2"
+                            stroke-dasharray="8 4" />
+                        <rect x="60" y="60" width="30" height="30" rx="4" fill="#6366f1" opacity="0.3" />
+                        <rect x="110" y="60" width="30" height="30" rx="4" fill="#6366f1" opacity="0.3" />
+                        <rect x="60" y="110" width="30" height="30" rx="4" fill="#6366f1" opacity="0.3" />
+                        <rect x="110" y="110" width="30" height="30" rx="4" fill="#6366f1" opacity="0.5" />
+                        <circle cx="100" cy="100" r="15" fill="#6366f1" opacity="0.2" />
+                    </svg>
+                </div>
+                <p>Ready to generate attendance QR codes</p>
+                <span class="idle-hint">Click the button above to start</span>
+            </div>
+        </section>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/qr.js"></script>
+</body>
+
+</html>
