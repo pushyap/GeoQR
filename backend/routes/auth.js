@@ -1,109 +1,131 @@
 /**
  * Authentication Routes
- * Handles login, registration, and user info
+ * Email-based OTP (No Redis, No Mobile)
  */
+
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 
-// ===============================
-// OTP Store Redis Setup
-// ===============================
-const redisClient = require('../config/redis');
-
-
 const router = express.Router();
 
-/**
- * POST /api/auth/login
- * Authenticate user and return JWT
- */
+require('dotenv').config();
+const nodemailer = require('nodemailer');
+
+/* ============================
+   EMAIL TRANSPORTER (GLOBAL)
+   ============================ */
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS   // Gmail App Password
+    }
+});
+
+// Verify transporter ONCE
+transporter.verify((err) => {
+    if (err) {
+        console.error('❌ Email server error:', err);
+    } else {
+        console.log('✅ Email server ready');
+    }
+});
+
+
+// =====================================
+// In-memory OTP Store (email → otp)
+// =====================================
+const emailOtpStore = new Map();
+
+function generateOtp() {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+// =====================================
+// POST /api/auth/login
+// =====================================
 router.post('/login', [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 4 })
 ], async (req, res) => {
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            errors: errors.array()
-        });
+        return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { email, password } = req.body;
 
     try {
-        // Find user by email
         const result = await db.query(
             'SELECT * FROM users WHERE email = $1',
             [email]
         );
+
         const user = result.rows[0];
-
         if (!user) {
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid email or password'
-            });
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
-        // Check if active
         if (!user.is_active) {
-            return res.status(401).json({
-                success: false,
-                error: 'Account is deactivated'
-            });
+            return res.status(401).json({ success: false, error: 'Account deactivated' });
         }
 
-        // Verify password
         const validPassword = bcrypt.compareSync(password, user.password_hash);
         if (!validPassword) {
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid email or password'
-            });
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
         // ===============================
-        // STUDENT → OTP REQUIRED
+        // STUDENT → EMAIL OTP REQUIRED
         // ===============================
         if (user.role === 'student') {
 
-            // Generate OTP
-            const otp = Math.floor(1000 + Math.random() * 9000);
-            const tempToken = require('crypto').randomUUID();
+            const otp = generateOtp();          // e.g. 6-digit
+            const tempToken = crypto.randomUUID();
 
-            await redisClient.setEx(
-                `otp:${tempToken}`,
-                300, // 5 minutes in seconds
-                JSON.stringify({
-                    otp,
-                    userId: user.id
-                })
-            );
+            emailOtpStore.set(tempToken, {
+                otp,
+                userId: user.id,
+                expiresAt: Date.now() + 5 * 60 * 1000
+            });
 
+            /* ===============================
+               SEND OTP EMAIL (BACKEND)
+               =============================== */
+            await transporter.sendMail({
+                from: `"GeoQR System" <${process.env.EMAIL_USER}>`,
+                to: user.email,
+                subject: 'GeoQR Login OTP',
+                html: `
+                    <h2>GeoQR Login Verification</h2>
+                    <p>Your OTP is:</p>
+                    <h1>${otp}</h1>
+                    <p>This OTP is valid for 5 minutes.</p>
+                `
+            });
 
-            // 🔔 SEND OTP VIA SMS HERE
-            console.log(`OTP for ${user.email}: ${otp}`);
+            console.log(`📧 OTP sent to ${user.email}`);
 
             return res.json({
                 success: true,
                 requiresOtp: true,
-                tempToken,
-                maskedMobile: 'XXXXXX' + (user.mobile_number || '0000').slice(-4)
+                tempToken
             });
         }
 
         // ===============================
-        // FACULTY / ADMIN → NORMAL LOGIN
+        // FACULTY / ADMIN → DIRECT LOGIN
         // ===============================
         const token = jwt.sign(
             { userId: user.id, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+            { expiresIn: '24h' }
         );
 
         res.json({
@@ -118,47 +140,41 @@ router.post('/login', [
             }
         });
 
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Server error during login'
-        });
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({ success: false, error: 'Server error' });
     }
 });
 
-/**
- * POST /api/auth/verify-otp
- * Verify OTP and issue JWT
- */
-router.post('/verify-otp', async (req, res) => {
+
+// =====================================
+// POST /api/auth/verify-email-otp
+// =====================================
+router.post('/verify-email-otp', async (req, res) => {
     const { tempToken, otp } = req.body;
 
-    const data = await redisClient.get(`otp:${tempToken}`);
+    const record = emailOtpStore.get(tempToken);
 
-    if (!data) {
-        return res.status(400).json({
-            success: false,
-            error: 'OTP not found or expired'
-        });
+    if (!record) {
+        return res.status(400).json({ success: false, error: 'OTP expired or invalid' });
     }
 
-    const record = JSON.parse(data);
-
-    if (record.otp != otp) {
-        return res.status(400).json({
-            success: false,
-            error: 'Invalid OTP'
-        });
+    if (record.expiresAt < Date.now()) {
+        emailOtpStore.delete(tempToken);
+        return res.status(400).json({ success: false, error: 'OTP expired' });
     }
 
-    // Delete OTP after success
-    await redisClient.del(`otp:${tempToken}`);
+    if (record.otp !== otp) {
+        return res.status(400).json({ success: false, error: 'Invalid OTP' });
+    }
+
+    emailOtpStore.delete(tempToken);
 
     const result = await db.query(
         'SELECT * FROM users WHERE id = $1',
         [record.userId]
     );
+
     const user = result.rows[0];
 
     const token = jwt.sign(
@@ -180,59 +196,47 @@ router.post('/verify-otp', async (req, res) => {
     });
 });
 
-
-
-/**
- * POST /api/auth/register
- * Create new user
- */
+// =====================================
+// POST /api/auth/register
+// =====================================
 router.post('/register', [
     body('name').trim().isLength({ min: 2 }),
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
-    body('role').isIn(['student', 'faculty', 'admin', 'device']),
+    body('role').isIn(['student', 'faculty', 'admin']),
     body('studentId').optional().trim()
 ], async (req, res) => {
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({
-            success: false,
-            errors: errors.array()
-        });
+        return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { name, email, password, role, studentId } = req.body;
 
     try {
-        // Check if email exists
         const existing = await db.query(
             'SELECT id FROM users WHERE email = $1',
             [email]
         );
 
         if (existing.rows.length > 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Email already registered'
-            });
+            return res.status(400).json({ success: false, error: 'Email already exists' });
         }
 
-        // Hash password
-        const salt = bcrypt.genSaltSync(12);
-        const passwordHash = bcrypt.hashSync(password, salt);
+        const hash = bcrypt.hashSync(password, 12);
 
-        // Insert user
         const result = await db.query(
             `INSERT INTO users (name, email, password_hash, role, student_id)
-             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-            [name, email, passwordHash, role, studentId || null]
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id`,
+            [name, email, hash, role, studentId || null]
         );
 
-        // Generate JWT
         const token = jwt.sign(
             { userId: result.rows[0].id, role },
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+            { expiresIn: '24h' }
         );
 
         res.status(201).json({
@@ -247,33 +251,24 @@ router.post('/register', [
             }
         });
 
-    } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Server error during registration'
-        });
+    } catch (err) {
+        console.error('Register error:', err);
+        res.status(500).json({ success: false, error: 'Registration failed' });
     }
 });
 
-/**
- * GET /api/auth/me
- */
+// =====================================
+// GET /api/auth/me
+// =====================================
 router.get('/me', authenticate, (req, res) => {
-    res.json({
-        success: true,
-        user: req.user
-    });
+    res.json({ success: true, user: req.user });
 });
 
-/**
- * POST /api/auth/logout
- */
+// =====================================
+// POST /api/auth/logout
+// =====================================
 router.post('/logout', authenticate, (req, res) => {
-    res.json({
-        success: true,
-        message: 'Logged out successfully'
-    });
+    res.json({ success: true, message: 'Logged out successfully' });
 });
 
 module.exports = router;
