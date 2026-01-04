@@ -234,7 +234,7 @@ const RoleGuard = {
 };
 
 // ========================================
-// Page Controllers
+// Login Page with OTP Support
 // ========================================
 const LoginPage = {
     init() {
@@ -260,37 +260,43 @@ const LoginPage = {
             const email = document.getElementById('userId').value.trim();
             const password = document.getElementById('password').value;
 
-            if (!email) {
-                Toast.warning('Please enter your email');
-                return;
-            }
-
-            if (password.length < 4) {
-                Toast.warning('Password must be at least 4 characters');
+            if (!email || password.length < 4) {
+                Toast.warning('Invalid credentials');
                 return;
             }
 
             UI.setButtonLoading(loginBtn, true);
 
             try {
-                const response = await API.post('/auth/login', { email, password });
+                const response = await API.post('/auth/login', {
+                    email,
+                    password
+                });
 
-                if (response.success) {
-                    Session.save(response.token, response.user);
-                    Toast.success('Login successful! Redirecting...');
+                // 🔐 OTP REQUIRED (Student)
+                if (response.requiresOtp) {
+                    sessionStorage.setItem('temp_login_token', response.tempToken);
+                    sessionStorage.setItem('masked_mobile', response.maskedMobile);
 
-                    setTimeout(() => {
-                        RoleGuard.redirectToDashboard();
-                    }, 1000);
+                    window.location.href = 'otp.html';
+                    return;
                 }
 
-            } catch (error) {
-                Toast.error(error.message || 'Login failed');
+                // ✅ Normal Login
+                if (response.success) {
+                    Session.save(response.token, response.user);
+                    Toast.success('Login successful');
+                    setTimeout(() => RoleGuard.redirectToDashboard(), 800);
+                }
+
+            } catch (err) {
+                Toast.error(err.message || 'Login failed');
                 UI.setButtonLoading(loginBtn, false);
             }
         });
     }
 };
+
 
 const DashboardPage = {
     init() {

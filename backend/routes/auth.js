@@ -9,6 +9,12 @@ const { body, validationResult } = require('express-validator');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 
+// ===============================
+// OTP Store Redis Setup
+// ===============================
+const redisClient = require('../config/redis');
+
+
 const router = express.Router();
 
 /**
@@ -61,7 +67,39 @@ router.post('/login', [
             });
         }
 
-        // Generate JWT
+        // ===============================
+        // STUDENT → OTP REQUIRED
+        // ===============================
+        if (user.role === 'student') {
+
+            // Generate OTP
+            const otp = Math.floor(1000 + Math.random() * 9000);
+            const tempToken = require('crypto').randomUUID();
+
+            await redisClient.setEx(
+                `otp:${tempToken}`,
+                300, // 5 minutes in seconds
+                JSON.stringify({
+                    otp,
+                    userId: user.id
+                })
+            );
+
+
+            // 🔔 SEND OTP VIA SMS HERE
+            console.log(`OTP for ${user.email}: ${otp}`);
+
+            return res.json({
+                success: true,
+                requiresOtp: true,
+                tempToken,
+                maskedMobile: 'XXXXXX' + (user.mobile_number || '0000').slice(-4)
+            });
+        }
+
+        // ===============================
+        // FACULTY / ADMIN → NORMAL LOGIN
+        // ===============================
         const token = jwt.sign(
             { userId: user.id, role: user.role },
             process.env.JWT_SECRET,
@@ -88,6 +126,61 @@ router.post('/login', [
         });
     }
 });
+
+/**
+ * POST /api/auth/verify-otp
+ * Verify OTP and issue JWT
+ */
+router.post('/verify-otp', async (req, res) => {
+    const { tempToken, otp } = req.body;
+
+    const data = await redisClient.get(`otp:${tempToken}`);
+
+    if (!data) {
+        return res.status(400).json({
+            success: false,
+            error: 'OTP not found or expired'
+        });
+    }
+
+    const record = JSON.parse(data);
+
+    if (record.otp != otp) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid OTP'
+        });
+    }
+
+    // Delete OTP after success
+    await redisClient.del(`otp:${tempToken}`);
+
+    const result = await db.query(
+        'SELECT * FROM users WHERE id = $1',
+        [record.userId]
+    );
+    const user = result.rows[0];
+
+    const token = jwt.sign(
+        { userId: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+    );
+
+    res.json({
+        success: true,
+        token,
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            studentId: user.student_id
+        }
+    });
+});
+
+
 
 /**
  * POST /api/auth/register

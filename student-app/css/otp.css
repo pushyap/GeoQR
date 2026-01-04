@@ -1,0 +1,32 @@
+/* ========================================
+   OTP Page Enhancements
+   ======================================== */
+
+.otp-card {
+    max-width: 420px;
+    margin: auto;
+}
+
+.otp-input {
+    text-align: center;
+    font-size: 1.5rem;
+    letter-spacing: 0.4rem;
+    font-weight: 700;
+}
+
+.card-icon {
+    font-size: 2rem;
+    color: white;
+}
+
+.card-description b {
+    color: var(--primary-400);
+}
+
+/* Mobile Friendly */
+@media (max-width: 480px) {
+    .otp-input {
+        font-size: 1.3rem;
+        letter-spacing: 0.3rem;
+    }
+}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OTP Verification</title>
+
+    <!-- Main GeoQR Styles -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- OTP Page Overrides -->
+    <link rel="stylesheet" href="css/otp.css">
+</head>
+<body>
+
+<!-- Animated Background -->
+<div class="bg-animation">
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+    <div class="floating-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-text">
+                <h1>GeoQR</h1>
+                <span class="logo-badge">OTP Verification</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- OTP Card -->
+    <div class="glass-card login-card otp-card">
+
+        <div class="card-header">
+            <div class="card-icon">
+                🔐
+            </div>
+            <h2>Verify OTP</h2>
+            <p class="card-description">
+                OTP sent to <b id="mobileMask">**********</b>
+            </p>
+        </div>
+
+        <form id="otpForm" class="login-form">
+
+            <div class="form-group">
+                <label for="otp">Enter 6-Digit OTP</label>
+                <div class="input-wrapper">
+                    <input
+                        type="number"
+                        inputmode="numeric"
+                        id="otp"
+                        maxlength="4"
+                        placeholder="● ● ● ●"
+                        class="otp-input"
+                        required
+                    />
+                    <span class="input-focus"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg">
+                <span class="btn-content">
+                    Verify OTP
+                </span>
+                <span class="btn-loader">
+                    <span class="spinner"></span>
+                </span>
+            </button>
+
+        </form>
+
+        <div class="card-footer">
+            <p>Didn’t receive OTP? <a href="#" class="register-link">Resend</a></p>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="js/auth.js"></script>
+<script src="js/otp.js"></script>
+</body>
+</html>
