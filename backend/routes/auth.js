@@ -204,12 +204,19 @@ router.post('/register', [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
     body('role').isIn(['student', 'faculty', 'admin']),
-    body('studentId').optional().trim()
+    body('studentId')
+        .if(body('role').equals('student'))
+        .trim()
+        .notEmpty()
+        .withMessage('Student ID is required for students')
 ], async (req, res) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ success: false, errors: errors.array() });
+        return res.status(400).json({
+            success: false,
+            errors: errors.array()
+        });
     }
 
     const { name, email, password, role, studentId } = req.body;
@@ -221,16 +228,20 @@ router.post('/register', [
         );
 
         if (existing.rows.length > 0) {
-            return res.status(400).json({ success: false, error: 'Email already exists' });
+            return res.status(400).json({
+                success: false,
+                error: 'Email already exists'
+            });
         }
 
         const hash = bcrypt.hashSync(password, 12);
 
         const result = await db.query(
-            `INSERT INTO users (name, email, password_hash, role, student_id)
+            `INSERT INTO users 
+             (name, email, password_hash, role, student_id)
              VALUES ($1, $2, $3, $4, $5)
-             RETURNING id`,
-            [name, email, hash, role, studentId || null]
+             RETURNING id, name, email, role, student_id`,
+            [name, email, hash, role, role === 'student' ? studentId : null]
         );
 
         const token = jwt.sign(
@@ -247,13 +258,16 @@ router.post('/register', [
                 name,
                 email,
                 role,
-                studentId
+                studentId: result.rows[0].student_id
             }
         });
 
     } catch (err) {
         console.error('Register error:', err);
-        res.status(500).json({ success: false, error: 'Registration failed' });
+        res.status(500).json({
+            success: false,
+            error: 'Registration failed'
+        });
     }
 });
 
