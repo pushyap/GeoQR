@@ -196,7 +196,7 @@
             }
 
             // Display stored user info immediately
-            const userData = Session.getData();
+            const userData = Session.getUser();
             if (userData) {
                 document.getElementById('studentName').textContent = userData.name || 'Student';
                 document.getElementById('studentIdBadge').textContent = userData.studentId || userData.email;

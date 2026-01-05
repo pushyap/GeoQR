@@ -1,13 +1,19 @@
+/**
+ * GeoQR - Email OTP Verification
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    const tempToken = sessionStorage.getItem('temp_login_token');
-    const maskedMobile = sessionStorage.getItem('masked_mobile');
 
-    if (!tempToken) {
+    const tempToken = sessionStorage.getItem('temp_login_token');
+    const email = sessionStorage.getItem('login_email');
+
+    if (!tempToken || !email) {
         window.location.href = 'index.html';
         return;
     }
 
-    document.getElementById('mobileMask').textContent = maskedMobile;
+    // Mask email
+    document.getElementById('mobileMask').textContent =
+        email.replace(/(.{2}).+(@.+)/, '$1****$2');
 
     document.getElementById('otpForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -15,23 +21,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const otp = document.getElementById('otp').value.trim();
 
         if (otp.length !== 4) {
-            Toast.warning('Invalid OTP');
+            Toast.warning('Enter valid 4-digit OTP');
             return;
         }
 
         try {
-            const response = await API.post('/auth/verify-otp', {
+            const res = await API.post('/auth/verify-email-otp', {
                 tempToken,
                 otp
             });
 
-            if (response.success) {
+            if (res.success) {
+                Session.save(res.token, res.user);
                 sessionStorage.clear();
-                Session.save(response.token, response.user);
-                Toast.success('OTP Verified');
 
-                setTimeout(() => RoleGuard.redirectToDashboard(), 800);
+                Toast.success('OTP verified successfully');
+
+                setTimeout(() => {
+                    RoleGuard.redirect();   // ✅ WORKING
+                }, 500);
             }
+
         } catch (err) {
             Toast.error(err.message || 'OTP verification failed');
         }
