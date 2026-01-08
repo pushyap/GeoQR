@@ -168,12 +168,14 @@
         </footer>
     </div>
 
+    <!-- Config Script -->
+    <script src="js/config.js"></script>
     <!-- Main Auth Script -->
     <script src="js/auth.js"></script>
 
     <script>
         // Enhanced login with Axios
-        const API_BASE_URL = 'http://localhost:3000/api';
+        // API_BASE_URL is now global from config.js
 
         // Override the default login handler if needed
         document.getElementById('loginForm').addEventListener('submit', async (e) => {

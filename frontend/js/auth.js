@@ -11,7 +11,7 @@
 // Configuration
 // ========================================
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:3000/api',
+    API_BASE_URL: window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api',
     TOKEN_KEY: 'geoqr_token',
     DATA_KEY: 'geoqr_user_data'
 };

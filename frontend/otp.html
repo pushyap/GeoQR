@@ -103,10 +103,12 @@
         </footer>
     </div>
 
+    <!-- Config -->
+    <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/mock-data.js"></script>
     <script>
-        const API_BASE_URL = 'http://localhost:3000/api';
+        // Global API_BASE_URL from config.js
 
         // Get stored temp token
         const tempToken = sessionStorage.getItem('login_temp_token');
