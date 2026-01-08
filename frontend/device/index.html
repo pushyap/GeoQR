@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="GeoQR Device - QR Code Generator">
+    <title>GeoQR Device</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+
+<body class="device-fullscreen">
+    <div class="device-container">
+        <!-- Header -->
+        <header class="device-header">
+            <div class="device-logo">
+                <svg viewBox="0 0 40 40" fill="none">
+                    <circle cx="20" cy="20" r="18" stroke="url(#devGrad)" stroke-width="3" />
+                    <circle cx="20" cy="20" r="8" fill="url(#devGrad)" />
+                    <defs>
+                        <linearGradient id="devGrad" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#6366f1" />
+                            <stop offset="100%" stop-color="#a855f7" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>GeoQR</span>
+            </div>
+            <div class="device-info-badge">
+                <span class="device-id" id="deviceId">DEV-001</span>
+                <span class="device-status online" id="deviceStatus">
+                    <span class="status-dot"></span>
+                    Online
+                </span>
+            </div>
+        </header>
+
+        <!-- Location Info -->
+        <div class="location-banner" id="locationBanner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span id="locationName">Room 101 - CS Lab</span>
+        </div>
+
+        <!-- Main QR Section -->
+        <main class="qr-main">
+            <!-- Idle State -->
+            <div class="qr-idle-state" id="idleState">
+                <div class="idle-icon">
+                    <svg viewBox="0 0 100 100" fill="none">
+                        <rect x="15" y="15" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
+                            opacity="0.5" />
+                        <rect x="60" y="15" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
+                            opacity="0.5" />
+                        <rect x="15" y="60" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
+                            opacity="0.5" />
+                        <rect x="60" y="60" width="25" height="25" rx="4" stroke="#a855f7" stroke-width="3" />
+                        <circle cx="50" cy="50" r="12" fill="#6366f1" opacity="0.3" />
+                    </svg>
+                </div>
+                <h2>Ready to Generate</h2>
+                <p>Press the button below to start generating QR codes</p>
+                <button class="start-btn" id="startBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    Start QR Generation
+                </button>
+            </div>
+
+            <!-- Active QR State -->
+            <div class="qr-active-state hidden" id="activeState">
+                <!-- Timer Ring -->
+                <div class="timer-ring-container">
+                    <svg class="timer-ring" viewBox="0 0 120 120">
+                        <circle class="timer-bg" cx="60" cy="60" r="54" />
+                        <circle class="timer-progress" cx="60" cy="60" r="54" id="timerCircle" />
+                    </svg>
+                    <div class="timer-content">
+                        <span class="timer-value" id="timerValue">15</span>
+                        <span class="timer-label">sec</span>
+                    </div>
+                </div>
+
+                <!-- QR Code Display -->
+                <div class="qr-display-container">
+                    <div class="qr-status-bar">
+                        <span class="qr-status active" id="qrStatus">
+                            <span class="pulse-dot"></span>
+                            QR Active
+                        </span>
+                    </div>
+                    <div class="qr-wrapper">
+                        <div id="qrCode"></div>
+                    </div>
+                    <div class="qr-token">
+                        Token: <code id="tokenDisplay">---</code>
+                    </div>
+                </div>
+
+                <!-- Stop Button -->
+                <button class="stop-btn" id="stopBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                    Stop Generation
+                </button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="device-footer">
+            <div class="network-status" id="networkStatus">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                    <circle cx="12" cy="20" r="1" />
+                </svg>
+                <span>Connected</span>
+            </div>
+            <div class="qr-stats">
+                <span><strong id="qrCount">0</strong> QR codes generated</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="../js/auth.js"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        // Device state
+        let deviceData = null;
+        let qrInstance = null;
+        let timerInterval = null;
+        let refreshInterval = null;
+        let timeRemaining = 15;
+        let qrCount = 0;
+        const QR_REFRESH_SECONDS = 15;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            Toast.init();
+
+            // Check authentication
+            const userData = Session.getUser();
+            if (!userData || userData.role !== 'device') {
+                // Allow for demo without auth
+                deviceData = {
+                    deviceCode: 'DEV-001',
+                    deviceName: 'CS Lab Display',
+                    locationName: 'Room 101 - CS Lab',
+                    locationId: 1,
+                    latitude: 17.3850,
+                    longitude: 78.4867,
+                    radius: 50
+                };
+            } else {
+                deviceData = userData;
+            }
+
+            // Update UI
+            document.getElementById('deviceId').textContent = deviceData.deviceCode || 'DEV-001';
+            document.getElementById('locationName').textContent = deviceData.locationName || 'Room 101';
+
+            // Setup event listeners
+            document.getElementById('startBtn').addEventListener('click', startGeneration);
+            document.getElementById('stopBtn').addEventListener('click', stopGeneration);
+
+            // Check network status
+            updateNetworkStatus();
+            window.addEventListener('online', updateNetworkStatus);
+            window.addEventListener('offline', updateNetworkStatus);
+        });
+
+        function updateNetworkStatus() {
+            const statusEl = document.getElementById('networkStatus');
+            if (navigator.onLine) {
+                statusEl.classList.remove('offline');
+                statusEl.querySelector('span').textContent = 'Connected';
+            } else {
+                statusEl.classList.add('offline');
+                statusEl.querySelector('span').textContent = 'Offline';
+            }
+        }
+
+        function startGeneration() {
+            document.getElementById('idleState').classList.add('hidden');
+            document.getElementById('activeState').classList.remove('hidden');
+            document.getElementById('deviceStatus').innerHTML = '<span class="status-dot active"></span>Generating';
+            document.getElementById('deviceStatus').className = 'device-status generating';
+
+            generateQR();
+            startTimer();
+
+            Toast.success('QR generation started');
+        }
+
+        function stopGeneration() {
+            if (timerInterval) clearInterval(timerInterval);
+            if (refreshInterval) clearInterval(refreshInterval);
+
+            document.getElementById('activeState').classList.add('hidden');
+            document.getElementById('idleState').classList.remove('hidden');
+            document.getElementById('deviceStatus').innerHTML = '<span class="status-dot"></span>Online';
+            document.getElementById('deviceStatus').className = 'device-status online';
+
+            // Clear QR
+            document.getElementById('qrCode').innerHTML = '';
+
+            Toast.info('QR generation stopped');
+        }
+
+        function generateQR() {
+            const timestamp = Date.now();
+            const randomPart = Math.random().toString(36).substring(2, 10);
+            const token = `GQR-${timestamp}-${randomPart}`;
+
+            const qrData = JSON.stringify({
+                token,
+                deviceId: deviceData.deviceCode,
+                locationId: deviceData.locationId,
+                latitude: deviceData.latitude,
+                longitude: deviceData.longitude,
+                radius: deviceData.radius,
+                expiresAt: timestamp + (QR_REFRESH_SECONDS * 1000)
+            });
+
+            // Clear old QR
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = '';
+
+            // Generate new QR
+            qrInstance = new QRCode(qrContainer, {
+                text: qrData,
+                width: 220,
+                height: 220,
+                colorDark: "#1e293b",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            // Update token display
+            document.getElementById('tokenDisplay').textContent = token.substring(0, 18) + '...';
+
+            // Update count
+            qrCount++;
+            document.getElementById('qrCount').textContent = qrCount;
+
+            // Update status
+            document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot"></span>QR Active';
+            document.getElementById('qrStatus').className = 'qr-status active';
+
+            // Reset timer
+            timeRemaining = QR_REFRESH_SECONDS;
+            updateTimerDisplay();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            if (refreshInterval) clearInterval(refreshInterval);
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+
+                if (timeRemaining <= 0) {
+                    document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot warning"></span>Refreshing...';
+                    document.getElementById('qrStatus').className = 'qr-status refreshing';
+                }
+            }, 1000);
+
+            refreshInterval = setInterval(() => {
+                generateQR();
+            }, QR_REFRESH_SECONDS * 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerValue = document.getElementById('timerValue');
+            const timerCircle = document.getElementById('timerCircle');
+
+            timerValue.textContent = timeRemaining;
+
+            // Update progress ring
+            const circumference = 2 * Math.PI * 54;
+            const progress = (timeRemaining / QR_REFRESH_SECONDS) * circumference;
+            timerCircle.style.strokeDasharray = `${progress} ${circumference}`;
+
+            // Color changes
+            if (timeRemaining <= 3) {
+                timerValue.style.color = '#ef4444';
+                timerCircle.style.stroke = '#ef4444';
+            } else if (timeRemaining <= 5) {
+                timerValue.style.color = '#f59e0b';
+                timerCircle.style.stroke = '#f59e0b';
+            } else {
+                timerValue.style.color = '#a855f7';
+                timerCircle.style.stroke = 'url(#timerGradient)';
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body.device-fullscreen {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .device-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: var(--space-4);
+        }
+
+        /* Header */
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3) 0;
+        }
+
+        .device-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .device-logo svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        .device-logo span {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .device-info-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: var(--space-1);
+        }
+
+        .device-id {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .device-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            font-size: 0.8rem;
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-full);
+        }
+
+        .device-status.online {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .device-status.generating {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-dot.active {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Location Banner */
+        .location-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-3);
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: var(--radius-lg);
+            margin: var(--space-3) 0;
+        }
+
+        .location-banner svg {
+            width: 18px;
+            height: 18px;
+            color: var(--primary-400);
+        }
+
+        .location-banner span {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* Main QR Section */
+        .qr-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4) 0;
+        }
+
+        /* Idle State */
+        .qr-idle-state {
+            text-align: center;
+        }
+
+        .idle-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto var(--space-5);
+        }
+
+        .idle-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .qr-idle-state h2 {
+            font-size: 1.5rem;
+            margin-bottom: var(--space-2);
+        }
+
+        .qr-idle-state p {
+            color: var(--text-muted);
+            margin-bottom: var(--space-6);
+        }
+
+        .start-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-4) var(--space-8);
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            border: none;
+            border-radius: var(--radius-xl);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .start-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        @keyframes pulseGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 50px rgba(99, 102, 241, 0.6);
+            }
+        }
+
+        /* Active State */
+        .qr-active-state {
+            text-align: center;
+            width: 100%;
+        }
+
+        .timer-ring-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto var(--space-4);
+        }
+
+        .timer-ring {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .timer-bg {
+            fill: none;
+            stroke: rgba(99, 102, 241, 0.1);
+            stroke-width: 6;
+        }
+
+        .timer-progress {
+            fill: none;
+            stroke: url(#timerGradient);
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.3s ease, stroke 0.3s ease;
+        }
+
+        .timer-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .timer-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #a855f7;
+            line-height: 1;
+        }
+
+        .timer-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* QR Display */
+        .qr-display-container {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .qr-status-bar {
+            display: flex;
+            justify-content: center;
+            margin-bottom: var(--space-3);
+        }
+
+        .qr-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .qr-status.active {
+            color: #34d399;
+        }
+
+        .qr-status.refreshing {
+            color: #fbbf24;
+        }
+
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .pulse-dot.warning {
+            background: #fbbf24;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.9);
+            }
+        }
+
+        .qr-wrapper {
+            display: flex;
+            justify-content: center;
+            padding: var(--space-4);
+            background: white;
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-3);
+        }
+
+        .qr-token {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .qr-token code {
+            background: rgba(99, 102, 241, 0.1);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            color: var(--primary-400);
+            font-family: monospace;
+        }
+
+        .stop-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-6);
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-lg);
+            color: #f87171;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .stop-btn:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .stop-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Footer */
+        .device-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3) 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .network-status {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 0.85rem;
+            color: #34d399;
+        }
+
+        .network-status svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .network-status.offline {
+            color: #f87171;
+        }
+
+        .qr-stats {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .qr-stats strong {
+            color: var(--primary-400);
+        }
+
+        /* Hidden utility */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+
+    <!-- SVG Gradient -->
+    <svg width="0" height="0">
+        <defs>
+            <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#6366f1" />
+                <stop offset="100%" stop-color="#a855f7" />
+            </linearGradient>
+        </defs>
+    </svg>
+</body>
+
+</html>

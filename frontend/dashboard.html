@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoQR Student Dashboard">
+    <title>Student Dashboard - GeoQR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="sidebar-logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 40 40" fill="none">
+                            <circle cx="20" cy="20" r="18" stroke="url(#sidebarGrad)" stroke-width="3" />
+                            <circle cx="20" cy="20" r="8" fill="url(#sidebarGrad)" />
+                            <defs>
+                                <linearGradient id="sidebarGrad" x1="0" y1="0" x2="40" y2="40">
+                                    <stop offset="0%" stop-color="#6366f1" />
+                                    <stop offset="100%" stop-color="#a855f7" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h1>GeoQR</h1>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Main</span>
+                    <a href="#" class="nav-item active" data-section="overview">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                        </svg>
+                        <span>Overview</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="scan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        <span>Scan Attendance</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Records</span>
+                    <a href="#" class="nav-item" data-section="history">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <span>Attendance History</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="stats">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 20V10" />
+                            <path d="M12 20V4" />
+                            <path d="M6 20v-6" />
+                        </svg>
+                        <span>Statistics</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Settings</span>
+                    <a href="#" class="nav-item" data-section="profile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span>Profile</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar" id="userAvatar">S</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Student</div>
+                        <div class="user-role" id="userRole">Student</div>
+                    </div>
+                </div>
+                <button class="nav-item" id="logoutBtn" style="margin-top: var(--space-3);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <div class="mobile-header-content">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span style="font-weight: 600;">GeoQR</span>
+                <div style="width: 30px;"></div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Welcome back, <span id="welcomeName">Student</span>!</h1>
+                <p class="page-subtitle">Here's your attendance overview</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" />
+                                <line x1="16" y1="2" x2="16" y2="6" />
+                                <line x1="8" y1="2" x2="8" y2="6" />
+                                <line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalSessions">0</div>
+                    <div class="stat-label">Total Sessions</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon success">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="presentCount">0</div>
+                    <div class="stat-label">Present</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon danger">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="15" y1="9" x2="9" y2="15" />
+                                <line x1="9" y1="9" x2="15" y2="15" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="absentCount">0</div>
+                    <div class="stat-label">Absent</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon warning">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 20V10" />
+                                <path d="M12 20V4" />
+                                <path d="M6 20v-6" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="attendancePercent">0%</div>
+                    <div class="stat-label">Attendance Rate</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="action-btn primary" id="scanBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    Scan Attendance
+                </button>
+                <button class="action-btn" id="viewHistoryBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    View History
+                </button>
+            </div>
+
+            <!-- Attendance History Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">Recent Attendance</h3>
+                    <div class="table-actions">
+                        <div class="search-input">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input type="text" id="searchInput" placeholder="Search...">
+                        </div>
+                        <select class="filter-select" id="statusFilter">
+                            <option value="all">All Status</option>
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <div class="table-pagination">
+                    <span class="pagination-info" id="paginationInfo">Showing 1-10 of 0</span>
+                    <div class="pagination-buttons" id="paginationButtons">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation (Mobile) -->
+        <nav class="bottom-nav">
+            <div class="bottom-nav-items">
+                <a href="#" class="bottom-nav-item active" data-section="overview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-section="scan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    <span>Scan</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-section="history">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span>History</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-section="profile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Profile</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let allRecords = [];
+        let filteredRecords = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication
+            const user = Session.getUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Check role
+            if (user.role !== 'student') {
+                const dashboards = {
+                    'admin': 'admin-dashboard.html',
+                    'faculty': 'faculty-dashboard.html',
+                    'device': 'device/'
+                };
+                window.location.href = dashboards[user.role] || 'login.html';
+                return;
+            }
+
+            // Update UI with user info
+            document.getElementById('welcomeName').textContent = user.name?.split(' ')[0] || 'Student';
+            document.getElementById('userName').textContent = user.name || 'Student';
+            document.getElementById('userRole').textContent = user.studentId || user.role;
+            document.getElementById('userAvatar').textContent = (user.name?.charAt(0) || 'S').toUpperCase();
+
+            // Load attendance data
+            await loadAttendanceData();
+
+            // Setup event listeners
+            setupEventListeners();
+        });
+
+        async function loadAttendanceData() {
+            try {
+                // Try API first
+                const response = await axios.get(`${API_BASE_URL}/attendance/my`, {
+                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                }).catch(() => null);
+
+                if (response?.data?.success) {
+                    allRecords = response.data.records;
+                } else {
+                    // Use mock data
+                    allRecords = MockAPI.getStudentAttendance();
+                }
+
+                filteredRecords = [...allRecords];
+                updateStats();
+                renderTable();
+
+            } catch (error) {
+                console.error('Error loading attendance:', error);
+                allRecords = MockAPI.getStudentAttendance();
+                filteredRecords = [...allRecords];
+                updateStats();
+                renderTable();
+            }
+        }
+
+        function updateStats() {
+            const total = allRecords.length;
+            const present = allRecords.filter(r => r.status === 'present').length;
+            const absent = total - present;
+            const percent = total > 0 ? Math.round((present / total) * 100) : 0;
+
+            animateNumber('totalSessions', total);
+            animateNumber('presentCount', present);
+            animateNumber('absentCount', absent);
+
+            const percentEl = document.getElementById('attendancePercent');
+            percentEl.textContent = percent + '%';
+            percentEl.style.color = percent >= 75 ? 'var(--success-light)' :
+                percent >= 50 ? 'var(--warning)' : 'var(--danger)';
+        }
+
+        function animateNumber(id, target) {
+            const el = document.getElementById(id);
+            let current = 0;
+            const increment = Math.ceil(target / 20);
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                el.textContent = current;
+            }, 30);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('attendanceTableBody');
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageRecords = filteredRecords.slice(start, end);
+
+            tbody.innerHTML = pageRecords.map(record => `
+                <tr>
+                    <td>${formatDate(record.date)}</td>
+                    <td>${record.subject || record.sessionName || 'N/A'}</td>
+                    <td>${record.location || record.locationName || 'N/A'}</td>
+                    <td>
+                        <span class="status-badge ${record.status === 'present' ? 'success' : 'danger'}">
+                            ${record.status === 'present' ? '✓ Present' : '✗ Absent'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Update pagination
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${start + 1}-${Math.min(end, filteredRecords.length)} of ${filteredRecords.length}`;
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
+            const container = document.getElementById('paginationButtons');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                btn.textContent = i;
+                btn.onclick = () => {
+                    currentPage = i;
+                    renderTable();
+                };
+                container.appendChild(btn);
+            }
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        function setupEventListeners() {
+            // Mobile menu
+            document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('sidebarOverlay').classList.toggle('active');
+            });
+
+            document.getElementById('sidebarOverlay').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+            });
+
+            // Search
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                filteredRecords = allRecords.filter(r =>
+                    (r.subject || r.sessionName || '').toLowerCase().includes(query) ||
+                    (r.location || r.locationName || '').toLowerCase().includes(query)
+                );
+                currentPage = 1;
+                renderTable();
+            });
+
+            // Status filter
+            document.getElementById('statusFilter').addEventListener('change', (e) => {
+                const status = e.target.value;
+                if (status === 'all') {
+                    filteredRecords = [...allRecords];
+                } else {
+                    filteredRecords = allRecords.filter(r => r.status === status);
+                }
+                currentPage = 1;
+                renderTable();
+            });
+
+            // Navigation
+            document.querySelectorAll('.nav-item[data-section], .bottom-nav-item[data-section]').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Remove active from all
+                    document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(i => i.classList.remove('active'));
+                    // Add active to clicked
+                    document.querySelectorAll(`[data-section="${item.dataset.section}"]`).forEach(i => i.classList.add('active'));
+
+                    // Close mobile menu
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('sidebarOverlay').classList.remove('active');
+                });
+            });
+
+            // Scan button
+            document.getElementById('scanBtn').addEventListener('click', () => {
+                window.location.href = 'scan.html';
+            });
+
+            // View history button
+            document.getElementById('viewHistoryBtn').addEventListener('click', () => {
+                document.querySelector('.table-container').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                Session.clear();
+                window.location.href = 'login.html';
+            });
+        }
+    </script>
+</body>
+
+</html>

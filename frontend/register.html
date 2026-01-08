@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 
 <body>
@@ -26,7 +27,7 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <div class="logo">
+            <a href="index.html" class="logo">
                 <div class="logo-icon">
                     <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="20" cy="20" r="18" stroke="url(#gradient1)" stroke-width="3" />
@@ -44,7 +45,7 @@
                     <h1>GeoQR</h1>
                     <span class="logo-badge">Attendance Portal</span>
                 </div>
-            </div>
+            </a>
         </header>
 
         <!-- Register Card -->
@@ -97,8 +98,8 @@
                     </div>
                 </div>
 
-                <!-- Name -->
-                <div class="form-group">
+                <!-- Name (for Student/Admin) -->
+                <div class="form-group" id="nameGroup">
                     <label for="name">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -112,8 +113,9 @@
                     </div>
                 </div>
 
-                <!-- Email -->
-                <div class="form-group">
+
+                <!-- Email (for Student/Admin) -->
+                <div class="form-group" id="emailGroup">
                     <label for="email">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
@@ -122,10 +124,11 @@
                         Email
                     </label>
                     <div class="input-wrapper">
-                        <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                        <input type="email" id="email" name="email" placeholder="Enter your email">
                         <span class="input-focus"></span>
                     </div>
                 </div>
+
 
                 <!-- Student ID (shown only for students) -->
                 <div class="form-group" id="studentIdGroup">
@@ -203,30 +206,40 @@
         </footer>
     </div>
 
-    <!-- Scripts -->
     <script src="js/auth.js"></script>
     <script>
-        // Toggle student ID field based on role
-        document.querySelectorAll('input[name="role"]').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const studentIdGroup = document.getElementById('studentIdGroup');
-                if (e.target.value === 'student') {
-                    studentIdGroup.style.display = 'block';
-                } else {
-                    studentIdGroup.style.display = 'none';
-                }
-            });
+        // Configuration
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        // Toggle form fields based on role
+        const roleInputs = document.querySelectorAll('input[name="role"]');
+        const studentIdGroup = document.getElementById('studentIdGroup');
+
+        function updateFormFields() {
+            const selectedRole = document.querySelector('input[name="role"]:checked').value;
+
+            if (selectedRole === 'student') {
+                studentIdGroup.classList.remove('hidden');
+                document.getElementById('studentId').required = true;
+            } else {
+                studentIdGroup.classList.add('hidden');
+                document.getElementById('studentId').required = false;
+            }
+        }
+
+        roleInputs.forEach(input => {
+            input.addEventListener('change', updateFormFields);
         });
 
         // Handle registration form
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const role = document.querySelector('input[name="role"]:checked').value;
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
-            const role = document.querySelector('input[name="role"]:checked').value;
             const studentId = document.getElementById('studentId').value.trim();
             const registerBtn = document.getElementById('registerBtn');
 
@@ -241,12 +254,17 @@
                 return;
             }
 
+            if (role === 'student' && !studentId) {
+                Toast.error('Student ID is required');
+                return;
+            }
+
             // Show loading
             registerBtn.classList.add('loading');
             registerBtn.disabled = true;
 
             try {
-                const response = await API.post('/auth/register', {
+                const response = await axios.post(`${API_BASE_URL}/auth/register`, {
                     name,
                     email,
                     password,
@@ -254,26 +272,70 @@
                     studentId: role === 'student' ? studentId : null
                 });
 
-                if (response.success) {
-                    Session.save(response.token, response.user);
-                    Toast.success('Account created successfully! Redirecting...');
+                const data = response.data;
 
-                    setTimeout(() => {
-                        const dashboard = {
-                            'student': 'dashboard.html',
-                            'faculty': 'faculty-dashboard.html',
-                            'admin': 'admin-dashboard.html'
-                        };
-                        window.location.href = dashboard[role] || 'dashboard.html';
-                    }, 1500);
+                if (data.success) {
+                    if (data.requiresOtp) {
+                        // OTP verification required
+                        sessionStorage.setItem('register_temp_token', data.tempToken);
+                        sessionStorage.setItem('register_email', email);
+                        Toast.success('OTP sent to your email! Redirecting...');
+                        setTimeout(() => {
+                            window.location.href = 'register-otp.html';
+                        }, 1500);
+                    } else {
+                        // Direct login (fallback)
+                        Session.save(data.token, data.user);
+                        Toast.success('Account created! Redirecting...');
+                        setTimeout(() => {
+                            const dashboards = {
+                                'student': 'dashboard.html',
+                                'faculty': 'faculty-dashboard.html',
+                                'admin': 'admin-dashboard.html'
+                            };
+                            window.location.href = dashboards[role] || 'dashboard.html';
+                        }, 1500);
+                    }
                 }
             } catch (error) {
-                Toast.error(error.message || 'Registration failed');
+                const message = error.response?.data?.error || error.message || 'Registration failed';
+                Toast.error(message);
                 registerBtn.classList.remove('loading');
                 registerBtn.disabled = false;
             }
         });
     </script>
+
+    <style>
+        /* Additional styles for 3-column role selector */
+        .role-selector-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .input-hint {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: var(--space-1);
+        }
+
+        /* Smooth transitions for form fields */
+        .form-group {
+            transition: all var(--transition-normal);
+        }
+
+        .form-group.hidden {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
 </body>
 
 </html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoQR - Verify Your Registration">
+    <title>Verify Registration - GeoQR</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <!-- Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="floating-orbs">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none">
+                        <circle cx="20" cy="20" r="18" stroke="url(#gradient1)" stroke-width="3" />
+                        <circle cx="20" cy="20" r="8" fill="url(#gradient1)" />
+                        <defs>
+                            <linearGradient id="gradient1" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#a855f7" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>GeoQR</h1>
+                    <span class="logo-badge">Attendance Portal</span>
+                </div>
+            </a>
+        </header>
+
+        <!-- OTP Card -->
+        <main class="login-card glass-card">
+            <div class="card-header">
+                <div class="card-icon success-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                </div>
+                <h2>Verify Your Email</h2>
+                <p class="card-description">Enter the 4-digit code sent to <strong id="emailDisplay">your email</strong>
+                </p>
+            </div>
+
+            <form id="otpForm" class="login-form">
+                <div class="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-input" data-index="0" autofocus>
+                    <input type="text" maxlength="1" class="otp-input" data-index="1">
+                    <input type="text" maxlength="1" class="otp-input" data-index="2">
+                    <input type="text" maxlength="1" class="otp-input" data-index="3">
+                </div>
+
+                <p class="otp-timer">
+                    Code expires in <span id="timer">5:00</span>
+                </p>
+
+                <button type="submit" class="btn btn-primary" id="verifyBtn">
+                    <span class="btn-content">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        <span class="btn-text">Verify & Complete</span>
+                    </span>
+                    <span class="btn-loader">
+                        <span class="spinner"></span>
+                    </span>
+                </button>
+            </form>
+
+            <div class="card-footer">
+                <p>Didn't receive the code?
+                    <button class="resend-btn" id="resendBtn" disabled>Resend OTP</button>
+                </p>
+            </div>
+        </main>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2024 GeoQR Attendance System • College Project</p>
+        </footer>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        // Get stored temp token
+        const tempToken = sessionStorage.getItem('register_temp_token');
+        const email = sessionStorage.getItem('register_email');
+
+        if (!tempToken) {
+            Toast.error('Session expired. Please register again.');
+            setTimeout(() => window.location.href = 'register.html', 1500);
+        }
+
+        // Display email
+        if (email) {
+            document.getElementById('emailDisplay').textContent = email;
+        }
+
+        // OTP input handling
+        const otpInputs = document.querySelectorAll('.otp-input');
+
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+
+                // Only allow numbers
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = '';
+                    return;
+                }
+
+                // Move to next input
+                if (value && index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                // Move to previous on backspace
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+
+            // Handle paste
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').slice(0, 4);
+                if (/^\d{4}$/.test(pastedData)) {
+                    pastedData.split('').forEach((char, i) => {
+                        if (otpInputs[i]) otpInputs[i].value = char;
+                    });
+                    otpInputs[3].focus();
+                }
+            });
+        });
+
+        // Timer
+        let timeLeft = 300; // 5 minutes
+        const timerEl = document.getElementById('timer');
+        const resendBtn = document.getElementById('resendBtn');
+
+        const timerInterval = setInterval(() => {
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerEl.textContent = 'Expired';
+                timerEl.style.color = 'var(--danger)';
+                resendBtn.disabled = false;
+            }
+
+            // Enable resend after 30 seconds
+            if (timeLeft <= 270) {
+                resendBtn.disabled = false;
+            }
+        }, 1000);
+
+        // Verify OTP
+        document.getElementById('otpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const otp = Array.from(otpInputs).map(i => i.value).join('');
+
+            if (otp.length !== 4) {
+                Toast.warning('Please enter complete 4-digit OTP');
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verifyBtn');
+            verifyBtn.classList.add('loading');
+            verifyBtn.disabled = true;
+
+            try {
+                const response = await axios.post(`${API_BASE_URL}/auth/verify-registration-otp`, {
+                    tempToken,
+                    otp
+                });
+
+                if (response.data.success) {
+                    // Clear session storage
+                    sessionStorage.removeItem('register_temp_token');
+                    sessionStorage.removeItem('register_email');
+
+                    // Save session
+                    Session.save(response.data.token, response.data.user);
+
+                    Toast.success('Registration complete! Redirecting...');
+
+                    setTimeout(() => {
+                        const dashboards = {
+                            'student': 'dashboard.html',
+                            'faculty': 'faculty-dashboard.html',
+                            'admin': 'admin-dashboard.html'
+                        };
+                        window.location.href = dashboards[response.data.user.role] || 'dashboard.html';
+                    }, 1500);
+                }
+            } catch (error) {
+                const message = error.response?.data?.error || 'Verification failed';
+                Toast.error(message);
+                verifyBtn.classList.remove('loading');
+                verifyBtn.disabled = false;
+
+                // Clear inputs on error
+                otpInputs.forEach(i => i.value = '');
+                otpInputs[0].focus();
+            }
+        });
+
+        // Resend OTP
+        resendBtn.addEventListener('click', async () => {
+            resendBtn.disabled = true;
+
+            try {
+                await axios.post(`${API_BASE_URL}/auth/resend-otp`, {
+                    tempToken,
+                    type: 'registration'
+                });
+
+                Toast.success('OTP resent successfully');
+
+                // Reset timer
+                timeLeft = 300;
+                timerEl.style.color = '';
+
+            } catch (error) {
+                Toast.error('Failed to resend OTP');
+                resendBtn.disabled = false;
+            }
+        });
+    </script>
+
+    <style>
+        .success-icon {
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%) !important;
+        }
+
+        .otp-inputs {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-4);
+            margin: var(--space-6) 0;
+        }
+
+        .otp-input {
+            width: 60px;
+            height: 70px;
+            text-align: center;
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+        }
+
+        .otp-input:focus {
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            outline: none;
+        }
+
+        .otp-timer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: var(--space-5);
+        }
+
+        .otp-timer span {
+            font-weight: 600;
+            color: var(--primary-400);
+        }
+
+        .resend-btn {
+            background: none;
+            border: none;
+            color: var(--primary-400);
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: color var(--transition-fast);
+        }
+
+        .resend-btn:hover:not(:disabled) {
+            color: var(--primary-300);
+        }
+
+        .resend-btn:disabled {
+            color: var(--text-disabled);
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto var(--space-4);
+            background: var(--gradient-primary);
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .card-icon svg {
+            width: 30px;
+            height: 30px;
+            color: white;
+        }
+
+        @media (max-width: 400px) {
+            .otp-input {
+                width: 50px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .otp-inputs {
+                gap: var(--space-2);
+            }
+        }
+    </style>
+</body>
+
+</html>

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoQR Admin Dashboard">
+    <title>Admin Dashboard - GeoQR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="sidebar-logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 40 40" fill="none">
+                            <circle cx="20" cy="20" r="18" stroke="url(#adminGrad)" stroke-width="3" />
+                            <circle cx="20" cy="20" r="8" fill="url(#adminGrad)" />
+                            <defs>
+                                <linearGradient id="adminGrad" x1="0" y1="0" x2="40" y2="40">
+                                    <stop offset="0%" stop-color="#6366f1" />
+                                    <stop offset="100%" stop-color="#a855f7" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h1>GeoQR</h1>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Dashboard</span>
+                    <a href="#" class="nav-item active" data-tab="overview">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                        </svg>
+                        <span>Overview</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Management</span>
+                    <a href="#" class="nav-item" data-tab="locations">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span>Locations</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="devices">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" />
+                            <line x1="12" y1="18" x2="12" y2="18" />
+                        </svg>
+                        <span>Devices</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="students">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span>Students</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="attendance">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        <span>Attendance</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">System</span>
+                    <a href="#" class="nav-item" data-tab="activity">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                        </svg>
+                        <span>Activity Log</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                        <span>Settings</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                </div>
+                <button class="nav-item" id="logoutBtn" style="margin-top: var(--space-3);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <div class="mobile-header-content">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span style="font-weight: 600;">Admin Panel</span>
+                <div style="width: 30px;"></div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Admin Dashboard</h1>
+                <p class="page-subtitle">System overview and management</p>
+            </div>
+
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="tab-overview">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon primary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalStudents">0</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon success">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="5" y="2" width="14" height="20" rx="2" />
+                                    <line x1="12" y1="18" x2="12" y2="18" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="activeDevices">0</div>
+                        <div class="stat-label">Active Devices</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon warning">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="todayAttendance">0%</div>
+                        <div class="stat-label">Today's Attendance</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon danger">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="activeLocations">0</div>
+                        <div class="stat-label">Active Locations</div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="action-btn primary" onclick="showTab('locations')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Add Location
+                    </button>
+                    <button class="action-btn" onclick="showTab('devices')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" />
+                        </svg>
+                        Manage Devices
+                    </button>
+                    <button class="action-btn" onclick="showTab('attendance')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        View Reports
+                    </button>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Recent Activity</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Details</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Locations Tab -->
+            <div class="tab-content" id="tab-locations">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Location Management</h3>
+                        <button class="action-btn primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Add Location
+                        </button>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Coordinates</th>
+                                <th>Radius</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locationsTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Devices Tab -->
+            <div class="tab-content" id="tab-devices">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Device Management</h3>
+                        <button class="action-btn primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Add Device
+                        </button>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Device Code</th>
+                                <th>Name</th>
+                                <th>Location</th>
+                                <th>Last Active</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devicesTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div class="tab-content" id="tab-students">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Student Management</h3>
+                        <div class="table-actions">
+                            <div class="search-input">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                                <input type="text" id="studentSearch" placeholder="Search students...">
+                            </div>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Attendance Rate</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div class="tab-content" id="tab-attendance">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Attendance Records</h3>
+                        <div class="table-actions">
+                            <input type="date" class="filter-select" id="dateFilter">
+                            <select class="filter-select" id="locationFilter">
+                                <option value="">All Locations</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>Location</th>
+                                <th>Session</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                    <div class="table-pagination">
+                        <span class="pagination-info">Showing 1-10 of 50</span>
+                        <div class="pagination-buttons">
+                            <button class="pagination-btn active">1</button>
+                            <button class="pagination-btn">2</button>
+                            <button class="pagination-btn">3</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation (Mobile) -->
+        <nav class="bottom-nav">
+            <div class="bottom-nav-items">
+                <a href="#" class="bottom-nav-item active" data-tab="overview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    <span>Overview</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-tab="locations">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span>Locations</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-tab="devices">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" />
+                    </svg>
+                    <span>Devices</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-tab="students">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg>
+                    <span>Students</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script>
+        // Check authentication and role
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = Session.getUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (user.role !== 'admin' && user.role !== 'faculty') {
+                const dashboards = {
+                    'student': 'dashboard.html',
+                    'device': 'device/'
+                };
+                window.location.href = dashboards[user.role] || 'login.html';
+                return;
+            }
+
+            // Update UI
+            document.getElementById('userName').textContent = user.name || 'Admin';
+            document.getElementById('userAvatar').textContent = (user.name?.charAt(0) || 'A').toUpperCase();
+
+            // Load data
+            await loadDashboardData();
+            setupEventListeners();
+        });
+
+        async function loadDashboardData() {
+            // Get mock data
+            const stats = MockAPI.getAdminStats();
+            const locations = MockAPI.getLocations();
+            const devices = MockAPI.getDevices();
+            const students = MockAPI.getStudents();
+            const attendance = MockAPI.getAttendance();
+
+            // Update stats
+            document.getElementById('totalStudents').textContent = stats.totalStudents || students.length;
+            document.getElementById('activeDevices').textContent = stats.activeDevices || devices.filter(d => d.status === 'online').length;
+            document.getElementById('todayAttendance').textContent = (stats.todayAttendance || 78) + '%';
+            document.getElementById('activeLocations').textContent = stats.activeLocations || locations.length;
+
+            // Render tables
+            renderActivityTable();
+            renderLocationsTable(locations);
+            renderDevicesTable(devices);
+            renderStudentsTable(students);
+            renderAttendanceTable(attendance);
+        }
+
+        function renderActivityTable() {
+            const activities = [
+                { time: '2 min ago', event: 'Device Online', details: 'DEV-001 started QR generation', status: 'success' },
+                { time: '15 min ago', event: 'Attendance', details: '23 students marked present', status: 'success' },
+                { time: '1 hour ago', event: 'New Student', details: 'John Smith registered', status: 'info' },
+                { time: '2 hours ago', event: 'Session Started', details: 'Database Systems - Room 101', status: 'info' },
+                { time: 'Yesterday', event: 'Device Offline', details: 'DEV-003 went offline', status: 'warning' }
+            ];
+
+            document.getElementById('activityTableBody').innerHTML = activities.map(a => `
+                <tr>
+                    <td>${a.time}</td>
+                    <td>${a.event}</td>
+                    <td>${a.details}</td>
+                    <td><span class="status-badge ${a.status}">${a.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderLocationsTable(locations) {
+            document.getElementById('locationsTableBody').innerHTML = locations.map(loc => `
+                <tr>
+                    <td>${loc.name}</td>
+                    <td>${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</td>
+                    <td>${loc.radius}m</td>
+                    <td><span class="status-badge ${loc.isActive ? 'success' : 'danger'}">${loc.isActive ? 'Active' : 'Inactive'}</span></td>
+                    <td>
+                        <button class="action-btn" style="padding: 4px 8px; font-size: 0.75rem;">Edit</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderDevicesTable(devices) {
+            document.getElementById('devicesTableBody').innerHTML = devices.map(dev => `
+                <tr>
+                    <td><code>${dev.deviceCode}</code></td>
+                    <td>${dev.deviceName}</td>
+                    <td>${dev.locationName}</td>
+                    <td>${dev.lastActive || 'N/A'}</td>
+                    <td><span class="status-badge ${dev.status === 'online' ? 'success' : 'danger'}">${dev.status}</span></td>
+                    <td>
+                        <button class="action-btn" style="padding: 4px 8px; font-size: 0.75rem;">Configure</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderStudentsTable(students) {
+            document.getElementById('studentsTableBody').innerHTML = students.map(s => `
+                <tr>
+                    <td><code>${s.studentId}</code></td>
+                    <td>${s.name}</td>
+                    <td>${s.email}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="flex: 1; height: 6px; background: rgba(99,102,241,0.2); border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${s.attendanceRate || 75}%; height: 100%; background: ${(s.attendanceRate || 75) >= 75 ? 'var(--success)' : 'var(--warning)'};"></div>
+                            </div>
+                            <span style="font-size: 0.8rem;">${s.attendanceRate || 75}%</span>
+                        </div>
+                    </td>
+                    <td><span class="status-badge ${s.isActive !== false ? 'success' : 'danger'}">${s.isActive !== false ? 'Active' : 'Inactive'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAttendanceTable(attendance) {
+            document.getElementById('attendanceTableBody').innerHTML = attendance.map(a => `
+                <tr>
+                    <td>${new Date(a.date || a.createdAt).toLocaleDateString()}</td>
+                    <td>${a.studentName || 'Student'}</td>
+                    <td>${a.locationName || a.location}</td>
+                    <td>${a.sessionName || a.subject}</td>
+                    <td>${a.time || new Date(a.createdAt).toLocaleTimeString()}</td>
+                    <td><span class="status-badge ${a.status === 'present' ? 'success' : 'danger'}">${a.status}</span></td>
+                </tr>
+            `).join('');
+
+            // Populate location filter
+            const locations = [...new Set(attendance.map(a => a.locationName || a.location))];
+            document.getElementById('locationFilter').innerHTML = '<option value="">All Locations</option>' +
+                locations.map(l => `<option value="${l}">${l}</option>`).join('');
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-item[data-tab], .bottom-nav-item[data-tab]').forEach(item => item.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => item.classList.add('active'));
+        }
+
+        function setupEventListeners() {
+            // Mobile menu
+            document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('sidebarOverlay').classList.toggle('active');
+            });
+
+            document.getElementById('sidebarOverlay').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+            });
+
+            // Tab navigation
+            document.querySelectorAll('.nav-item[data-tab], .bottom-nav-item[data-tab]').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showTab(item.dataset.tab);
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('sidebarOverlay').classList.remove('active');
+                });
+            });
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                Session.clear();
+                window.location.href = 'login.html';
+            });
+
+            // Search
+            document.getElementById('studentSearch')?.addEventListener('input', (e) => {
+                // Filter students table
+                const query = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#studentsTableBody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(query) ? '' : 'none';
+                });
+            });
+        }
+    </script>
+
+    <style>
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</body>
+
+</html>
