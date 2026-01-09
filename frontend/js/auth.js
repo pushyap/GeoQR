@@ -105,7 +105,9 @@ const Session = {
 const RoleGuard = {
     redirect() {
         const role = Session.getRole();
-        window.location.href = DASHBOARD_MAP[role] || 'index.html';
+        const target = DASHBOARD_MAP[role] || 'index.html';
+        console.log(`🔄 RoleGuard Redirect: Role=${role}, Target=${target}`);
+        window.location.href = target;
     }
 };
 

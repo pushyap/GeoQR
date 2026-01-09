@@ -160,6 +160,8 @@ router.post('/verify-email-otp', async (req, res) => {
         { expiresIn: '24h' }
     );
 
+    console.log(`✅ OTP Verified for ${user.email} (Role: ${user.role})`);
+
     res.json({
         success: true,
         token,
