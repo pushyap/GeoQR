@@ -244,15 +244,29 @@
 
         // Check for remembered session
         document.addEventListener('DOMContentLoaded', () => {
-            if (Session.isValid()) {
-                const user = Session.getUser();
-                if (user) {
-                    const dashboards = {
-                        'student': 'dashboard.html',
-                        'faculty': 'faculty-dashboard.html',
-                        'admin': 'admin-dashboard.html'
-                    };
-                    window.location.href = dashboards[user.role] || 'dashboard.html';
+            // Clear any partial/invalid sessions
+            const token = sessionStorage.getItem('geoqr_token');
+            const userData = sessionStorage.getItem('geoqr_user_data');
+
+            if (token && userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user && user.role) {
+                        console.log('📍 Valid session found, redirecting:', user.role);
+                        const dashboards = {
+                            'student': 'dashboard.html',
+                            'faculty': 'faculty-dashboard.html',
+                            'admin': 'admin-dashboard.html'
+                        };
+                        window.location.href = dashboards[user.role] || 'dashboard.html';
+                    } else {
+                        // Invalid user data, clear it
+                        console.log('⚠️ Invalid user data, clearing session');
+                        sessionStorage.clear();
+                    }
+                } catch (e) {
+                    console.log('⚠️ Corrupt session data, clearing');
+                    sessionStorage.clear();
                 }
             }
         });

@@ -68,20 +68,20 @@ const API = {
 };
 
 // ========================================
-// Session Manager
+// Session Manager (uses sessionStorage - clears on browser close)
 // ========================================
 const Session = {
     save(token, user) {
-        localStorage.setItem(CONFIG.TOKEN_KEY, token);
-        localStorage.setItem(CONFIG.DATA_KEY, JSON.stringify(user));
+        sessionStorage.setItem(CONFIG.TOKEN_KEY, token);
+        sessionStorage.setItem(CONFIG.DATA_KEY, JSON.stringify(user));
     },
 
     getToken() {
-        return localStorage.getItem(CONFIG.TOKEN_KEY);
+        return sessionStorage.getItem(CONFIG.TOKEN_KEY);
     },
 
     getUser() {
-        const d = localStorage.getItem(CONFIG.DATA_KEY);
+        const d = sessionStorage.getItem(CONFIG.DATA_KEY);
         return d ? JSON.parse(d) : null;
     },
 
@@ -94,7 +94,6 @@ const Session = {
     },
 
     clear() {
-        localStorage.clear();
         sessionStorage.clear();
     }
 };

@@ -68,55 +68,32 @@ router.post('/login', [
         }
 
         // ===============================
-        // STUDENT → EMAIL OTP REQUIRED
+        // ALL ROLES → EMAIL OTP REQUIRED
         // ===============================
-        if (user.role === 'student') {
-            const otp = generateOtp();
-            const tempToken = crypto.randomUUID();
+        const otp = generateOtp();
+        const tempToken = crypto.randomUUID();
 
-            loginOtpStore.set(tempToken, {
-                otp,
-                userId: user.id,
-                expiresAt: Date.now() + 5 * 60 * 1000
-            });
+        loginOtpStore.set(tempToken, {
+            otp,
+            userId: user.id,
+            expiresAt: Date.now() + 5 * 60 * 1000
+        });
 
-            // Send OTP email
-            console.log(`📧 Sending OTP to ${user.email}...`);
-            console.log(`🔑 OTP: ${otp}`); // Visible in Render logs
-            try {
-                await sendEmail(user.email, 'loginOtp', user.name, otp);
-                console.log('✅ Email sent successfully');
-            } catch (emailErr) {
-                console.warn('⚠️ Email failed (Allowing login to proceed):', emailErr.message);
-                // Fallback: Proceed even if email fails
-            }
-
-            return res.json({
-                success: true,
-                requiresOtp: true,
-                tempToken
-            });
+        // Send OTP email
+        console.log(`📧 Sending OTP to ${user.email}...`);
+        console.log(`🔑 OTP: ${otp}`); // Visible in Render logs
+        try {
+            await sendEmail(user.email, 'loginOtp', user.name, otp);
+            console.log('✅ Email sent successfully');
+        } catch (emailErr) {
+            console.warn('⚠️ Email failed (Allowing login to proceed):', emailErr.message);
+            // Fallback: Proceed even if email fails
         }
 
-        // ===============================
-        // FACULTY / ADMIN → DIRECT LOGIN
-        // ===============================
-        const token = jwt.sign(
-            { userId: user.id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        res.json({
+        return res.json({
             success: true,
-            token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                studentId: user.student_id
-            }
+            requiresOtp: true,
+            tempToken
         });
 
     } catch (err) {

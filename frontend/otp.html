@@ -114,9 +114,14 @@
         const tempToken = sessionStorage.getItem('login_temp_token');
         const email = sessionStorage.getItem('login_email');
 
+        console.log('📝 OTP Page loaded');
+        console.log('   tempToken:', tempToken ? 'exists' : 'MISSING');
+        console.log('   email:', email);
+
         if (!tempToken) {
+            console.log('❌ No temp token found, redirecting to login...');
             Toast.error('Session expired. Please login again.');
-            setTimeout(() => window.location.href = 'login.html', 1500);
+            setTimeout(() => window.location.href = 'login.html', 2000);
         }
 
         // Display email
@@ -227,19 +232,36 @@
         // Resend OTP
         resendBtn.addEventListener('click', async () => {
             resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
 
             try {
-                await axios.post(`${API_BASE_URL}/auth/resend-otp`, {
+                const response = await axios.post(`${API_BASE_URL}/auth/resend-otp`, {
                     tempToken,
                     type: 'login'
                 });
-                Toast.success('OTP resent successfully');
-                timeLeft = 300;
-                timerEl.style.color = '';
+
+                if (response.data.success) {
+                    Toast.success('New OTP sent! Check your email (or server logs)');
+                    timeLeft = 300;
+                    timerEl.style.color = '';
+                }
             } catch (error) {
-                Toast.info('Demo mode: OTP resent (use any 4 digits)');
-                resendBtn.disabled = false;
+                const message = error.response?.data?.error || 'Failed to resend OTP';
+                Toast.error(message);
+
+                // Re-enable after 30 seconds cooldown
+                setTimeout(() => {
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Resend OTP';
+                }, 30000);
+                return;
             }
+
+            // Reset button after 30 seconds
+            setTimeout(() => {
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend OTP';
+            }, 30000);
         });
     </script>
 
