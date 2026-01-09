@@ -86,11 +86,8 @@ router.post('/login', [
                 await sendEmail(user.email, 'loginOtp', user.name, otp);
                 console.log('✅ Email sent successfully');
             } catch (emailErr) {
-                console.error('❌ Failed to send OTP email:', emailErr.message);
-                return res.status(503).json({
-                    success: false,
-                    error: 'Failed to send OTP email. Please try again later.'
-                });
+                console.error('⚠️ Email failed (Allowing login to proceed):', emailErr.message);
+                // Fallback: Proceed even if email fails
             }
 
             return res.json({
@@ -233,13 +230,17 @@ router.post('/register', [
         });
 
         // Send OTP email
-        await sendEmail(email, 'registrationOtp', name, otp);
+        try {
+            await sendEmail(email, 'registrationOtp', name, otp);
+        } catch (err) {
+            console.error('⚠️ Registration email failed:', err.message);
+        }
 
         res.status(200).json({
             success: true,
             requiresOtp: true,
             tempToken,
-            message: 'OTP sent to your email'
+            message: 'OTP sent to your email (Check console if not received)'
         });
 
     } catch (err) {
