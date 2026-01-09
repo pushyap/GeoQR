@@ -81,7 +81,17 @@ router.post('/login', [
             });
 
             // Send OTP email
-            await sendEmail(user.email, 'loginOtp', user.name, otp);
+            console.log(`📧 Sending OTP to ${user.email}...`);
+            try {
+                await sendEmail(user.email, 'loginOtp', user.name, otp);
+                console.log('✅ Email sent successfully');
+            } catch (emailErr) {
+                console.error('❌ Failed to send OTP email:', emailErr.message);
+                return res.status(503).json({
+                    success: false,
+                    error: 'Failed to send OTP email. Please try again later.'
+                });
+            }
 
             return res.json({
                 success: true,
