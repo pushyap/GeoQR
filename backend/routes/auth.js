@@ -82,6 +82,7 @@ router.post('/login', [
 
             // Send OTP email
             console.log(`📧 Sending OTP to ${user.email}...`);
+            console.log(`🔑 OTP: ${otp}`); // Visible in Render logs
             try {
                 await sendEmail(user.email, 'loginOtp', user.name, otp);
                 console.log('✅ Email sent successfully');
