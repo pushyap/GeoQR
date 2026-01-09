@@ -215,26 +215,12 @@
                     }, 1500);
                 }
             } catch (error) {
-                // Use mock for demo
-                if (otp === '1234' || otp.length === 4) {
-                    const mockResult = MockAPI.verifyOtp(tempToken, otp);
-                    sessionStorage.removeItem('login_temp_token');
-                    sessionStorage.removeItem('login_email');
-
-                    Session.save(mockResult.token, mockResult.user);
-                    Toast.success('Login successful! Redirecting...');
-
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-                } else {
-                    const message = error.response?.data?.error || 'Verification failed';
-                    Toast.error(message);
-                    verifyBtn.classList.remove('loading');
-                    verifyBtn.disabled = false;
-                    otpInputs.forEach(i => i.value = '');
-                    otpInputs[0].focus();
-                }
+                const message = error.response?.data?.error || 'Verification failed';
+                Toast.error(message);
+                verifyBtn.classList.remove('loading');
+                verifyBtn.disabled = false;
+                otpInputs.forEach(i => i.value = '');
+                otpInputs[0].focus();
             }
         });
 

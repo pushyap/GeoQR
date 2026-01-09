@@ -1,34 +1,21 @@
 /**
  * GeoQR Email Utility
- * Nodemailer configuration with professional email templates
+ * Using Mailgun API for reliable email delivery
  */
 
-const nodemailer = require('nodemailer');
+const FormData = require('form-data');
+const Mailgun = require('mailgun.js');
 require('dotenv').config();
 
-// Email transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    // Add timeouts to prevent hanging
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,   // 10 seconds
-    socketTimeout: 10000,     // 10 seconds
-    debug: true,              // Show debug output
-    logger: true              // Log information to console
+// Initialize Mailgun client
+const mailgun = new Mailgun(FormData);
+const mg = mailgun.client({
+    username: 'api',
+    key: process.env.MAILGUN_API_KEY || 'db8000dbda07a885976b1eaca53cb0d0-f6d80573-fb9c87e6'
 });
 
-// Verify connection on startup
-transporter.verify((err) => {
-    if (err) {
-        console.error('❌ Email server error:', err.message);
-    } else {
-        console.log('✅ Email server ready');
-    }
-});
+const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || 'sandbox0a0c7942f194424792447b886fe9a813.mailgun.org';
+const FROM_EMAIL = `GeoQR System <postmaster@${MAILGUN_DOMAIN}>`;
 
 /**
  * Email Templates
@@ -163,7 +150,7 @@ const templates = {
                                     <li>👥 View student attendance</li>
                                     <li>📊 Generate reports</li>
                                 `}
-                    </ul>
+                            </ul>
                         </div>
                         <p>Get started by logging in to your dashboard!</p>
                     </div>
@@ -223,7 +210,7 @@ const templates = {
 };
 
 /**
- * Send email helper
+ * Send email using Mailgun API
  */
 async function sendEmail(to, templateName, ...args) {
     const template = templates[templateName];
@@ -234,22 +221,31 @@ async function sendEmail(to, templateName, ...args) {
     const { subject, html } = template(...args);
 
     try {
-        await transporter.sendMail({
-            from: `"GeoQR System" <${process.env.EMAIL_USER}>`,
-            to,
+        const result = await mg.messages.create(MAILGUN_DOMAIN, {
+            from: FROM_EMAIL,
+            to: [to],
             subject,
             html
         });
-        console.log(`📧 Email sent to ${to}: ${templateName}`);
+        console.log(`📧 Email sent to ${to}: ${templateName} (ID: ${result.id})`);
         return true;
     } catch (error) {
-        console.warn(`⚠️ Email failed to ${to}:`, error.message);
+        console.error(`❌ Mailgun error for ${to}:`, error.message);
         throw error;
     }
 }
 
+// Test connection on startup
+(async () => {
+    try {
+        console.log('✅ Mailgun client initialized');
+        console.log(`   Domain: ${MAILGUN_DOMAIN}`);
+    } catch (err) {
+        console.error('❌ Mailgun initialization error:', err.message);
+    }
+})();
+
 module.exports = {
-    transporter,
     sendEmail,
     templates
 };
