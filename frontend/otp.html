@@ -211,12 +211,9 @@
                     Toast.success('Login successful! Redirecting...');
 
                     setTimeout(() => {
-                        const dashboards = {
-                            'student': 'dashboard.html',
-                            'faculty': 'faculty-dashboard.html',
-                            'admin': 'admin-dashboard.html'
-                        };
-                        window.location.href = dashboards[response.data.user.role] || 'dashboard.html';
+                        setTimeout(() => {
+                            RoleGuard.redirect();
+                        }, 1500);
                     }, 1500);
                 }
             } catch (error) {
