@@ -16,7 +16,9 @@ const transporter = nodemailer.createTransport({
     // Add timeouts to prevent hanging
     connectionTimeout: 10000, // 10 seconds
     greetingTimeout: 10000,   // 10 seconds
-    socketTimeout: 10000      // 10 seconds
+    socketTimeout: 10000,     // 10 seconds
+    debug: true,              // Show debug output
+    logger: true              // Log information to console
 });
 
 // Verify connection on startup
@@ -241,7 +243,7 @@ async function sendEmail(to, templateName, ...args) {
         console.log(`📧 Email sent to ${to}: ${templateName}`);
         return true;
     } catch (error) {
-        console.error(`❌ Email failed to ${to}:`, error.message);
+        console.warn(`⚠️ Email failed to ${to}:`, error.message);
         throw error;
     }
 }

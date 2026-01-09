@@ -86,7 +86,7 @@ router.post('/login', [
                 await sendEmail(user.email, 'loginOtp', user.name, otp);
                 console.log('✅ Email sent successfully');
             } catch (emailErr) {
-                console.error('⚠️ Email failed (Allowing login to proceed):', emailErr.message);
+                console.warn('⚠️ Email failed (Allowing login to proceed):', emailErr.message);
                 // Fallback: Proceed even if email fails
             }
 

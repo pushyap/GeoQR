@@ -211,9 +211,7 @@
                     Toast.success('Login successful! Redirecting...');
 
                     setTimeout(() => {
-                        setTimeout(() => {
-                            RoleGuard.redirect();
-                        }, 1500);
+                        RoleGuard.redirect();
                     }, 1500);
                 }
             } catch (error) {
