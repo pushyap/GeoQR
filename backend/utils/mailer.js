@@ -1,21 +1,32 @@
 /**
  * GeoQR Email Utility
- * Using Mailgun API for reliable email delivery
+ * Nodemailer configuration with professional email templates
  */
 
-const FormData = require('form-data');
-const Mailgun = require('mailgun.js');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Initialize Mailgun client
-const mailgun = new Mailgun(FormData);
-const mg = mailgun.client({
-    username: 'api',
-    key: process.env.MAILGUN_API_KEY || 'db8000dbda07a885976b1eaca53cb0d0-f6d80573-fb9c87e6'
+// Email transporter
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    },
+    // Add timeouts to prevent hanging
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,   // 10 seconds
+    socketTimeout: 10000      // 10 seconds
 });
 
-const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || 'sandbox0a0c7942f194424792447b886fe9a813.mailgun.org';
-const FROM_EMAIL = `GeoQR System <postmaster@${MAILGUN_DOMAIN}>`;
+// Verify connection on startup
+transporter.verify((err) => {
+    if (err) {
+        console.error('❌ Email server error:', err.message);
+    } else {
+        console.log('✅ Email server ready');
+    }
+});
 
 /**
  * Email Templates
@@ -210,7 +221,7 @@ const templates = {
 };
 
 /**
- * Send email using Mailgun API
+ * Send email helper
  */
 async function sendEmail(to, templateName, ...args) {
     const template = templates[templateName];
@@ -221,31 +232,22 @@ async function sendEmail(to, templateName, ...args) {
     const { subject, html } = template(...args);
 
     try {
-        const result = await mg.messages.create(MAILGUN_DOMAIN, {
-            from: FROM_EMAIL,
-            to: [to],
+        await transporter.sendMail({
+            from: `"GeoQR System" <${process.env.EMAIL_USER}>`,
+            to,
             subject,
             html
         });
-        console.log(`📧 Email sent to ${to}: ${templateName} (ID: ${result.id})`);
+        console.log(`📧 Email sent to ${to}: ${templateName}`);
         return true;
     } catch (error) {
-        console.error(`❌ Mailgun error for ${to}:`, error.message);
+        console.error(`❌ Email failed to ${to}:`, error.message);
         throw error;
     }
 }
 
-// Test connection on startup
-(async () => {
-    try {
-        console.log('✅ Mailgun client initialized');
-        console.log(`   Domain: ${MAILGUN_DOMAIN}`);
-    } catch (err) {
-        console.error('❌ Mailgun initialization error:', err.message);
-    }
-})();
-
 module.exports = {
+    transporter,
     sendEmail,
     templates
 };
