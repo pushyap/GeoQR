@@ -115,6 +115,9 @@ const RoleGuard = {
 // ========================================
 const LoginPage = {
     init() {
+        // Skip if page has its own handler (login.html)
+        if (window.SKIP_LOGIN_INIT) return;
+
         if (Session.isValid()) {
             RoleGuard.redirect();
             return;
@@ -141,9 +144,9 @@ const LoginPage = {
             try {
                 const res = await API.post('/auth/login', { email, password });
 
-                // 🔐 STUDENT → OTP REQUIRED
+                // 🔐 ALL ROLES → OTP REQUIRED
                 if (res.requiresOtp) {
-                    sessionStorage.setItem('temp_login_token', res.tempToken);
+                    sessionStorage.setItem('login_temp_token', res.tempToken);
                     sessionStorage.setItem('login_email', email);
 
                     Toast.success('OTP sent to your email');

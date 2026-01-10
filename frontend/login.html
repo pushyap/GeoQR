@@ -172,6 +172,10 @@
     <script src="js/config.js"></script>
     <!-- Main Auth Script -->
     <script src="js/auth.js"></script>
+    <script>
+        // Prevent LoginPage.init from adding duplicate handler
+        window.SKIP_LOGIN_INIT = true;
+    </script>
 
     <script>
         // Enhanced login with Axios
