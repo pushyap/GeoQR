@@ -10,6 +10,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/admin.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 
@@ -147,16 +148,26 @@
         <!-- Main Content -->
         <main class="main-content">
             <!-- Page Header -->
-            <div class="page-header">
-                <h1 class="page-title">Admin Dashboard</h1>
-                <p class="page-subtitle">System overview and management</p>
+            <div class="page-header"
+                style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:var(--space-3);">
+                <div>
+                    <h1 class="page-title">Admin Dashboard</h1>
+                    <p class="page-subtitle">System overview and management</p>
+                </div>
+                <div class="last-updated" id="lastUpdated">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span>Last refreshed: --</span>
+                </div>
             </div>
 
-            <!-- Overview Tab -->
+            <!-- ============= OVERVIEW TAB ============= -->
             <div class="tab-content active" id="tab-overview">
                 <!-- Stats Cards -->
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="showTab('students')" style="cursor: pointer;">
                         <div class="stat-header">
                             <div class="stat-icon primary">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -169,7 +180,7 @@
                         <div class="stat-label">Total Students</div>
                     </div>
 
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="showTab('devices')" style="cursor: pointer;">
                         <div class="stat-header">
                             <div class="stat-icon success">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -182,7 +193,7 @@
                         <div class="stat-label">Active Devices</div>
                     </div>
 
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="showTab('attendance')" style="cursor: pointer;">
                         <div class="stat-header">
                             <div class="stat-icon warning">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -195,7 +206,7 @@
                         <div class="stat-label">Today's Attendance</div>
                     </div>
 
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="showTab('locations')" style="cursor: pointer;">
                         <div class="stat-header">
                             <div class="stat-icon danger">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -211,18 +222,18 @@
 
                 <!-- Quick Actions -->
                 <div class="quick-actions">
-                    <button class="action-btn primary" onclick="showTab('locations')">
+                    <button class="action-btn primary" onclick="AdminCore.openModal('locationModal')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
                         </svg>
                         Add Location
                     </button>
-                    <button class="action-btn" onclick="showTab('devices')">
+                    <button class="action-btn" onclick="AdminCore.openModal('deviceModal')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="5" y="2" width="14" height="20" rx="2" />
                         </svg>
-                        Manage Devices
+                        Add Device
                     </button>
                     <button class="action-btn" onclick="showTab('attendance')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -237,6 +248,7 @@
                 <div class="table-container">
                     <div class="table-header">
                         <h3 class="table-title">Recent Activity</h3>
+                        <button class="action-btn" onclick="showTab('activity')">View All</button>
                     </div>
                     <table class="data-table">
                         <thead>
@@ -254,12 +266,12 @@
                 </div>
             </div>
 
-            <!-- Locations Tab -->
+            <!-- ============= LOCATIONS TAB ============= -->
             <div class="tab-content" id="tab-locations">
                 <div class="table-container">
                     <div class="table-header">
                         <h3 class="table-title">Location Management</h3>
-                        <button class="action-btn primary">
+                        <button class="action-btn primary" onclick="openLocationModal()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19" />
                                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -273,6 +285,7 @@
                                 <th>Name</th>
                                 <th>Coordinates</th>
                                 <th>Radius</th>
+                                <th>Devices</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -284,12 +297,12 @@
                 </div>
             </div>
 
-            <!-- Devices Tab -->
+            <!-- ============= DEVICES TAB ============= -->
             <div class="tab-content" id="tab-devices">
                 <div class="table-container">
                     <div class="table-header">
                         <h3 class="table-title">Device Management</h3>
-                        <button class="action-btn primary">
+                        <button class="action-btn primary" onclick="openDeviceModal()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19" />
                                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -315,7 +328,7 @@
                 </div>
             </div>
 
-            <!-- Students Tab -->
+            <!-- ============= STUDENTS TAB ============= -->
             <div class="tab-content" id="tab-students">
                 <div class="table-container">
                     <div class="table-header">
@@ -328,6 +341,11 @@
                                 </svg>
                                 <input type="text" id="studentSearch" placeholder="Search students...">
                             </div>
+                            <select class="filter-select" id="studentStatusFilter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
                         </div>
                     </div>
                     <table class="data-table">
@@ -338,6 +356,7 @@
                                 <th>Email</th>
                                 <th>Attendance Rate</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="studentsTableBody">
@@ -347,7 +366,7 @@
                 </div>
             </div>
 
-            <!-- Attendance Tab -->
+            <!-- ============= ATTENDANCE TAB ============= -->
             <div class="tab-content" id="tab-attendance">
                 <div class="table-container">
                     <div class="table-header">
@@ -356,6 +375,9 @@
                             <input type="date" class="filter-select" id="dateFilter">
                             <select class="filter-select" id="locationFilter">
                                 <option value="">All Locations</option>
+                            </select>
+                            <select class="filter-select" id="studentFilter">
+                                <option value="">All Students</option>
                             </select>
                         </div>
                     </div>
@@ -374,7 +396,7 @@
                             <!-- Populated by JS -->
                         </tbody>
                     </table>
-                    <div class="table-pagination">
+                    <div class="table-pagination" id="attendancePagination">
                         <span class="pagination-info">Showing 1-10 of 50</span>
                         <div class="pagination-buttons">
                             <button class="pagination-btn active">1</button>
@@ -382,6 +404,117 @@
                             <button class="pagination-btn">3</button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ============= ACTIVITY LOG TAB ============= -->
+            <div class="tab-content" id="tab-activity">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Activity Log</h3>
+                        <div class="activity-filters">
+                            <button class="filter-chip active" data-filter="all">All</button>
+                            <button class="filter-chip" data-filter="device">Devices</button>
+                            <button class="filter-chip" data-filter="session">Sessions</button>
+                            <button class="filter-chip" data-filter="attendance">Attendance</button>
+                        </div>
+                    </div>
+                    <div class="activity-timeline" id="activityTimeline">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============= SETTINGS TAB ============= -->
+            <div class="tab-content" id="tab-settings">
+                <div class="settings-section">
+                    <h3 class="settings-section-title">📍 GPS Settings</h3>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Default GPS Radius</div>
+                            <div class="settings-description">Default radius (in meters) for new locations</div>
+                        </div>
+                        <div class="settings-control" style="display:flex;align-items:center;gap:10px;">
+                            <input type="range" class="range-slider" id="gpsRadius" min="10" max="200" value="50">
+                            <span class="range-value" id="gpsRadiusValue">50m</span>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Enable GPS Validation</div>
+                            <div class="settings-description">Require GPS location within radius for attendance</div>
+                        </div>
+                        <div class="settings-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="enableGpsValidation" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">🔐 QR Code Settings</h3>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">QR Code Expiry Time</div>
+                            <div class="settings-description">How long each QR code remains valid</div>
+                        </div>
+                        <div class="settings-control">
+                            <select class="form-select" id="qrExpiry">
+                                <option value="10">10 seconds</option>
+                                <option value="15" selected>15 seconds</option>
+                                <option value="30">30 seconds</option>
+                                <option value="60">60 seconds</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">⏱️ Session Settings</h3>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Session Timeout</div>
+                            <div class="settings-description">Auto-logout after inactivity (minutes)</div>
+                        </div>
+                        <div class="settings-control">
+                            <select class="form-select" id="sessionTimeout">
+                                <option value="15">15 minutes</option>
+                                <option value="30" selected>30 minutes</option>
+                                <option value="60">60 minutes</option>
+                                <option value="120">2 hours</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3 class="settings-section-title">🔒 Security Settings</h3>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Enable OTP Verification</div>
+                            <div class="settings-description">Require email OTP for student login</div>
+                        </div>
+                        <div class="settings-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="enableOtp" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: var(--space-6);">
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            style="width:18px;height:18px;">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                            <polyline points="17 21 17 13 7 13 7 21" />
+                            <polyline points="7 3 7 8 15 8" />
+                        </svg>
+                        Save Settings
+                    </button>
                 </div>
             </div>
         </main>
@@ -425,11 +558,138 @@
         <div id="toastContainer" class="toast-container"></div>
     </div>
 
+    <!-- ============= MODALS ============= -->
+
+    <!-- Location Modal -->
+    <div class="modal" id="locationModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="locationModalTitle">Add Location</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="locationForm">
+                    <input type="hidden" id="locationId" name="id">
+                    <div class="form-group">
+                        <label class="form-label">Location Name *</label>
+                        <input type="text" class="form-input" id="locationName" name="name"
+                            placeholder="e.g., Room 101 - CS Lab" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Latitude</label>
+                            <input type="number" step="any" class="form-input" id="locationLat" name="latitude"
+                                placeholder="17.3850">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Longitude</label>
+                            <input type="number" step="any" class="form-input" id="locationLng" name="longitude"
+                                placeholder="78.4867">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Radius (meters)</label>
+                        <input type="number" class="form-input" id="locationRadius" name="radius" placeholder="50"
+                            value="50">
+                        <span class="form-hint">Students must be within this radius to mark attendance</span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="saveLocation()">Save Location</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Modal -->
+    <div class="modal" id="deviceModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="deviceModalTitle">Add Device</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="deviceForm">
+                    <input type="hidden" id="deviceId" name="id">
+                    <div class="form-group">
+                        <label class="form-label">Device Name *</label>
+                        <input type="text" class="form-input" id="deviceName" name="deviceName"
+                            placeholder="e.g., CS Lab Display" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Assign to Location *</label>
+                        <select class="form-select" id="deviceLocation" name="locationId" required>
+                            <option value="">Select Location</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Attendance Modal -->
+    <div class="modal" id="studentAttendanceModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="studentAttendanceTitle">Student Attendance</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="studentAttendanceContent">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-body">
+                <div class="confirm-dialog">
+                    <div class="confirm-icon warning">⚠️</div>
+                    <h3 class="confirm-title">Are you sure?</h3>
+                    <p class="confirm-message">This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn btn-secondary btn-cancel">Cancel</button>
+                <button class="btn btn-danger btn-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/mock-data.js"></script>
+    <script src="js/admin-core.js"></script>
     <script>
-        // Check authentication and role
+        // ========================================
+        // State
+        // ========================================
+        let editingLocationId = null;
+        let editingDeviceId = null;
+        let currentAttendancePage = 1;
+        let currentActivityFilter = 'all';
+
+        // ========================================
+        // Initialize
+        // ========================================
         document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication and role
             const user = Session.getUser();
             if (!user) {
                 window.location.href = 'login.html';
@@ -449,128 +709,436 @@
             document.getElementById('userName').textContent = user.name || 'Admin';
             document.getElementById('userAvatar').textContent = (user.name?.charAt(0) || 'A').toUpperCase();
 
-            // Load data
+            // Initialize
+            AdminCore.initModalListeners();
+            loadSettings();
             await loadDashboardData();
             setupEventListeners();
+
+            // Start live updates
+            AdminCore.startLiveUpdates({
+                updateStats: updateStats,
+                addActivity: addLiveActivity
+            });
         });
 
+        // ========================================
+        // Load Data
+        // ========================================
         async function loadDashboardData() {
-            // Get mock data
-            const stats = MockAPI.getAdminStats();
-            const locations = MockAPI.getLocations();
-            const devices = MockAPI.getDevices();
-            const students = MockAPI.getStudents();
-            const attendance = MockAPI.getAttendance();
-
-            // Update stats
-            document.getElementById('totalStudents').textContent = stats.totalStudents || students.length;
-            document.getElementById('activeDevices').textContent = stats.activeDevices || devices.filter(d => d.status === 'online').length;
-            document.getElementById('todayAttendance').textContent = (stats.todayAttendance || 78) + '%';
-            document.getElementById('activeLocations').textContent = stats.activeLocations || locations.length;
-
-            // Render tables
+            updateStats();
             renderActivityTable();
-            renderLocationsTable(locations);
-            renderDevicesTable(devices);
-            renderStudentsTable(students);
-            renderAttendanceTable(attendance);
+            renderLocationsTable();
+            renderDevicesTable();
+            renderStudentsTable();
+            renderAttendanceTable();
+            renderActivityTimeline();
+            populateFilters();
         }
 
+        function updateStats() {
+            const stats = MockAPI.getAdminStats();
+
+            // Animate counters
+            AdminCore.animateCounter(document.getElementById('totalStudents'), stats.totalStudents);
+            AdminCore.animateCounter(document.getElementById('activeDevices'), stats.activeDevices);
+            document.getElementById('todayAttendance').textContent = stats.todayAttendance + '%';
+            AdminCore.animateCounter(document.getElementById('activeLocations'), stats.activeLocations);
+
+            // Update last refreshed timestamp
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdated').querySelector('span').textContent = `Last refreshed: ${timeStr}`;
+        }
+
+        function addLiveActivity() {
+            MockAPI.generateRandomActivity();
+            renderActivityTable();
+            if (document.getElementById('tab-activity').classList.contains('active')) {
+                renderActivityTimeline(true);
+            }
+        }
+
+        // ========================================
+        // Render Tables
+        // ========================================
         function renderActivityTable() {
-            const activities = [
-                { time: '2 min ago', event: 'Device Online', details: 'DEV-001 started QR generation', status: 'success' },
-                { time: '15 min ago', event: 'Attendance', details: '23 students marked present', status: 'success' },
-                { time: '1 hour ago', event: 'New Student', details: 'John Smith registered', status: 'info' },
-                { time: '2 hours ago', event: 'Session Started', details: 'Database Systems - Room 101', status: 'info' },
-                { time: 'Yesterday', event: 'Device Offline', details: 'DEV-003 went offline', status: 'warning' }
-            ];
+            const activities = MockAPI.getActivityLog('all').slice(0, 5);
 
             document.getElementById('activityTableBody').innerHTML = activities.map(a => `
                 <tr>
-                    <td>${a.time}</td>
-                    <td>${a.event}</td>
+                    <td>${a.timeAgo}</td>
+                    <td>${a.icon} ${a.label}</td>
                     <td>${a.details}</td>
-                    <td><span class="status-badge ${a.status}">${a.status}</span></td>
+                    <td><span class="status-badge ${a.type === 'error' ? 'danger' : a.type === 'device' ? 'success' : 'info'}">${a.type}</span></td>
                 </tr>
             `).join('');
         }
 
-        function renderLocationsTable(locations) {
-            document.getElementById('locationsTableBody').innerHTML = locations.map(loc => `
+        function renderLocationsTable() {
+            const locations = MockAPI.getLocations();
+            const tbody = document.getElementById('locationsTableBody');
+
+            if (locations.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">📍</div><div class="empty-title">No locations added yet</div><div class="empty-description">Click "Add Location" to get started</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = locations.map(loc => `
                 <tr>
-                    <td>${loc.name}</td>
-                    <td>${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</td>
+                    <td><strong>${loc.name}</strong></td>
+                    <td><code>${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</code></td>
                     <td>${loc.radius}m</td>
-                    <td><span class="status-badge ${loc.isActive ? 'success' : 'danger'}">${loc.isActive ? 'Active' : 'Inactive'}</span></td>
+                    <td><span class="status-badge info">${loc.deviceCount} devices</span></td>
+                    <td><span class="status-dot ${loc.isActive ? 'active' : 'inactive'}">${loc.isActive ? 'Active' : 'Inactive'}</span></td>
                     <td>
-                        <button class="action-btn" style="padding: 4px 8px; font-size: 0.75rem;">Edit</button>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm btn-secondary" onclick="editLocation(${loc.id})">Edit</button>
+                            <button class="btn btn-sm ${loc.isActive ? 'btn-danger' : 'btn-primary'}" onclick="toggleLocation(${loc.id})">${loc.isActive ? 'Disable' : 'Enable'}</button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function renderDevicesTable(devices) {
-            document.getElementById('devicesTableBody').innerHTML = devices.map(dev => `
+        function renderDevicesTable() {
+            const devices = MockAPI.getDevices();
+            const tbody = document.getElementById('devicesTableBody');
+
+            if (devices.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">📱</div><div class="empty-title">No devices registered</div><div class="empty-description">Click "Add Device" to register a new device</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = devices.map(dev => `
                 <tr>
                     <td><code>${dev.deviceCode}</code></td>
                     <td>${dev.deviceName}</td>
                     <td>${dev.locationName}</td>
-                    <td>${dev.lastActive || 'N/A'}</td>
-                    <td><span class="status-badge ${dev.status === 'online' ? 'success' : 'danger'}">${dev.status}</span></td>
+                    <td>${dev.lastActive}</td>
+                    <td><span class="status-dot ${dev.status}">${dev.status === 'online' ? '🟢 Online' : '🔴 Offline'}</span></td>
                     <td>
-                        <button class="action-btn" style="padding: 4px 8px; font-size: 0.75rem;">Configure</button>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm btn-secondary" onclick="editDevice(${dev.id})">Edit</button>
+                            <button class="btn btn-sm ${dev.status === 'online' ? 'btn-danger' : 'btn-primary'}" onclick="toggleDevice(${dev.id})">${dev.status === 'online' ? 'Offline' : 'Online'}</button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function renderStudentsTable(students) {
-            document.getElementById('studentsTableBody').innerHTML = students.map(s => `
+        function renderStudentsTable(filters = {}) {
+            const students = MockAPI.getStudents(filters);
+            const tbody = document.getElementById('studentsTableBody');
+
+            if (students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No students found</div><div class="empty-description">${filters.search ? 'Try a different search term' : 'No students registered yet'}</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = students.map(s => `
                 <tr>
                     <td><code>${s.studentId}</code></td>
                     <td>${s.name}</td>
                     <td>${s.email}</td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="flex: 1; height: 6px; background: rgba(99,102,241,0.2); border-radius: 3px; overflow: hidden;">
-                                <div style="width: ${s.attendanceRate || 75}%; height: 100%; background: ${(s.attendanceRate || 75) >= 75 ? 'var(--success)' : 'var(--warning)'};"></div>
+                        <div class="progress-bar">
+                            <div class="progress-track">
+                                <div class="progress-fill ${s.attendanceRate >= 75 ? 'high' : s.attendanceRate >= 50 ? 'medium' : 'low'}" style="width: ${s.attendanceRate}%"></div>
                             </div>
-                            <span style="font-size: 0.8rem;">${s.attendanceRate || 75}%</span>
+                            <span class="progress-value">${s.attendanceRate}%</span>
                         </div>
                     </td>
-                    <td><span class="status-badge ${s.isActive !== false ? 'success' : 'danger'}">${s.isActive !== false ? 'Active' : 'Inactive'}</span></td>
+                    <td><span class="status-dot ${s.isActive ? 'active' : 'inactive'}">${s.isActive ? '🟢 Active' : '🔴 Inactive'}</span></td>
+                    <td>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm btn-secondary" onclick="viewStudentAttendance(${s.id})">View</button>
+                            <button class="btn btn-sm ${s.isActive ? 'btn-danger' : 'btn-primary'}" onclick="toggleStudent(${s.id})">${s.isActive ? 'Disable' : 'Enable'}</button>
+                        </div>
+                    </td>
                 </tr>
             `).join('');
         }
 
-        function renderAttendanceTable(attendance) {
-            document.getElementById('attendanceTableBody').innerHTML = attendance.map(a => `
+        function renderAttendanceTable(page = 1) {
+            const filters = {
+                date: document.getElementById('dateFilter').value,
+                location: document.getElementById('locationFilter').value,
+                studentId: document.getElementById('studentFilter').value
+            };
+
+            const allRecords = MockAPI.getAttendance(filters);
+            const { items, totalPages, currentPage } = AdminCore.paginate(allRecords, page, 10);
+
+            document.getElementById('attendanceTableBody').innerHTML = items.map(a => `
                 <tr>
-                    <td>${new Date(a.date || a.createdAt).toLocaleDateString()}</td>
-                    <td>${a.studentName || 'Student'}</td>
-                    <td>${a.locationName || a.location}</td>
-                    <td>${a.sessionName || a.subject}</td>
-                    <td>${a.time || new Date(a.createdAt).toLocaleTimeString()}</td>
+                    <td>${a.date}</td>
+                    <td>${a.studentName}</td>
+                    <td>${a.locationName}</td>
+                    <td>${a.sessionName}</td>
+                    <td>${a.time}</td>
                     <td><span class="status-badge ${a.status === 'present' ? 'success' : 'danger'}">${a.status}</span></td>
                 </tr>
             `).join('');
 
-            // Populate location filter
-            const locations = [...new Set(attendance.map(a => a.locationName || a.location))];
-            document.getElementById('locationFilter').innerHTML = '<option value="">All Locations</option>' +
-                locations.map(l => `<option value="${l}">${l}</option>`).join('');
+            AdminCore.renderPagination(
+                document.getElementById('attendancePagination'),
+                currentPage,
+                totalPages,
+                (newPage) => {
+                    currentAttendancePage = newPage;
+                    renderAttendanceTable(newPage);
+                }
+            );
         }
 
+        function renderActivityTimeline(isNewItem = false) {
+            const activities = MockAPI.getActivityLog(currentActivityFilter);
+            const container = document.getElementById('activityTimeline');
+
+            container.innerHTML = activities.map((a, i) => `
+                <div class="activity-item ${isNewItem && i === 0 ? 'new' : ''}">
+                    <div class="activity-icon ${a.type}">${a.icon}</div>
+                    <div class="activity-content">
+                        <strong>${a.label}</strong>
+                        <p>${a.details}</p>
+                        <span class="activity-time">${a.timeAgo}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function populateFilters() {
+            const locations = MockAPI.getLocations();
+            const students = MockAPI.getStudents();
+
+            // Location filter
+            document.getElementById('locationFilter').innerHTML = '<option value="">All Locations</option>' +
+                locations.map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+
+            // Student filter
+            document.getElementById('studentFilter').innerHTML = '<option value="">All Students</option>' +
+                students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+            // Device modal location dropdown
+            document.getElementById('deviceLocation').innerHTML = '<option value="">Select Location</option>' +
+                locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+        }
+
+        // ========================================
+        // Tab Navigation
+        // ========================================
         function showTab(tabName) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-item[data-tab], .bottom-nav-item[data-tab]').forEach(item => item.classList.remove('active'));
 
-            // Show selected tab
             document.getElementById(`tab-${tabName}`).classList.add('active');
             document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => item.classList.add('active'));
         }
 
+        // ========================================
+        // Location CRUD
+        // ========================================
+        function openLocationModal(id = null) {
+            editingLocationId = id;
+            document.getElementById('locationModalTitle').textContent = id ? 'Edit Location' : 'Add Location';
+            document.getElementById('locationForm').reset();
+
+            if (id) {
+                const loc = MockAPI.getLocationById(id);
+                document.getElementById('locationName').value = loc.name;
+                document.getElementById('locationLat').value = loc.latitude;
+                document.getElementById('locationLng').value = loc.longitude;
+                document.getElementById('locationRadius').value = loc.radius;
+            }
+
+            AdminCore.openModal('locationModal');
+        }
+
+        function editLocation(id) {
+            openLocationModal(id);
+        }
+
+        function saveLocation() {
+            const data = {
+                name: document.getElementById('locationName').value,
+                latitude: document.getElementById('locationLat').value,
+                longitude: document.getElementById('locationLng').value,
+                radius: document.getElementById('locationRadius').value
+            };
+
+            if (!data.name) {
+                AdminCore.toast('Location name is required', 'error');
+                return;
+            }
+
+            if (editingLocationId) {
+                MockAPI.updateLocation(editingLocationId, data);
+                AdminCore.toast('Location updated successfully', 'success');
+            } else {
+                MockAPI.addLocation(data);
+                AdminCore.toast('Location added successfully', 'success');
+            }
+
+            AdminCore.closeModal('locationModal');
+            renderLocationsTable();
+            populateFilters();
+            updateStats();
+        }
+
+        async function toggleLocation(id) {
+            const location = MockAPI.getLocationById(id);
+            const confirmed = await AdminCore.confirm({
+                title: `${location.isActive ? 'Disable' : 'Enable'} Location?`,
+                message: `Are you sure you want to ${location.isActive ? 'disable' : 'enable'} "${location.name}"?`,
+                type: location.isActive ? 'warning' : 'info'
+            });
+
+            if (confirmed) {
+                MockAPI.toggleLocationStatus(id);
+                AdminCore.toast(`Location ${location.isActive ? 'enabled' : 'disabled'}`, 'success');
+                renderLocationsTable();
+                updateStats();
+            }
+        }
+
+        // ========================================
+        // Device CRUD
+        // ========================================
+        function openDeviceModal(id = null) {
+            editingDeviceId = id;
+            document.getElementById('deviceModalTitle').textContent = id ? 'Edit Device' : 'Add Device';
+            document.getElementById('deviceForm').reset();
+            populateFilters();
+
+            if (id) {
+                const dev = MockAPI.getDeviceById(id);
+                document.getElementById('deviceName').value = dev.deviceName;
+                document.getElementById('deviceLocation').value = dev.locationId;
+            }
+
+            AdminCore.openModal('deviceModal');
+        }
+
+        function editDevice(id) {
+            openDeviceModal(id);
+        }
+
+        function saveDevice() {
+            const data = {
+                deviceName: document.getElementById('deviceName').value,
+                locationId: document.getElementById('deviceLocation').value
+            };
+
+            if (!data.deviceName || !data.locationId) {
+                AdminCore.toast('All fields are required', 'error');
+                return;
+            }
+
+            if (editingDeviceId) {
+                MockAPI.updateDevice(editingDeviceId, data);
+                AdminCore.toast('Device updated successfully', 'success');
+            } else {
+                MockAPI.addDevice(data);
+                AdminCore.toast('Device added successfully', 'success');
+            }
+
+            AdminCore.closeModal('deviceModal');
+            renderDevicesTable();
+            renderLocationsTable();
+            updateStats();
+        }
+
+        async function toggleDevice(id) {
+            MockAPI.toggleDeviceStatus(id);
+            AdminCore.toast('Device status updated', 'success');
+            renderDevicesTable();
+            updateStats();
+        }
+
+        // ========================================
+        // Student Actions
+        // ========================================
+        async function toggleStudent(id) {
+            const student = MockAPI.getStudentById(id);
+            const confirmed = await AdminCore.confirm({
+                title: `${student.isActive ? 'Disable' : 'Enable'} Student?`,
+                message: `Are you sure you want to ${student.isActive ? 'disable' : 'enable'} "${student.name}"?`,
+                type: student.isActive ? 'warning' : 'info'
+            });
+
+            if (confirmed) {
+                MockAPI.toggleStudentStatus(id);
+                AdminCore.toast(`Student ${student.isActive ? 'enabled' : 'disabled'}`, 'success');
+                renderStudentsTable();
+            }
+        }
+
+        function viewStudentAttendance(id) {
+            const student = MockAPI.getStudentById(id);
+            const records = MockAPI.getStudentAttendance(id);
+
+            document.getElementById('studentAttendanceTitle').textContent = `${student.name}'s Attendance`;
+
+            const presentCount = records.filter(r => r.status === 'present').length;
+            const rate = records.length > 0 ? Math.round((presentCount / records.length) * 100) : 0;
+
+            document.getElementById('studentAttendanceContent').innerHTML = `
+                <div style="text-align:center;margin-bottom:var(--space-4);">
+                    <div style="font-size:2rem;font-weight:700;color:${rate >= 75 ? 'var(--success)' : 'var(--warning)'};">${rate}%</div>
+                    <div style="color:var(--text-muted);">Overall Attendance Rate</div>
+                    <div style="margin-top:var(--space-2);font-size:0.9rem;">
+                        <span style="color:var(--success);">${presentCount} Present</span> / 
+                        <span style="color:var(--danger);">${records.length - presentCount} Absent</span>
+                    </div>
+                </div>
+                <table class="data-table" style="font-size:0.85rem;">
+                    <thead><tr><th>Date</th><th>Session</th><th>Status</th></tr></thead>
+                    <tbody>
+                        ${records.slice(0, 10).map(r => `
+                            <tr>
+                                <td>${r.date}</td>
+                                <td>${r.sessionName}</td>
+                                <td><span class="status-badge ${r.status === 'present' ? 'success' : 'danger'}">${r.status}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            AdminCore.openModal('studentAttendanceModal');
+        }
+
+        // ========================================
+        // Settings
+        // ========================================
+        function loadSettings() {
+            const settings = SettingsManager.load();
+
+            document.getElementById('gpsRadius').value = settings.gpsRadius;
+            document.getElementById('gpsRadiusValue').textContent = settings.gpsRadius + 'm';
+            document.getElementById('qrExpiry').value = settings.qrExpiry;
+            document.getElementById('sessionTimeout').value = settings.sessionTimeout;
+            document.getElementById('enableOtp').checked = settings.enableOtp;
+            document.getElementById('enableGpsValidation').checked = settings.enableGpsValidation;
+        }
+
+        function saveSettings() {
+            const settings = {
+                gpsRadius: parseInt(document.getElementById('gpsRadius').value),
+                qrExpiry: parseInt(document.getElementById('qrExpiry').value),
+                sessionTimeout: parseInt(document.getElementById('sessionTimeout').value),
+                enableOtp: document.getElementById('enableOtp').checked,
+                enableGpsValidation: document.getElementById('enableGpsValidation').checked
+            };
+
+            SettingsManager.save(settings);
+            AdminCore.toast('Settings saved successfully!', 'success');
+        }
+
+        // ========================================
+        // Event Listeners
+        // ========================================
         function setupEventListeners() {
             // Mobile menu
             document.getElementById('mobileMenuBtn').addEventListener('click', () => {
@@ -595,21 +1163,47 @@
 
             // Logout
             document.getElementById('logoutBtn').addEventListener('click', () => {
+                AdminCore.stopLiveUpdates();
                 Session.clear();
                 window.location.href = 'login.html';
             });
 
-            // Search
-            document.getElementById('studentSearch')?.addEventListener('input', (e) => {
-                // Filter students table
-                const query = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('#studentsTableBody tr');
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(query) ? '' : 'none';
+            // Student search
+            document.getElementById('studentSearch').addEventListener('input', (e) => {
+                renderStudentsTable({ search: e.target.value, status: document.getElementById('studentStatusFilter').value });
+            });
+
+            document.getElementById('studentStatusFilter').addEventListener('change', (e) => {
+                renderStudentsTable({ search: document.getElementById('studentSearch').value, status: e.target.value });
+            });
+
+            // Attendance filters
+            ['dateFilter', 'locationFilter', 'studentFilter'].forEach(id => {
+                document.getElementById(id).addEventListener('change', () => {
+                    renderAttendanceTable(1);
                 });
             });
+
+            // Activity filters
+            document.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    currentActivityFilter = chip.dataset.filter;
+                    renderActivityTimeline();
+                });
+            });
+
+            // GPS Radius slider
+            document.getElementById('gpsRadius').addEventListener('input', (e) => {
+                document.getElementById('gpsRadiusValue').textContent = e.target.value + 'm';
+            });
         }
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            AdminCore.stopLiveUpdates();
+        });
     </script>
 
     <style>

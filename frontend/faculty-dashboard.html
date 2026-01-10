@@ -4,12 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GeoQR Faculty Dashboard">
+    <meta name="description" content="GeoQR Faculty Dashboard - Class Management System">
     <title>Faculty Dashboard - GeoQR</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/admin.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 
@@ -64,6 +65,7 @@
                             <line x1="3" y1="10" x2="21" y2="10" />
                         </svg>
                         <span>My Sessions</span>
+                        <span class="live-indicator" id="liveIndicator" style="display:none;">🔴</span>
                     </a>
                     <a href="#" class="nav-item" data-tab="attendance">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -93,7 +95,7 @@
                     <div class="user-avatar" id="userAvatar">F</div>
                     <div class="user-info">
                         <div class="user-name" id="userName">Faculty</div>
-                        <div class="user-role">Faculty</div>
+                        <div class="user-role">Instructor</div>
                     </div>
                 </div>
                 <button class="nav-item" id="logoutBtn" style="margin-top: var(--space-3);">
@@ -126,16 +128,26 @@
         <!-- Main Content -->
         <main class="main-content">
             <!-- Page Header -->
-            <div class="page-header">
-                <h1 class="page-title">Welcome, <span id="welcomeName">Professor</span>!</h1>
-                <p class="page-subtitle">Manage your classes and track attendance</p>
+            <div class="page-header"
+                style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:var(--space-3);">
+                <div>
+                    <h1 class="page-title">Welcome, <span id="welcomeName">Professor</span>!</h1>
+                    <p class="page-subtitle">Manage your classes and track attendance</p>
+                </div>
+                <div class="last-updated" id="lastUpdated">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span>--</span>
+                </div>
             </div>
 
-            <!-- Overview Tab -->
+            <!-- ============= OVERVIEW TAB ============= -->
             <div class="tab-content active" id="tab-overview">
                 <!-- Stats Cards -->
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="showTab('sessions')" style="cursor:pointer;">
                         <div class="stat-header">
                             <div class="stat-icon primary">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -145,7 +157,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="stat-value" id="totalSessions">6</div>
+                        <div class="stat-value" id="totalSessions">0</div>
                         <div class="stat-label">Total Sessions</div>
                     </div>
 
@@ -158,11 +170,11 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="stat-value" id="totalStudents">48</div>
+                        <div class="stat-value" id="totalStudents">0</div>
                         <div class="stat-label">Total Students</div>
                     </div>
 
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="showTab('attendance')" style="cursor:pointer;">
                         <div class="stat-header">
                             <div class="stat-icon warning">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -172,7 +184,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="stat-value" id="avgAttendance">82%</div>
+                        <div class="stat-value" id="avgAttendance">0%</div>
                         <div class="stat-label">Avg Attendance</div>
                     </div>
 
@@ -185,14 +197,14 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="stat-value" id="todaySessions">2</div>
+                        <div class="stat-value" id="todaySessionsCount">0</div>
                         <div class="stat-label">Today's Sessions</div>
                     </div>
                 </div>
 
                 <!-- Quick Actions -->
                 <div class="quick-actions">
-                    <button class="action-btn primary" onclick="showTab('sessions')">
+                    <button class="action-btn primary" onclick="openCreateSessionModal()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
@@ -228,34 +240,22 @@
                                 <th>Time</th>
                                 <th>Students Present</th>
                                 <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="todaySessionsTable">
-                            <tr>
-                                <td>Data Structures</td>
-                                <td>Room 101 - CS Lab</td>
-                                <td>09:00 - 10:30</td>
-                                <td>42/48</td>
-                                <td><span class="status-badge success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Database Systems</td>
-                                <td>Room 203 - IT Lab</td>
-                                <td>11:00 - 12:30</td>
-                                <td>--</td>
-                                <td><span class="status-badge info">Upcoming</span></td>
-                            </tr>
+                            <!-- Populated by JS -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Sessions Tab -->
+            <!-- ============= SESSIONS TAB ============= -->
             <div class="tab-content" id="tab-sessions">
                 <div class="table-container">
                     <div class="table-header">
                         <h3 class="table-title">My Sessions</h3>
-                        <button class="action-btn primary">
+                        <button class="action-btn primary" onclick="openCreateSessionModal()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19" />
                                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -271,6 +271,7 @@
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Attendance</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -281,17 +282,16 @@
                 </div>
             </div>
 
-            <!-- Attendance Tab -->
+            <!-- ============= ATTENDANCE TAB ============= -->
             <div class="tab-content" id="tab-attendance">
                 <div class="table-container">
                     <div class="table-header">
                         <h3 class="table-title">Student Attendance</h3>
                         <div class="table-actions">
-                            <select class="filter-select" id="sessionFilter">
+                            <select class="filter-select" id="attendanceSessionFilter">
                                 <option value="">All Sessions</option>
-                                <option value="1">Data Structures</option>
-                                <option value="2">Database Systems</option>
                             </select>
+                            <input type="date" class="filter-select" id="attendanceDateFilter">
                         </div>
                     </div>
                     <table class="data-table">
@@ -299,8 +299,9 @@
                             <tr>
                                 <th>Student ID</th>
                                 <th>Name</th>
-                                <th>Subject</th>
-                                <th>Date</th>
+                                <th>Session</th>
+                                <th>Time Marked</th>
+                                <th>Distance</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -311,34 +312,66 @@
                 </div>
             </div>
 
-            <!-- Reports Tab -->
+            <!-- ============= REPORTS TAB ============= -->
             <div class="tab-content" id="tab-reports">
                 <div class="table-container" style="padding: var(--space-6);">
-                    <h3 class="table-title" style="margin-bottom: var(--space-4);">Generate Attendance Report</h3>
-                    <div style="display: grid; gap: var(--space-4); max-width: 400px;">
-                        <div class="form-group">
-                            <label>Select Session</label>
-                            <select class="filter-select" style="width: 100%;">
-                                <option>All Sessions</option>
-                                <option>Data Structures</option>
-                                <option>Database Systems</option>
-                            </select>
+                    <h3 class="table-title" style="margin-bottom: var(--space-5);">📊 Generate Attendance Report</h3>
+
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-6);">
+                        <!-- Report Form -->
+                        <div>
+                            <div class="form-group" style="margin-bottom: var(--space-4);">
+                                <label class="form-label">Select Session</label>
+                                <select class="form-select" id="reportSessionSelect" style="width:100%;">
+                                    <option value="">All Sessions</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: var(--space-4);">
+                                <label class="form-label">Date Range</label>
+                                <div style="display: flex; gap: var(--space-2);">
+                                    <input type="date" class="form-input" id="reportDateFrom" style="flex:1;">
+                                    <input type="date" class="form-input" id="reportDateTo" style="flex:1;">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="generateReport()" style="width:100%;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    style="width:18px;height:18px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Generate & Download Report
+                            </button>
                         </div>
-                        <div class="form-group">
-                            <label>Date Range</label>
-                            <div style="display: flex; gap: var(--space-2);">
-                                <input type="date" class="filter-select" style="flex: 1;">
-                                <input type="date" class="filter-select" style="flex: 1;">
+
+                        <!-- Report Preview -->
+                        <div id="reportPreview" style="display:none;">
+                            <div class="settings-section">
+                                <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
+                                <div class="stats-grid"
+                                    style="grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
+                                    <div
+                                        style="text-align:center; padding: var(--space-3); background: rgba(16,185,129,0.1); border-radius: var(--radius-md);">
+                                        <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;"
+                                            id="reportPresent">0</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Present</div>
+                                    </div>
+                                    <div
+                                        style="text-align:center; padding: var(--space-3); background: rgba(239,68,68,0.1); border-radius: var(--radius-md);">
+                                        <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;"
+                                            id="reportAbsent">0</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Absent</div>
+                                    </div>
+                                    <div
+                                        style="text-align:center; padding: var(--space-3); background: rgba(99,102,241,0.1); border-radius: var(--radius-md);">
+                                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-400);"
+                                            id="reportPercentage">0%</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Rate</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <button class="action-btn primary" style="width: 100%;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="7 10 12 15 17 10" />
-                                <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
-                            Download Report
-                        </button>
                     </div>
                 </div>
             </div>
@@ -384,11 +417,259 @@
         <div id="toastContainer" class="toast-container"></div>
     </div>
 
+    <!-- ============= MODALS ============= -->
+
+    <!-- Create Session Modal -->
+    <div class="modal" id="createSessionModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Session</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="sessionForm">
+                    <div class="form-group">
+                        <label class="form-label">Subject *</label>
+                        <input type="text" class="form-input" id="sessionSubject" placeholder="e.g., Data Structures"
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Location *</label>
+                        <select class="form-select" id="sessionLocation" style="width:100%;" required>
+                            <option value="">Select Location</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Date *</label>
+                            <input type="date" class="form-input" id="sessionDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Start Time *</label>
+                            <input type="time" class="form-input" id="sessionStartTime" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Duration</label>
+                        <select class="form-select" id="sessionDuration" style="width:100%;">
+                            <option value="60">1 hour</option>
+                            <option value="90" selected>1.5 hours</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="createSession()">Create Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Attendance Modal -->
+    <div class="modal" id="liveAttendanceModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>🔴 <span id="liveSessionName">Session</span> - Live Attendance</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align:center; margin-bottom: var(--space-5);">
+                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-400);" id="liveCount">0</div>
+                    <div style="color: var(--text-muted);">Students Present</div>
+                    <div class="live-pulse" style="margin-top: var(--space-2);"></div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Time</th>
+                            <th>Distance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="liveAttendanceList">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="endActiveSession()">End Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Detail Modal -->
+    <div class="modal" id="studentDetailModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Student Attendance Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="studentDetailContent">
+                <!-- Populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-body">
+                <div class="confirm-dialog">
+                    <div class="confirm-icon warning">⚠️</div>
+                    <h3 class="confirm-title">Are you sure?</h3>
+                    <p class="confirm-message">This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button class="btn btn-secondary btn-cancel">Cancel</button>
+                <button class="btn btn-primary btn-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/mock-data.js"></script>
+    <script src="js/admin-core.js"></script>
     <script>
-        // Check authentication and role
+        // ========================================
+        // Faculty Dashboard State
+        // ========================================
+        const FacultyState = {
+            activeSessions: new Map(), // sessionId -> { interval, studentCount, students }
+            currentFacultyId: 101, // Mock faculty ID
+            liveUpdateInterval: null
+        };
+
+        // ========================================
+        // Faculty Mock Data Extensions
+        // ========================================
+        const FacultyMockAPI = {
+            // Get sessions for this faculty
+            getFacultySessions() {
+                return MOCK_SESSIONS.map(s => ({
+                    ...s,
+                    locationName: MOCK_LOCATIONS.find(l => l.id === s.locationId)?.name || 'Unknown',
+                    status: this.getSessionStatus(s),
+                    attendanceCount: FacultyState.activeSessions.get(s.id)?.studentCount ||
+                        Math.floor(Math.random() * 40) + 30,
+                    attendanceRate: Math.floor(Math.random() * 20) + 75,
+                    isActive: FacultyState.activeSessions.has(s.id)
+                }));
+            },
+
+            getSessionStatus(session) {
+                if (FacultyState.activeSessions.has(session.id)) return 'active';
+                const today = new Date().toISOString().split('T')[0];
+                const now = new Date();
+                const sessionStart = new Date(`${session.date}T${session.startTime}`);
+                const sessionEnd = new Date(`${session.date}T${session.endTime}`);
+
+                if (session.date < today || (session.date === today && now > sessionEnd)) return 'completed';
+                if (session.date === today && now >= sessionStart && now <= sessionEnd) return 'upcoming';
+                return 'upcoming';
+            },
+
+            getTodaySessions() {
+                const today = '2026-01-10'; // Mock today
+                return this.getFacultySessions().filter(s => s.date === today);
+            },
+
+            getStats() {
+                const sessions = this.getFacultySessions();
+                const attendance = MockAPI.getAttendance();
+                const present = attendance.filter(a => a.status === 'present').length;
+                const total = attendance.length;
+
+                return {
+                    totalSessions: sessions.length,
+                    totalStudents: MOCK_STUDENTS.length,
+                    avgAttendance: total > 0 ? Math.round((present / total) * 100) : 0,
+                    todaySessions: this.getTodaySessions().length
+                };
+            },
+
+            // Start a session (make it active)
+            startSession(sessionId) {
+                if (FacultyState.activeSessions.has(sessionId)) return;
+
+                const sessionData = {
+                    studentCount: 0,
+                    students: [],
+                    startedAt: new Date()
+                };
+
+                FacultyState.activeSessions.set(sessionId, sessionData);
+
+                // Simulate students joining every 2-3 seconds
+                const interval = setInterval(() => {
+                    const data = FacultyState.activeSessions.get(sessionId);
+                    if (!data || data.studentCount >= MOCK_STUDENTS.length) {
+                        clearInterval(interval);
+                        return;
+                    }
+
+                    // Add random student
+                    const availableStudents = MOCK_STUDENTS.filter(s =>
+                        !data.students.find(st => st.id === s.id) && s.isActive
+                    );
+
+                    if (availableStudents.length > 0) {
+                        const student = availableStudents[Math.floor(Math.random() * availableStudents.length)];
+                        data.students.push({
+                            ...student,
+                            joinedAt: new Date(),
+                            distance: Math.floor(Math.random() * 40) + 5
+                        });
+                        data.studentCount = data.students.length;
+                    }
+                }, 2500);
+
+                sessionData.interval = interval;
+                return true;
+            },
+
+            // End a session
+            endSession(sessionId) {
+                const data = FacultyState.activeSessions.get(sessionId);
+                if (data?.interval) {
+                    clearInterval(data.interval);
+                }
+                FacultyState.activeSessions.delete(sessionId);
+            },
+
+            getAttendanceForFaculty(filters = {}) {
+                let records = MockAPI.getAttendance().map(a => ({
+                    ...a,
+                    timeMarked: a.time,
+                    distance: Math.floor(Math.random() * 45) + 5
+                }));
+
+                if (filters.sessionId) {
+                    records = records.filter(a => a.sessionId === parseInt(filters.sessionId));
+                }
+                if (filters.date) {
+                    records = records.filter(a => a.date === filters.date);
+                }
+
+                return records.slice(0, 50);
+            }
+        };
+
+        // ========================================
+        // Initialize
+        // ========================================
         document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication
             const user = Session.getUser();
             if (!user) {
                 window.location.href = 'login.html';
@@ -396,10 +677,7 @@
             }
 
             if (user.role !== 'faculty' && user.role !== 'admin') {
-                const dashboards = {
-                    'student': 'dashboard.html',
-                    'device': 'device/'
-                };
+                const dashboards = { 'student': 'dashboard.html', 'device': 'device/' };
                 window.location.href = dashboards[user.role] || 'login.html';
                 return;
             }
@@ -409,54 +687,404 @@
             document.getElementById('userName').textContent = user.name || 'Faculty';
             document.getElementById('userAvatar').textContent = (user.name?.charAt(0) || 'F').toUpperCase();
 
-            // Load data
-            loadSessionsTable();
-            loadAttendanceTable();
+            // Initialize
+            AdminCore.initModalListeners();
+            loadDashboardData();
             setupEventListeners();
+            populateFilters();
+
+            // Start live updates
+            FacultyState.liveUpdateInterval = setInterval(() => {
+                updateStats();
+                updateLiveIndicator();
+                if (document.getElementById('tab-sessions').classList.contains('active')) {
+                    renderSessionsTable();
+                }
+            }, 3000);
         });
 
-        function loadSessionsTable() {
-            const sessions = MockAPI.getSessions();
-            document.getElementById('sessionsTableBody').innerHTML = sessions.map(s => `
-                <tr>
-                    <td>${s.subject}</td>
-                    <td>${s.locationName}</td>
-                    <td>${s.date}</td>
-                    <td>${s.startTime} - ${s.endTime}</td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="flex: 1; height: 6px; background: rgba(99,102,241,0.2); border-radius: 3px; overflow: hidden; max-width: 100px;">
-                                <div style="width: 85%; height: 100%; background: var(--success);"></div>
-                            </div>
-                            <span style="font-size: 0.8rem;">85%</span>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="action-btn" style="padding: 4px 8px; font-size: 0.75rem;">View</button>
-                    </td>
-                </tr>
-            `).join('');
+        // ========================================
+        // Load Data
+        // ========================================
+        function loadDashboardData() {
+            updateStats();
+            renderTodaySessions();
+            renderSessionsTable();
+            renderAttendanceTable();
         }
 
-        function loadAttendanceTable() {
-            const attendance = MockAPI.getAttendance().slice(0, 20);
-            document.getElementById('attendanceTableBody').innerHTML = attendance.map(a => `
-                <tr>
+        function updateStats() {
+            const stats = FacultyMockAPI.getStats();
+
+            document.getElementById('totalSessions').textContent = stats.totalSessions;
+            document.getElementById('totalStudents').textContent = stats.totalStudents;
+            document.getElementById('avgAttendance').textContent = stats.avgAttendance + '%';
+            document.getElementById('todaySessionsCount').textContent = stats.todaySessions;
+
+            // Update timestamp
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdated').querySelector('span').textContent = `Last updated: ${timeStr}`;
+        }
+
+        function updateLiveIndicator() {
+            const hasActive = FacultyState.activeSessions.size > 0;
+            document.getElementById('liveIndicator').style.display = hasActive ? 'inline' : 'none';
+        }
+
+        // ========================================
+        // Render Tables
+        // ========================================
+        function renderTodaySessions() {
+            const sessions = FacultyMockAPI.getTodaySessions();
+            const tbody = document.getElementById('todaySessionsTable');
+
+            if (sessions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No sessions today</div><div class="empty-description">Click "Create Session" to schedule a class</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(s => {
+                const activeData = FacultyState.activeSessions.get(s.id);
+                const studentCount = activeData ? activeData.studentCount : (s.status === 'completed' ? s.attendanceCount : '--');
+
+                return `
+                    <tr>
+                        <td><strong>${s.subject}</strong></td>
+                        <td>${s.locationName}</td>
+                        <td>${s.startTime} - ${s.endTime}</td>
+                        <td>${studentCount}/${MOCK_STUDENTS.length}</td>
+                        <td>${getStatusBadge(s.status, s.isActive)}</td>
+                        <td>${getSessionAction(s)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderSessionsTable() {
+            const sessions = FacultyMockAPI.getFacultySessions();
+            const tbody = document.getElementById('sessionsTableBody');
+
+            tbody.innerHTML = sessions.map(s => {
+                const activeData = FacultyState.activeSessions.get(s.id);
+                const rate = activeData ? Math.round((activeData.studentCount / MOCK_STUDENTS.length) * 100) : s.attendanceRate;
+
+                return `
+                    <tr>
+                        <td><strong>${s.subject}</strong></td>
+                        <td>${s.locationName}</td>
+                        <td>${s.date}</td>
+                        <td>${s.startTime} - ${s.endTime}</td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress-track">
+                                    <div class="progress-fill ${rate >= 75 ? 'high' : rate >= 50 ? 'medium' : 'low'}" style="width: ${rate}%"></div>
+                                </div>
+                                <span class="progress-value">${rate}%</span>
+                            </div>
+                        </td>
+                        <td>${getStatusBadge(s.status, s.isActive)}</td>
+                        <td>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                ${getSessionActions(s)}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderAttendanceTable() {
+            const filters = {
+                sessionId: document.getElementById('attendanceSessionFilter').value,
+                date: document.getElementById('attendanceDateFilter').value
+            };
+
+            const records = FacultyMockAPI.getAttendanceForFaculty(filters);
+            const tbody = document.getElementById('attendanceTableBody');
+
+            if (records.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No attendance records found</div><div class="empty-description">Try adjusting your filters</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = records.map(a => `
+                <tr style="cursor:pointer;" onclick="showStudentDetail(${a.studentId}, '${a.sessionName}', '${a.date}', '${a.timeMarked}', ${a.distance}, '${a.status}')">
                     <td><code>${MOCK_STUDENTS.find(s => s.id === a.studentId)?.studentId || 'STU001'}</code></td>
                     <td>${a.studentName}</td>
-                    <td>${a.subject}</td>
-                    <td>${a.date}</td>
-                    <td><span class="status-badge ${a.status === 'present' ? 'success' : 'danger'}">${a.status}</span></td>
+                    <td>${a.sessionName}</td>
+                    <td>${a.timeMarked}</td>
+                    <td><span class="${a.distance <= 30 ? 'status-dot active' : 'status-dot warning'}">${a.distance}m</span></td>
+                    <td><span class="status-dot ${a.status === 'present' ? 'active' : 'inactive'}">${a.status === 'present' ? '🟢 Present' : '🔴 Absent'}</span></td>
                 </tr>
             `).join('');
         }
 
+        function getStatusBadge(status, isActive) {
+            if (isActive) return '<span class="status-badge" style="background:rgba(239,68,68,0.2);color:#f87171;animation:pulse 1s infinite;">🔴 Live</span>';
+            if (status === 'completed') return '<span class="status-badge success">✓ Completed</span>';
+            return '<span class="status-badge info">⏰ Upcoming</span>';
+        }
+
+        function getSessionAction(session) {
+            if (FacultyState.activeSessions.has(session.id)) {
+                return `<button class="btn btn-sm btn-danger" onclick="endSession(${session.id})">End Session</button>`;
+            }
+            if (session.status === 'completed') {
+                return `<button class="btn btn-sm btn-secondary" onclick="viewSessionAttendance(${session.id})">View</button>`;
+            }
+            return `<button class="btn btn-sm btn-primary" onclick="startSession(${session.id})">Start</button>`;
+        }
+
+        function getSessionActions(session) {
+            const isActive = FacultyState.activeSessions.has(session.id);
+
+            if (isActive) {
+                return `
+                    <button class="btn btn-sm btn-primary" onclick="openLiveAttendance(${session.id})">View Live</button>
+                    <button class="btn btn-sm btn-danger" onclick="endSession(${session.id})">End</button>
+                `;
+            }
+
+            if (session.status === 'completed') {
+                return `<button class="btn btn-sm btn-secondary" onclick="viewSessionAttendance(${session.id})">View Attendance</button>`;
+            }
+
+            return `<button class="btn btn-sm btn-primary" onclick="startSession(${session.id})">Start Session</button>`;
+        }
+
+        // ========================================
+        // Session Controls
+        // ========================================
+        function startSession(sessionId) {
+            FacultyMockAPI.startSession(sessionId);
+            AdminCore.toast('Session started! Students can now mark attendance.', 'success');
+            renderTodaySessions();
+            renderSessionsTable();
+            updateLiveIndicator();
+        }
+
+        function endSession(sessionId) {
+            FacultyMockAPI.endSession(sessionId);
+            AdminCore.toast('Session ended successfully.', 'success');
+            AdminCore.closeAllModals();
+            renderTodaySessions();
+            renderSessionsTable();
+            updateLiveIndicator();
+        }
+
+        function endActiveSession() {
+            const activeId = Array.from(FacultyState.activeSessions.keys())[0];
+            if (activeId) endSession(activeId);
+        }
+
+        function openLiveAttendance(sessionId) {
+            const session = MOCK_SESSIONS.find(s => s.id === sessionId);
+            const data = FacultyState.activeSessions.get(sessionId);
+
+            document.getElementById('liveSessionName').textContent = session?.subject || 'Session';
+
+            // Update live modal
+            const updateLiveModal = () => {
+                const currentData = FacultyState.activeSessions.get(sessionId);
+                if (!currentData) return;
+
+                document.getElementById('liveCount').textContent = currentData.studentCount;
+                document.getElementById('liveAttendanceList').innerHTML = currentData.students.map(s => `
+                    <tr>
+                        <td>${s.name}</td>
+                        <td>${s.joinedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td><span class="status-dot ${s.distance <= 30 ? 'active' : 'warning'}">${s.distance}m</span></td>
+                    </tr>
+                `).join('');
+            };
+
+            updateLiveModal();
+            AdminCore.openModal('liveAttendanceModal');
+
+            // Keep updating while modal is open
+            const liveInterval = setInterval(() => {
+                if (!FacultyState.activeSessions.has(sessionId)) {
+                    clearInterval(liveInterval);
+                    AdminCore.closeModal('liveAttendanceModal');
+                    return;
+                }
+                updateLiveModal();
+            }, 1000);
+        }
+
+        function viewSessionAttendance(sessionId) {
+            document.getElementById('attendanceSessionFilter').value = sessionId;
+            showTab('attendance');
+            renderAttendanceTable();
+        }
+
+        // ========================================
+        // Modals
+        // ========================================
+        function openCreateSessionModal() {
+            document.getElementById('sessionForm').reset();
+            document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+
+            // Populate locations
+            const locations = MockAPI.getLocations();
+            document.getElementById('sessionLocation').innerHTML = '<option value="">Select Location</option>' +
+                locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+
+            AdminCore.openModal('createSessionModal');
+        }
+
+        function createSession() {
+            const subject = document.getElementById('sessionSubject').value;
+            const locationId = document.getElementById('sessionLocation').value;
+            const date = document.getElementById('sessionDate').value;
+            const startTime = document.getElementById('sessionStartTime').value;
+            const duration = parseInt(document.getElementById('sessionDuration').value);
+
+            if (!subject || !locationId || !date || !startTime) {
+                AdminCore.toast('Please fill all required fields', 'error');
+                return;
+            }
+
+            // Calculate end time
+            const [h, m] = startTime.split(':').map(Number);
+            const endMinutes = h * 60 + m + duration;
+            const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+
+            const newSession = {
+                id: MOCK_SESSIONS.length + 1,
+                subject,
+                facultyId: FacultyState.currentFacultyId,
+                locationId: parseInt(locationId),
+                date,
+                startTime,
+                endTime
+            };
+
+            MOCK_SESSIONS.push(newSession);
+
+            AdminCore.toast('Session created successfully!', 'success');
+            AdminCore.closeModal('createSessionModal');
+            loadDashboardData();
+        }
+
+        function showStudentDetail(studentId, session, date, time, distance, status) {
+            const student = MOCK_STUDENTS.find(s => s.id === studentId);
+
+            document.getElementById('studentDetailContent').innerHTML = `
+                <div style="text-align:center;margin-bottom:var(--space-4);">
+                    <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;margin:0 auto var(--space-2);">${student?.name?.charAt(0) || 'S'}</div>
+                    <h4>${student?.name || 'Unknown'}</h4>
+                    <code>${student?.studentId || 'N/A'}</code>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-row">
+                        <div class="settings-info"><div class="settings-label">Session</div></div>
+                        <div>${session}</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-info"><div class="settings-label">Date</div></div>
+                        <div>${date}</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-info"><div class="settings-label">Time Marked</div></div>
+                        <div>${time}</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-info"><div class="settings-label">Distance</div></div>
+                        <div><span class="status-dot ${distance <= 30 ? 'active' : 'warning'}">${distance}m</span></div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-info"><div class="settings-label">Status</div></div>
+                        <div><span class="status-dot ${status === 'present' ? 'active' : 'inactive'}">${status === 'present' ? '🟢 Present' : '🔴 Absent'}</span></div>
+                    </div>
+                </div>
+            `;
+
+            AdminCore.openModal('studentDetailModal');
+        }
+
+        // ========================================
+        // Reports
+        // ========================================
+        function generateReport() {
+            const sessionId = document.getElementById('reportSessionSelect').value;
+            const dateFrom = document.getElementById('reportDateFrom').value;
+            const dateTo = document.getElementById('reportDateTo').value;
+
+            // Get filtered records
+            let records = MockAPI.getAttendance();
+
+            if (sessionId) {
+                records = records.filter(r => r.sessionId === parseInt(sessionId));
+            }
+            if (dateFrom) {
+                records = records.filter(r => r.date >= dateFrom);
+            }
+            if (dateTo) {
+                records = records.filter(r => r.date <= dateTo);
+            }
+
+            const present = records.filter(r => r.status === 'present').length;
+            const absent = records.filter(r => r.status === 'absent').length;
+            const rate = records.length > 0 ? Math.round((present / records.length) * 100) : 0;
+
+            // Show preview
+            document.getElementById('reportPreview').style.display = 'block';
+            document.getElementById('reportPresent').textContent = present;
+            document.getElementById('reportAbsent').textContent = absent;
+            document.getElementById('reportPercentage').textContent = rate + '%';
+
+            // Generate CSV
+            const csvContent = [
+                ['Student ID', 'Name', 'Session', 'Date', 'Time', 'Status'].join(','),
+                ...records.map(r => [
+                    MOCK_STUDENTS.find(s => s.id === r.studentId)?.studentId || 'N/A',
+                    r.studentName,
+                    r.sessionName,
+                    r.date,
+                    r.time,
+                    r.status
+                ].join(','))
+            ].join('\n');
+
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_report_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            AdminCore.toast('Report generated and downloaded!', 'success');
+        }
+
+        // ========================================
+        // Tab Navigation
+        // ========================================
         function showTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-item[data-tab], .bottom-nav-item[data-tab]').forEach(item => item.classList.remove('active'));
 
             document.getElementById(`tab-${tabName}`).classList.add('active');
             document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => item.classList.add('active'));
+
+            // Refresh data on tab switch
+            if (tabName === 'attendance') renderAttendanceTable();
+            if (tabName === 'sessions') renderSessionsTable();
+        }
+
+        // ========================================
+        // Filters & Event Listeners
+        // ========================================
+        function populateFilters() {
+            const sessions = MOCK_SESSIONS;
+            const sessionOptions = '<option value="">All Sessions</option>' +
+                sessions.map(s => `<option value="${s.id}">${s.subject}</option>`).join('');
+
+            document.getElementById('attendanceSessionFilter').innerHTML = sessionOptions;
+            document.getElementById('reportSessionSelect').innerHTML = sessionOptions;
         }
 
         function setupEventListeners() {
@@ -483,10 +1111,26 @@
 
             // Logout
             document.getElementById('logoutBtn').addEventListener('click', () => {
+                FacultyState.activeSessions.forEach((data, id) => {
+                    if (data.interval) clearInterval(data.interval);
+                });
+                if (FacultyState.liveUpdateInterval) clearInterval(FacultyState.liveUpdateInterval);
                 Session.clear();
                 window.location.href = 'login.html';
             });
+
+            // Filters
+            document.getElementById('attendanceSessionFilter').addEventListener('change', renderAttendanceTable);
+            document.getElementById('attendanceDateFilter').addEventListener('change', renderAttendanceTable);
         }
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            FacultyState.activeSessions.forEach((data, id) => {
+                if (data.interval) clearInterval(data.interval);
+            });
+            if (FacultyState.liveUpdateInterval) clearInterval(FacultyState.liveUpdateInterval);
+        });
     </script>
 
     <style>
@@ -498,15 +1142,44 @@
             display: block;
         }
 
-        .form-group {
-            margin-bottom: 0;
+        .live-indicator {
+            margin-left: auto;
+            animation: pulse 1s infinite;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: var(--space-2);
-            font-size: 0.9rem;
-            color: var(--text-secondary);
+        .live-pulse {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.1);
+            }
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </body>

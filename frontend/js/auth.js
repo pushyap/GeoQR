@@ -193,7 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (
         path.includes('dashboard') ||
         path.includes('faculty-dashboard') ||
-        path.includes('admin-dashboard')
+        path.includes('admin-dashboard') ||
+        path.includes('scan')
     ) {
         DashboardGuard.init();
         Logout.init();   // ✅ ADD TO DASHBOARDS

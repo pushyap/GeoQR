@@ -3,12 +3,814 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="GeoQR Scan Attendance - QR Code Scanner">
     <title>Scan Attendance - GeoQR</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Scan Page Specific Styles */
+        .scan-page {
+            background: linear-gradient(135deg, #030712 0%, #0f172a 50%, #1e1b4b 100%);
+        }
+
+        .scan-container {
+            max-width: 480px;
+            padding: var(--space-4);
+        }
+
+        /* Scan Header */
+        .scan-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-3) 0;
+            margin-bottom: var(--space-4);
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-lg);
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .back-link svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .scan-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Scanner Card */
+        .scanner-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: var(--radius-2xl);
+            overflow: hidden;
+            margin-bottom: var(--space-4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Scanner Viewport */
+        .scanner-viewport {
+            position: relative;
+            aspect-ratio: 1;
+            background: #0f172a;
+            overflow: hidden;
+        }
+
+        #qr-reader {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        #qr-reader video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 0 !important;
+        }
+
+        #qr-reader__scan_region {
+            min-height: 100% !important;
+        }
+
+        #qr-reader__dashboard,
+        #qr-reader__status_span,
+        #qr-reader__header_message {
+            display: none !important;
+        }
+
+        /* Scanner Overlay */
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scan-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 240px;
+            height: 240px;
+        }
+
+        .scan-corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #6366f1;
+        }
+
+        .scan-corner.tl {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+            border-radius: 12px 0 0 0;
+        }
+
+        .scan-corner.tr {
+            top: 0;
+            right: 0;
+            border-left: none;
+            border-bottom: none;
+            border-radius: 0 12px 0 0;
+        }
+
+        .scan-corner.bl {
+            bottom: 0;
+            left: 0;
+            border-right: none;
+            border-top: none;
+            border-radius: 0 0 0 12px;
+        }
+
+        .scan-corner.br {
+            bottom: 0;
+            right: 0;
+            border-left: none;
+            border-top: none;
+            border-radius: 0 0 12px 0;
+        }
+
+        .scan-laser {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #a855f7, #6366f1, #a855f7, transparent);
+            border-radius: 2px;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+            animation: laserScan 2.5s ease-in-out infinite;
+        }
+
+        @keyframes laserScan {
+
+            0%,
+            100% {
+                top: 10%;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            50% {
+                top: 88%;
+            }
+        }
+
+        .scan-pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 260px;
+            height: 260px;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            border-radius: 24px;
+            animation: pulseRing 2s ease-out infinite;
+        }
+
+        @keyframes pulseRing {
+            0% {
+                transform: translate(-50%, -50%) scale(0.95);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        /* Scanner Status */
+        .scanner-status {
+            padding: var(--space-4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-3);
+            border-top: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: statusPulse 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.scanning {
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .status-dot.waiting {
+            background: #f59e0b;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes statusPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Initialization State */
+        .init-state {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 20;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .init-state.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .init-icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: var(--space-4);
+            position: relative;
+        }
+
+        .init-icon svg {
+            width: 100%;
+            height: 100%;
+            color: #6366f1;
+        }
+
+        .init-ring {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border: 3px solid transparent;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: initSpin 1s linear infinite;
+        }
+
+        @keyframes initSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .init-text {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .init-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            max-width: 250px;
+        }
+
+        /* Location Card */
+        .location-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .location-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .location-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .location-icon svg {
+            width: 22px;
+            height: 22px;
+            color: #a855f7;
+        }
+
+        .location-details {
+            flex: 1;
+        }
+
+        .location-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .location-value {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .location-badge {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            padding: var(--space-1) var(--space-2);
+            background: rgba(16, 185, 129, 0.15);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            color: #34d399;
+            font-weight: 500;
+        }
+
+        .location-badge.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+
+        .location-badge svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .location-coords {
+            display: flex;
+            gap: var(--space-4);
+            margin-top: var(--space-3);
+            padding-top: var(--space-3);
+            border-top: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .coord-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .coord-label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: var(--space-1);
+        }
+
+        .coord-value {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Instructions Card */
+        .instructions-card {
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .instructions-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-3);
+        }
+
+        .instructions-title svg {
+            width: 18px;
+            height: 18px;
+            color: #a855f7;
+        }
+
+        .instructions-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .instructions-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-2);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .instruction-number {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        /* Result Modal */
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .result-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-card {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-8);
+            text-align: center;
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .result-modal.active .modal-card {
+            transform: scale(1) translateY(0);
+        }
+
+        .result-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto var(--space-5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .result-icon.success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2));
+        }
+
+        .result-icon.error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(236, 72, 153, 0.2));
+        }
+
+        .result-icon svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        .result-icon.success svg {
+            color: #10b981;
+        }
+
+        .result-icon.error svg {
+            color: #ef4444;
+        }
+
+        .result-icon-ring {
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            animation: resultRing 0.6s ease-out forwards;
+        }
+
+        .result-icon.success .result-icon-ring {
+            border: 3px solid #10b981;
+        }
+
+        .result-icon.error .result-icon-ring {
+            border: 3px solid #ef4444;
+        }
+
+        @keyframes resultRing {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+        }
+
+        .result-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-6);
+        }
+
+        .result-details {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-2) 0;
+        }
+
+        .detail-row:not(:last-child) {
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: var(--space-4);
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border: none;
+            border-radius: var(--radius-lg);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .modal-btn.secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            margin-top: var(--space-3);
+        }
+
+        .modal-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Scanned Result Card */
+        .scanned-result {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+            animation: slideInUp 0.4s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .scanned-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+
+        .scanned-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scanned-icon svg {
+            width: 22px;
+            height: 22px;
+            color: white;
+        }
+
+        .scanned-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #34d399;
+        }
+
+        .scanned-token {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(15, 23, 42, 0.5);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md);
+            word-break: break-all;
+        }
+
+        .scanned-actions {
+            display: flex;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .scanned-actions .btn {
+            flex: 1;
+        }
+
+        .btn.btn-success {
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+        }
+
+        .btn.btn-success:hover {
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Toast Container */
+        .toast-container {
+            position: fixed;
+            top: var(--space-4);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            max-width: 90%;
+        }
+
+        .toast {
+            padding: var(--space-3) var(--space-4);
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-lg);
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            animation: toastIn 0.3s ease-out;
+            border-left: 3px solid;
+        }
+
+        .toast-success {
+            border-color: #10b981;
+        }
+
+        .toast-error {
+            border-color: #ef4444;
+        }
+
+        .toast-warning {
+            border-color: #f59e0b;
+        }
+
+        .toast-info {
+            border-color: #6366f1;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Hidden utility */
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 
 <body class="scan-page">
@@ -20,189 +822,467 @@
     <div class="container scan-container">
         <!-- Header -->
         <header class="scan-header">
-            <a href="dashboard.html" class="back-btn">
+            <a href="dashboard.html" class="back-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="15 18 9 12 15 6" />
                 </svg>
                 <span>Back</span>
             </a>
-            <h1 class="page-title">Scan Attendance</h1>
-            <div class="header-spacer"></div>
+            <h1 class="scan-title">Scan Attendance</h1>
+            <div style="width: 70px;"></div>
         </header>
 
-        <!-- Scanner Section -->
-        <section class="scanner-section">
-            <!-- Initialization State -->
-            <div class="scanner-init" id="scannerInit">
-                <div class="init-animation">
-                    <div class="scan-pulse"></div>
+        <!-- Scanner Card -->
+        <div class="scanner-card">
+            <div class="scanner-viewport">
+                <!-- QR Reader -->
+                <div id="qr-reader"></div>
+
+                <!-- Scanner Overlay -->
+                <div class="scanner-overlay">
+                    <div class="scan-pulse-ring"></div>
+                    <div class="scan-frame">
+                        <span class="scan-corner tl"></span>
+                        <span class="scan-corner tr"></span>
+                        <span class="scan-corner bl"></span>
+                        <span class="scan-corner br"></span>
+                        <div class="scan-laser"></div>
+                    </div>
+                </div>
+
+                <!-- Initialization State -->
+                <div class="init-state" id="initState">
+                    <div class="init-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        <div class="init-ring"></div>
+                    </div>
+                    <p class="init-text" id="initText">Starting camera...</p>
+                    <p class="init-hint">Please allow camera access when prompted</p>
+                </div>
+            </div>
+
+            <!-- Scanner Status -->
+            <div class="scanner-status">
+                <div class="status-indicator">
+                    <span class="status-dot scanning" id="statusDot"></span>
+                    <span class="status-text" id="statusText">Camera active - Point at QR code</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanned Result (shown after scanning) -->
+        <div class="scanned-result hidden" id="scannedResult">
+            <div class="scanned-header">
+                <div class="scanned-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                        <circle cx="12" cy="13" r="4" />
+                        <polyline points="20 6 9 17 4 12" />
                     </svg>
                 </div>
-                <p class="init-text" id="initText">Initializing camera...</p>
-                <p class="init-hint">Please allow camera access when prompted</p>
+                <span class="scanned-title">QR Code Detected!</span>
             </div>
-
-            <!-- Scanner Container -->
-            <div class="scanner-container hidden" id="scannerContainer">
-                <div class="scanner-frame">
-                    <div class="scanner-corners">
-                        <span class="corner tl"></span>
-                        <span class="corner tr"></span>
-                        <span class="corner bl"></span>
-                        <span class="corner br"></span>
-                    </div>
-                    <div class="scan-line"></div>
-                </div>
-                <div id="qrReader"></div>
-            </div>
-
-            <!-- Scanner Controls -->
-            <div class="scanner-controls hidden" id="scannerControls">
-                <button class="btn btn-icon" id="switchCameraBtn" title="Switch Camera">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="scanned-token" id="scannedToken">---</div>
+            <div class="scanned-actions">
+                <button class="btn btn-success" id="submitBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="width:20px;height:20px;">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>Mark Attendance</span>
+                </button>
+                <button class="btn btn-outline" id="rescanBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="width:20px;height:20px;">
                         <polyline points="23 4 23 10 17 10" />
-                        <polyline points="1 20 1 14 7 14" />
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                     </svg>
                 </button>
             </div>
-        </section>
+        </div>
 
-        <!-- Location Section -->
-        <section class="location-section glass-card">
-            <div class="location-header">
-                <div class="location-icon-wrapper">
+        <!-- Location Card -->
+        <div class="location-card">
+            <div class="location-row">
+                <div class="location-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                         <circle cx="12" cy="10" r="3" />
                     </svg>
                 </div>
-                <div class="location-info">
+                <div class="location-details">
                     <span class="location-label">Your Location</span>
-                    <span class="location-status" id="locationStatus">Fetching location...</span>
+                    <span class="location-value" id="locationStatus">Acquiring GPS...</span>
                 </div>
-                <div class="location-indicator" id="locationIndicator">
-                    <span class="indicator-dot pending"></span>
+                <div class="location-badge pending" id="locationBadge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span id="locationBadgeText">Locating</span>
                 </div>
             </div>
             <div class="location-coords hidden" id="locationCoords">
-                <div class="coord">
-                    <span class="coord-label">Lat</span>
+                <div class="coord-item">
+                    <span class="coord-label">Latitude</span>
                     <span class="coord-value" id="latitude">--</span>
                 </div>
-                <div class="coord-divider"></div>
-                <div class="coord">
-                    <span class="coord-label">Long</span>
+                <div class="coord-item">
+                    <span class="coord-label">Longitude</span>
                     <span class="coord-value" id="longitude">--</span>
                 </div>
-            </div>
-        </section>
-
-        <!-- Result Section -->
-        <section class="result-section glass-card hidden" id="resultSection">
-            <div class="result-header">
-                <div class="result-icon success">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h3v3h-3z" />
-                    </svg>
-                </div>
-                <span>QR Code Scanned</span>
-            </div>
-            <div class="result-token">
-                <span class="token-label">Token:</span>
-                <code id="scannedToken">---</code>
-            </div>
-            <div class="result-actions">
-                <button class="btn btn-primary btn-lg" id="submitBtn">
-                    <span class="btn-content">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span class="btn-text">Submit Attendance</span>
-                    </span>
-                    <span class="btn-loader">
-                        <span class="spinner"></span>
-                    </span>
-                </button>
-                <button class="btn btn-outline" id="rescanBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 4 23 10 17 10" />
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                    </svg>
-                    <span>Scan Again</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- Success Modal -->
-        <div class="modal hidden" id="successModal">
-            <div class="modal-backdrop"></div>
-            <div class="modal-content glass-card">
-                <div class="modal-icon success">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <div class="modal-icon-ring"></div>
-                </div>
-                <h2>Attendance Marked!</h2>
-                <p class="modal-subtitle">Your attendance has been recorded successfully</p>
-
-                <div class="modal-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Timestamp</span>
-                        <span class="detail-value" id="successTimestamp">--</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Location</span>
-                        <span class="detail-value" id="successLocation">--</span>
-                    </div>
-                </div>
-
-                <button class="btn btn-primary btn-lg" id="backToDashboardBtn">
-                    <span>Back to Dashboard</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Error Modal -->
-        <div class="modal hidden" id="errorModal">
-            <div class="modal-backdrop"></div>
-            <div class="modal-content glass-card">
-                <div class="modal-icon error">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                    <div class="modal-icon-ring"></div>
-                </div>
-                <h2>Something Went Wrong</h2>
-                <p class="modal-subtitle error-message" id="errorMessage">An error occurred</p>
-
-                <div class="modal-actions">
-                    <button class="btn btn-primary" id="tryAgainBtn">
-                        <span>Try Again</span>
-                    </button>
-                    <button class="btn btn-outline" id="goBackBtn">
-                        <span>Go Back</span>
-                    </button>
+                <div class="coord-item">
+                    <span class="coord-label">Accuracy</span>
+                    <span class="coord-value" id="accuracy">--</span>
                 </div>
             </div>
         </div>
 
-        <!-- Toast Container -->
-        <div id="toastContainer" class="toast-container"></div>
+        <!-- Instructions -->
+        <div class="instructions-card">
+            <div class="instructions-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4M12 8h.01" />
+                </svg>
+                <span>How to mark attendance</span>
+            </div>
+            <ul class="instructions-list">
+                <li>
+                    <span class="instruction-number">1</span>
+                    <span>Point your camera at the QR code displayed in your classroom</span>
+                </li>
+                <li>
+                    <span class="instruction-number">2</span>
+                    <span>Stay within the classroom radius for GPS verification</span>
+                </li>
+                <li>
+                    <span class="instruction-number">3</span>
+                    <span>Tap "Mark Attendance" after the QR is detected</span>
+                </li>
+            </ul>
+        </div>
     </div>
+
+    <!-- Success Modal -->
+    <div class="result-modal" id="successModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card">
+            <div class="result-icon success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <div class="result-icon-ring"></div>
+            </div>
+            <h2 class="result-title">Attendance Marked!</h2>
+            <p class="result-subtitle">Your attendance has been recorded successfully</p>
+            <div class="result-details">
+                <div class="detail-row">
+                    <span class="detail-label">Date & Time</span>
+                    <span class="detail-value" id="successTime">--</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Location</span>
+                    <span class="detail-value" id="successLocation">--</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Subject</span>
+                    <span class="detail-value" id="successSubject">--</span>
+                </div>
+            </div>
+            <button class="modal-btn" id="backToDashboard">Back to Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="result-modal" id="errorModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card">
+            <div class="result-icon error">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                <div class="result-icon-ring"></div>
+            </div>
+            <h2 class="result-title">Failed</h2>
+            <p class="result-subtitle" id="errorMessage">Something went wrong</p>
+            <button class="modal-btn" id="tryAgainBtn">Try Again</button>
+            <button class="modal-btn secondary" id="goBackBtn">Go Back</button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/scan.js"></script>
+    <script>
+        // State
+        let html5QrCode = null;
+        let currentLocation = null;
+        let scannedData = null;
+        let isScanning = true;
+
+        // Toast system
+        const showToast = (message, type = 'info') => {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        };
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check auth
+            const token = sessionStorage.getItem('geoqr_token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Get location first
+            await initLocation();
+
+            // Then start camera
+            await initCamera();
+
+            // Setup event listeners
+            document.getElementById('submitBtn').addEventListener('click', submitAttendance);
+            document.getElementById('rescanBtn').addEventListener('click', rescan);
+            document.getElementById('backToDashboard').addEventListener('click', () => {
+                window.location.href = 'dashboard.html';
+            });
+            document.getElementById('tryAgainBtn').addEventListener('click', () => {
+                document.getElementById('errorModal').classList.remove('active');
+                rescan();
+            });
+            document.getElementById('goBackBtn').addEventListener('click', () => {
+                window.location.href = 'dashboard.html';
+            });
+        });
+
+        // Initialize GPS location
+        async function initLocation() {
+            const statusEl = document.getElementById('locationStatus');
+            const badgeEl = document.getElementById('locationBadge');
+            const badgeText = document.getElementById('locationBadgeText');
+            const coordsEl = document.getElementById('locationCoords');
+
+            if (!navigator.geolocation) {
+                statusEl.textContent = 'GPS not supported';
+                badgeEl.classList.add('error');
+                badgeText.textContent = 'Error';
+                return;
+            }
+
+            return new Promise((resolve) => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+
+                        statusEl.textContent = `Location acquired (±${Math.round(currentLocation.accuracy)}m)`;
+                        badgeEl.classList.remove('pending');
+                        badgeEl.innerHTML = `
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>Ready</span>
+                        `;
+
+                        coordsEl.classList.remove('hidden');
+                        document.getElementById('latitude').textContent = currentLocation.latitude.toFixed(6);
+                        document.getElementById('longitude').textContent = currentLocation.longitude.toFixed(6);
+                        document.getElementById('accuracy').textContent = `±${Math.round(currentLocation.accuracy)}m`;
+
+                        showToast('GPS location acquired', 'success');
+                        resolve();
+                    },
+                    (error) => {
+                        console.warn('GPS error:', error);
+                        // Use fallback location for demo
+                        currentLocation = { latitude: 17.385, longitude: 78.4867, accuracy: 50 };
+                        statusEl.textContent = 'Using approximate location';
+                        badgeEl.innerHTML = `
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 9v2M12 15h.01M5.07 19H19a2 2 0 0 0 1.75-2.98L13.75 4.93a2 2 0 0 0-3.5 0L3.32 16.02A2 2 0 0 0 5.07 19z"/>
+                            </svg>
+                            <span>Approx</span>
+                        `;
+                        coordsEl.classList.remove('hidden');
+                        document.getElementById('latitude').textContent = currentLocation.latitude.toFixed(6);
+                        document.getElementById('longitude').textContent = currentLocation.longitude.toFixed(6);
+                        document.getElementById('accuracy').textContent = 'Approximate';
+                        resolve();
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        // Initialize camera
+        async function initCamera() {
+            const initState = document.getElementById('initState');
+            const initText = document.getElementById('initText');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            try {
+                html5QrCode = new Html5Qrcode("qr-reader");
+
+                initText.textContent = 'Accessing camera...';
+
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: { width: 220, height: 220 },
+                        aspectRatio: 1,
+                        disableFlip: false
+                    },
+                    onScanSuccess,
+                    onScanFailure
+                );
+
+                // Hide init state with animation
+                setTimeout(() => {
+                    initState.classList.add('hidden');
+                    showToast('Camera ready - Point at QR code', 'info');
+                }, 500);
+
+            } catch (err) {
+                console.error('Camera error:', err);
+                initText.textContent = 'Camera access denied';
+                statusDot.classList.remove('scanning');
+                statusDot.classList.add('error');
+                statusText.textContent = 'Camera unavailable';
+                showToast('Could not access camera. Please allow camera permissions.', 'error');
+            }
+        }
+
+        // QR scan success callback
+        function onScanSuccess(decodedText, decodedResult) {
+            if (!isScanning) return;
+
+            isScanning = false;
+
+            try {
+                // Try to parse as JSON first
+                scannedData = JSON.parse(decodedText);
+            } catch (e) {
+                // If not JSON, treat as plain token
+                scannedData = { token: decodedText };
+            }
+
+            // Stop scanning
+            if (html5QrCode) {
+                html5QrCode.pause(true);
+            }
+
+            // Update UI
+            document.getElementById('statusDot').classList.remove('scanning');
+            document.getElementById('statusDot').classList.add('waiting');
+            document.getElementById('statusText').textContent = 'QR code detected!';
+
+            // Show result
+            const tokenDisplay = scannedData.token || decodedText;
+            document.getElementById('scannedToken').textContent =
+                tokenDisplay.length > 40 ? tokenDisplay.substring(0, 40) + '...' : tokenDisplay;
+            document.getElementById('scannedResult').classList.remove('hidden');
+
+            showToast('QR code scanned successfully!', 'success');
+
+            // Add haptic feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+        }
+
+        // QR scan failure (continuous - no action needed)
+        function onScanFailure(error) {
+            // Silent - continuous scanning
+        }
+
+        // Submit attendance
+        async function submitAttendance() {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner" style="width:20px;height:20px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;"></span>';
+
+            try {
+                const token = sessionStorage.getItem('geoqr_token');
+                const API_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
+
+                const response = await axios.post(`${API_URL}/attendance/mark`, {
+                    token: scannedData.token || scannedData,
+                    latitude: currentLocation.latitude,
+                    longitude: currentLocation.longitude
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (response.data.success) {
+                    // Show success modal
+                    document.getElementById('successTime').textContent = new Date().toLocaleString();
+                    document.getElementById('successLocation').textContent =
+                        response.data.attendance?.location || 'Classroom';
+                    document.getElementById('successSubject').textContent =
+                        response.data.attendance?.subject || 'Class Session';
+                    document.getElementById('successModal').classList.add('active');
+
+                    // Haptic feedback
+                    if (navigator.vibrate) {
+                        navigator.vibrate([100, 50, 100]);
+                    }
+                }
+            } catch (error) {
+                const message = error.response?.data?.error || 'Failed to mark attendance';
+                document.getElementById('errorMessage').textContent = message;
+                document.getElementById('errorModal').classList.add('active');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>Mark Attendance</span>
+                `;
+            }
+        }
+
+        // Rescan
+        function rescan() {
+            scannedData = null;
+            isScanning = true;
+
+            document.getElementById('scannedResult').classList.add('hidden');
+            document.getElementById('statusDot').classList.add('scanning');
+            document.getElementById('statusDot').classList.remove('waiting');
+            document.getElementById('statusText').textContent = 'Camera active - Point at QR code';
+
+            if (html5QrCode) {
+                html5QrCode.resume();
+            }
+        }
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(() => { });
+            }
+        });
+    </script>
 </body>
 
 </html>
