@@ -15,120 +15,170 @@
 
 <body class="device-fullscreen">
     <div class="device-container">
-        <!-- Header -->
-        <header class="device-header">
-            <div class="device-logo">
-                <svg viewBox="0 0 40 40" fill="none">
-                    <circle cx="20" cy="20" r="18" stroke="url(#devGrad)" stroke-width="3" />
-                    <circle cx="20" cy="20" r="8" fill="url(#devGrad)" />
-                    <defs>
-                        <linearGradient id="devGrad" x1="0" y1="0" x2="40" y2="40">
-                            <stop offset="0%" stop-color="#6366f1" />
-                            <stop offset="100%" stop-color="#a855f7" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-                <span>GeoQR</span>
+        <!-- Login Screen -->
+        <div class="device-login-screen" id="loginScreen">
+            <div class="login-card">
+                <div class="login-header">
+                    <svg viewBox="0 0 40 40" fill="none" width="60" height="60">
+                        <circle cx="20" cy="20" r="18" stroke="url(#devGrad)" stroke-width="3" />
+                        <circle cx="20" cy="20" r="8" fill="url(#devGrad)" />
+                        <defs>
+                            <linearGradient id="devGrad" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#a855f7" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1>Device Login</h1>
+                    <p>Enter device credentials to start QR generation</p>
+                </div>
+                <form id="deviceLoginForm">
+                    <div class="form-group">
+                        <label for="deviceCode">Device Code</label>
+                        <input type="text" id="deviceCode" placeholder="e.g. DEV-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="devicePassword">Password</label>
+                        <input type="password" id="devicePassword" placeholder="Enter device password" required>
+                    </div>
+                    <button type="submit" class="login-btn" id="deviceLoginBtn">
+                        <span>Login</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" y1="12" x2="3" y2="12" />
+                        </svg>
+                    </button>
+                </form>
             </div>
-            <div class="device-info-badge">
-                <span class="device-id" id="deviceId">DEV-001</span>
-                <span class="device-status online" id="deviceStatus">
-                    <span class="status-dot"></span>
-                    Online
-                </span>
-            </div>
-        </header>
-
-        <!-- Location Info -->
-        <div class="location-banner" id="locationBanner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-            </svg>
-            <span id="locationName">Room 101 - CS Lab</span>
         </div>
 
-        <!-- Main QR Section -->
-        <main class="qr-main">
-            <!-- Idle State -->
-            <div class="qr-idle-state" id="idleState">
-                <div class="idle-icon">
-                    <svg viewBox="0 0 100 100" fill="none">
-                        <rect x="15" y="15" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
-                            opacity="0.5" />
-                        <rect x="60" y="15" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
-                            opacity="0.5" />
-                        <rect x="15" y="60" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
-                            opacity="0.5" />
-                        <rect x="60" y="60" width="25" height="25" rx="4" stroke="#a855f7" stroke-width="3" />
-                        <circle cx="50" cy="50" r="12" fill="#6366f1" opacity="0.3" />
+        <!-- Main Device Screen (hidden until login) -->
+        <div class="device-main-screen hidden" id="mainScreen">
+            <!-- Header -->
+            <header class="device-header">
+                <div class="device-logo">
+                    <svg viewBox="0 0 40 40" fill="none">
+                        <circle cx="20" cy="20" r="18" stroke="url(#devGrad2)" stroke-width="3" />
+                        <circle cx="20" cy="20" r="8" fill="url(#devGrad2)" />
+                        <defs>
+                            <linearGradient id="devGrad2" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#6366f1" />
+                                <stop offset="100%" stop-color="#a855f7" />
+                            </linearGradient>
+                        </defs>
                     </svg>
+                    <span>GeoQR</span>
                 </div>
-                <h2>Ready to Generate</h2>
-                <p>Press the button below to start generating QR codes</p>
-                <button class="start-btn" id="startBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                    Start QR Generation
-                </button>
-            </div>
-
-            <!-- Active QR State -->
-            <div class="qr-active-state hidden" id="activeState">
-                <!-- Timer Ring -->
-                <div class="timer-ring-container">
-                    <svg class="timer-ring" viewBox="0 0 120 120">
-                        <circle class="timer-bg" cx="60" cy="60" r="54" />
-                        <circle class="timer-progress" cx="60" cy="60" r="54" id="timerCircle" />
-                    </svg>
-                    <div class="timer-content">
-                        <span class="timer-value" id="timerValue">15</span>
-                        <span class="timer-label">sec</span>
-                    </div>
-                </div>
-
-                <!-- QR Code Display -->
-                <div class="qr-display-container">
-                    <div class="qr-status-bar">
-                        <span class="qr-status active" id="qrStatus">
-                            <span class="pulse-dot"></span>
-                            QR Active
+                <div class="device-header-right">
+                    <div class="device-info-badge">
+                        <span class="device-id" id="deviceId">DEV-001</span>
+                        <span class="device-status online" id="deviceStatus">
+                            <span class="status-dot"></span>
+                            Online
                         </span>
                     </div>
-                    <div class="qr-wrapper">
-                        <div id="qrCode"></div>
+                    <button class="logout-btn" id="logoutBtn" title="Logout">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Location Info -->
+            <div class="location-banner" id="locationBanner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span id="locationName">Room 101 - CS Lab</span>
+            </div>
+
+            <!-- Main QR Section -->
+            <main class="qr-main">
+                <!-- Idle State -->
+                <div class="qr-idle-state" id="idleState">
+                    <div class="idle-icon">
+                        <svg viewBox="0 0 100 100" fill="none">
+                            <rect x="15" y="15" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
+                                opacity="0.5" />
+                            <rect x="60" y="15" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
+                                opacity="0.5" />
+                            <rect x="15" y="60" width="25" height="25" rx="4" stroke="#6366f1" stroke-width="3"
+                                opacity="0.5" />
+                            <rect x="60" y="60" width="25" height="25" rx="4" stroke="#a855f7" stroke-width="3" />
+                            <circle cx="50" cy="50" r="12" fill="#6366f1" opacity="0.3" />
+                        </svg>
                     </div>
-                    <div class="qr-token">
-                        Token: <code id="tokenDisplay">---</code>
-                    </div>
+                    <h2>Ready to Generate</h2>
+                    <p>Press the button below to start generating QR codes</p>
+                    <button class="start-btn" id="startBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                        </svg>
+                        Start QR Generation
+                    </button>
                 </div>
 
-                <!-- Stop Button -->
-                <button class="stop-btn" id="stopBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="6" y="6" width="12" height="12" rx="2" />
-                    </svg>
-                    Stop Generation
-                </button>
-            </div>
-        </main>
+                <!-- Active QR State -->
+                <div class="qr-active-state hidden" id="activeState">
+                    <!-- Timer Ring -->
+                    <div class="timer-ring-container">
+                        <svg class="timer-ring" viewBox="0 0 120 120">
+                            <circle class="timer-bg" cx="60" cy="60" r="54" />
+                            <circle class="timer-progress" cx="60" cy="60" r="54" id="timerCircle" />
+                        </svg>
+                        <div class="timer-content">
+                            <span class="timer-value" id="timerValue">15</span>
+                            <span class="timer-label">sec</span>
+                        </div>
+                    </div>
 
-        <!-- Footer -->
-        <footer class="device-footer">
-            <div class="network-status" id="networkStatus">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                    <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                    <circle cx="12" cy="20" r="1" />
-                </svg>
-                <span>Connected</span>
-            </div>
-            <div class="qr-stats">
-                <span><strong id="qrCount">0</strong> QR codes generated</span>
-            </div>
-        </footer>
+                    <!-- QR Code Display -->
+                    <div class="qr-display-container">
+                        <div class="qr-status-bar">
+                            <span class="qr-status active" id="qrStatus">
+                                <span class="pulse-dot"></span>
+                                QR Active
+                            </span>
+                        </div>
+                        <div class="qr-wrapper">
+                            <div id="qrCode"></div>
+                        </div>
+                        <div class="qr-token">
+                            Token: <code id="tokenDisplay">---</code>
+                        </div>
+                    </div>
+
+                    <!-- Stop Button -->
+                    <button class="stop-btn" id="stopBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="6" y="6" width="12" height="12" rx="2" />
+                        </svg>
+                        Stop Generation
+                    </button>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="device-footer">
+                <div class="network-status" id="networkStatus">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                        <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                        <circle cx="12" cy="20" r="1" />
+                    </svg>
+                    <span>Connected</span>
+                </div>
+                <div class="qr-stats">
+                    <span><strong id="qrCount">0</strong> QR codes generated</span>
+                </div>
+            </footer>
+        </div>
     </div>
 
     <!-- Toast Container -->
@@ -141,6 +191,7 @@
 
         // Device state
         let deviceData = null;
+        let deviceCredentials = null;
         let qrInstance = null;
         let timerInterval = null;
         let refreshInterval = null;
@@ -152,28 +203,24 @@
         document.addEventListener('DOMContentLoaded', async () => {
             Toast.init();
 
-            // Check authentication
-            const userData = Session.getUser();
-            if (!userData || userData.role !== 'device') {
-                // Allow for demo without auth
-                deviceData = {
-                    deviceCode: 'DEV-001',
-                    deviceName: 'CS Lab Display',
-                    locationName: 'Room 101 - CS Lab',
-                    locationId: 1,
-                    latitude: 17.3850,
-                    longitude: 78.4867,
-                    radius: 50
-                };
+            // Check for saved device session
+            const savedDevice = sessionStorage.getItem('device_session');
+            if (savedDevice) {
+                try {
+                    const data = JSON.parse(savedDevice);
+                    deviceData = data.device;
+                    deviceCredentials = data.credentials;
+                    showMainScreen();
+                } catch (e) {
+                    showLoginScreen();
+                }
             } else {
-                deviceData = userData;
+                showLoginScreen();
             }
 
-            // Update UI
-            document.getElementById('deviceId').textContent = deviceData.deviceCode || 'DEV-001';
-            document.getElementById('locationName').textContent = deviceData.locationName || 'Room 101';
-
             // Setup event listeners
+            document.getElementById('deviceLoginForm').addEventListener('submit', handleDeviceLogin);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             document.getElementById('startBtn').addEventListener('click', startGeneration);
             document.getElementById('stopBtn').addEventListener('click', stopGeneration);
 
@@ -182,6 +229,84 @@
             window.addEventListener('online', updateNetworkStatus);
             window.addEventListener('offline', updateNetworkStatus);
         });
+
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainScreen').classList.add('hidden');
+        }
+
+        function showMainScreen() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainScreen').classList.remove('hidden');
+
+            // Update UI with device info
+            document.getElementById('deviceId').textContent = deviceData.code || deviceData.deviceCode || 'DEV-001';
+            document.getElementById('locationName').textContent = deviceData.location || deviceData.locationName || 'Unknown Location';
+        }
+
+        async function handleDeviceLogin(e) {
+            e.preventDefault();
+
+            const deviceCode = document.getElementById('deviceCode').value.trim();
+            const password = document.getElementById('devicePassword').value;
+            const loginBtn = document.getElementById('deviceLoginBtn');
+
+            if (!deviceCode || !password) {
+                Toast.warning('Please enter device code and password');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span>Logging in...</span>';
+
+            try {
+                const response = await axios.post(`${API_BASE_URL}/devices/login`, {
+                    device_code: deviceCode,
+                    password: password
+                });
+
+                if (response.data.success) {
+                    deviceData = response.data.device;
+                    deviceCredentials = { device_code: deviceCode, password: password };
+
+                    // Save to session
+                    sessionStorage.setItem('device_session', JSON.stringify({
+                        device: deviceData,
+                        credentials: deviceCredentials
+                    }));
+
+                    Toast.success('Device logged in successfully!');
+                    showMainScreen();
+                }
+            } catch (error) {
+                const message = error.response?.data?.error || 'Device login failed';
+                Toast.error(message);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>Login</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+            }
+        }
+
+        function handleLogout() {
+            // Stop any QR generation
+            if (timerInterval) clearInterval(timerInterval);
+            if (refreshInterval) clearInterval(refreshInterval);
+
+            // Clear device session
+            sessionStorage.removeItem('device_session');
+            deviceData = null;
+            deviceCredentials = null;
+            qrCount = 0;
+
+            // Reset QR display
+            document.getElementById('qrCode').innerHTML = '';
+            document.getElementById('activeState').classList.add('hidden');
+            document.getElementById('idleState').classList.remove('hidden');
+            document.getElementById('qrCount').textContent = '0';
+
+            Toast.info('Device logged out');
+            showLoginScreen();
+        }
 
         function updateNetworkStatus() {
             const statusEl = document.getElementById('networkStatus');
@@ -330,6 +455,143 @@
             max-width: 500px;
             margin: 0 auto;
             padding: var(--space-4);
+        }
+
+        /* Login Screen */
+        .device-login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .login-card {
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: var(--radius-xl);
+            padding: var(--space-8);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .login-header h1 {
+            font-size: 1.5rem;
+            margin: var(--space-3) 0 var(--space-1);
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .login-card .form-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .login-card label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all var(--transition-fast);
+        }
+
+        .login-card input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .login-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-4);
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            border: none;
+            border-radius: var(--radius-lg);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            margin-top: var(--space-4);
+        }
+
+        .login-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .login-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Main Screen */
+        .device-main-screen {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header Right Section */
+        .device-header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        /* Logout Button */
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-md);
+            color: #f87171;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.25);
+            transform: scale(1.05);
+        }
+
+        .logout-btn svg {
+            width: 18px;
+            height: 18px;
         }
 
         /* Header */
