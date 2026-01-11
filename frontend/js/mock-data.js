@@ -48,12 +48,14 @@ const MOCK_LOCATIONS = [
 
 // Mock Sessions
 const MOCK_SESSIONS = [
-    { id: 1, subject: 'Data Structures', facultyId: 101, locationId: 1, date: '2026-01-10', startTime: '09:00', endTime: '10:30' },
-    { id: 2, subject: 'Database Systems', facultyId: 102, locationId: 2, date: '2026-01-10', startTime: '11:00', endTime: '12:30' },
-    { id: 3, subject: 'Computer Networks', facultyId: 101, locationId: 1, date: '2026-01-09', startTime: '14:00', endTime: '15:30' },
-    { id: 4, subject: 'Web Development', facultyId: 102, locationId: 2, date: '2026-01-09', startTime: '10:00', endTime: '11:30' },
-    { id: 5, subject: 'Operating Systems', facultyId: 101, locationId: 1, date: '2026-01-08', startTime: '09:00', endTime: '10:30' },
-    { id: 6, subject: 'Software Engineering', facultyId: 102, locationId: 5, date: '2026-01-08', startTime: '14:00', endTime: '16:00' },
+    { id: 1, subject: 'Data Structures', facultyId: 101, locationId: 1, date: '2026-01-11', startTime: '09:00', endTime: '10:30' },
+    { id: 2, subject: 'Database Systems', facultyId: 102, locationId: 2, date: '2026-01-11', startTime: '11:00', endTime: '12:30' },
+    { id: 3, subject: 'Computer Networks', facultyId: 101, locationId: 1, date: '2026-01-11', startTime: '14:00', endTime: '15:30' },
+    { id: 4, subject: 'Web Development', facultyId: 102, locationId: 2, date: '2026-01-10', startTime: '10:00', endTime: '11:30' },
+    { id: 5, subject: 'Operating Systems', facultyId: 101, locationId: 1, date: '2026-01-10', startTime: '09:00', endTime: '10:30' },
+    { id: 6, subject: 'Software Engineering', facultyId: 102, locationId: 5, date: '2026-01-09', startTime: '14:00', endTime: '16:00' },
+    { id: 7, subject: 'Machine Learning', facultyId: 101, locationId: 5, date: '2026-01-11', startTime: '16:00', endTime: '17:30' },
+    { id: 8, subject: 'Artificial Intelligence', facultyId: 101, locationId: 4, date: '2026-01-09', startTime: '11:00', endTime: '12:30' },
 ];
 
 // Activity Log Types

@@ -220,6 +220,102 @@
                     </div>
                 </div>
 
+                <!-- Lockdown Banner (hidden by default) -->
+                <div class="lockdown-banner" id="lockdownBanner" style="display: none;">
+                    <div class="lockdown-icon">🔒</div>
+                    <div class="lockdown-content">
+                        <strong>CAMPUS LOCKDOWN ACTIVE</strong>
+                        <p>All sessions stopped • All devices disabled</p>
+                    </div>
+                    <button class="lockdown-lift-btn" onclick="liftLockdown()">Lift Lockdown</button>
+                </div>
+
+                <!-- Live Campus Control Panel -->
+                <div class="control-panel">
+                    <div class="control-header">
+                        <span class="control-title">🎛️ Live Campus Control Center</span>
+                        <span class="control-live-indicator">
+                            <span class="live-dot"></span> LIVE
+                        </span>
+                    </div>
+                    <div class="control-stats">
+                        <div class="control-stat sessions">
+                            <span class="control-icon">🔴</span>
+                            <div class="control-info">
+                                <span class="control-value" id="liveActiveSessions">0</span>
+                                <span class="control-label">Active Sessions</span>
+                            </div>
+                        </div>
+                        <div class="control-stat devices">
+                            <span class="control-icon">📱</span>
+                            <div class="control-info">
+                                <span class="control-value" id="liveOnlineDevices">0</span>
+                                <span class="control-label">Devices Online</span>
+                            </div>
+                        </div>
+                        <div class="control-stat students">
+                            <span class="control-icon">👥</span>
+                            <div class="control-info">
+                                <span class="control-value" id="liveScanning">0</span>
+                                <span class="control-label">Scanning Now</span>
+                            </div>
+                        </div>
+                        <div class="control-stat suspicious">
+                            <span class="control-icon">⚠️</span>
+                            <div class="control-info">
+                                <span class="control-value" id="liveSuspicious">0</span>
+                                <span class="control-label">Suspicious</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Health Index & Analytics Row -->
+                <div class="analytics-row">
+                    <!-- Health Index Gauge -->
+                    <div class="health-gauge-card">
+                        <h4>📊 Attendance Health Index</h4>
+                        <div class="health-gauge">
+                            <div class="gauge-circle" id="healthGauge">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="gauge-bg" cx="50" cy="50" r="45" />
+                                    <circle class="gauge-fill" cx="50" cy="50" r="45" id="gaugeFill" />
+                                </svg>
+                                <div class="gauge-value">
+                                    <span id="healthValue">--</span>%
+                                    <span class="gauge-trend" id="healthTrend">↑</span>
+                                </div>
+                            </div>
+                            <div class="gauge-legend">
+                                <span class="gauge-status" id="healthStatus">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="quick-stats-card">
+                        <h4>📈 Today's Metrics</h4>
+                        <div class="quick-stats-grid">
+                            <div class="quick-stat">
+                                <span class="quick-stat-value" id="todayScans">0</span>
+                                <span class="quick-stat-label">Total Scans</span>
+                            </div>
+                            <div class="quick-stat">
+                                <span class="quick-stat-value" id="todayLate">0</span>
+                                <span class="quick-stat-label">Late Entries</span>
+                            </div>
+                            <div class="quick-stat">
+                                <span class="quick-stat-value" id="todayFailed">0</span>
+                                <span class="quick-stat-label">Failed Scans</span>
+                            </div>
+                            <div class="quick-stat">
+                                <span class="quick-stat-value" id="peakTime">--</span>
+                                <span class="quick-stat-label">Peak Time</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Quick Actions -->
                 <div class="quick-actions">
                     <button class="action-btn primary" onclick="AdminCore.openModal('locationModal')">
@@ -505,6 +601,65 @@
                     </div>
                 </div>
 
+                <!-- Emergency Controls -->
+                <div class="settings-section danger-section">
+                    <h3 class="settings-section-title">🚨 Emergency Controls</h3>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Campus Lockdown</div>
+                            <div class="settings-description">Immediately stop all sessions and disable all devices
+                            </div>
+                        </div>
+                        <div class="settings-control">
+                            <button class="btn btn-danger lockdown-btn" onclick="activateLockdown()">
+                                🔒 Emergency Lockdown
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Scheduler -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">📊 Report Scheduler</h3>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Weekly Report</div>
+                            <div class="settings-description">Send attendance summary every Monday</div>
+                        </div>
+                        <div class="settings-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="weeklyReport" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Monthly Report</div>
+                            <div class="settings-description">Send detailed report on 1st of each month</div>
+                        </div>
+                        <div class="settings-control">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="monthlyReport">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Email Recipients</div>
+                            <div class="settings-description">Reports will be sent to</div>
+                        </div>
+                        <div class="settings-control">
+                            <input type="email" class="form-input" id="reportEmail" placeholder="admin@college.edu"
+                                value="admin@college.edu" style="width:200px;">
+                        </div>
+                    </div>
+                    <div class="next-report-info" id="nextReportInfo">
+                        📅 Next scheduled report: <strong>Monday, Jan 13</strong>
+                    </div>
+                </div>
+
                 <div style="margin-top: var(--space-6);">
                     <button class="btn btn-primary" onclick="saveSettings()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -725,8 +880,16 @@
         // ========================================
         // Load Data
         // ========================================
+        const AdminState = {
+            isLockdown: false,
+            suspiciousCount: 0,
+            previousValues: {}
+        };
+
         async function loadDashboardData() {
             updateStats();
+            updateControlPanel();
+            updateHealthIndex();
             renderActivityTable();
             renderLocationsTable();
             renderDevicesTable();
@@ -734,6 +897,12 @@
             renderAttendanceTable();
             renderActivityTimeline();
             populateFilters();
+
+            // Start 5-second live updates for control panel
+            setInterval(() => {
+                updateControlPanel();
+                updateHealthIndex();
+            }, 5000);
         }
 
         function updateStats() {
@@ -749,6 +918,116 @@
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('lastUpdated').querySelector('span').textContent = `Last refreshed: ${timeStr}`;
+        }
+
+        // ========================================
+        // Live Control Panel
+        // ========================================
+        function updateControlPanel() {
+            if (AdminState.isLockdown) return;
+
+            // Simulate live values
+            const activeSessions = Math.floor(Math.random() * 5) + 1;
+            const onlineDevices = MOCK_DEVICES.filter(d => d.isActive).length;
+            const scanning = Math.floor(Math.random() * 20) + 5;
+            const suspicious = Math.floor(Math.random() * 3);
+
+            // Update with animation
+            animateValue('liveActiveSessions', activeSessions);
+            animateValue('liveOnlineDevices', onlineDevices);
+            animateValue('liveScanning', scanning);
+            animateValue('liveSuspicious', suspicious);
+
+            AdminState.suspiciousCount = suspicious;
+        }
+
+        function animateValue(elementId, newValue) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            const oldValue = parseInt(el.textContent) || 0;
+            if (oldValue !== newValue) {
+                el.textContent = newValue;
+                el.classList.add('updated');
+                setTimeout(() => el.classList.remove('updated'), 500);
+            }
+        }
+
+        // ========================================
+        // Health Index
+        // ========================================
+        function updateHealthIndex() {
+            const attendance = MockAPI.getAttendance();
+            const present = attendance.filter(a => a.status === 'present').length;
+            const late = attendance.filter(a => a.status === 'late').length;
+            const total = attendance.length || 1;
+
+            // Health = (Present + 0.5 × Late) / Total × 100
+            const health = Math.round(((present + 0.5 * late) / total) * 100);
+
+            // Update gauge
+            const gaugeFill = document.getElementById('gaugeFill');
+            const healthValue = document.getElementById('healthValue');
+            const healthStatus = document.getElementById('healthStatus');
+            const healthTrend = document.getElementById('healthTrend');
+
+            if (gaugeFill && healthValue) {
+                // Calculate stroke-dashoffset (283 is circumference, lower = more filled)
+                const offset = 283 - (283 * health / 100);
+                gaugeFill.style.strokeDashoffset = offset;
+
+                // Set color based on value
+                let level = 'low';
+                let statusText = 'Critical - Needs Attention';
+                if (health >= 75) { level = 'high'; statusText = 'Excellent Health'; }
+                else if (health >= 60) { level = 'medium'; statusText = 'Moderate - Could Improve'; }
+
+                gaugeFill.className = 'gauge-fill ' + level;
+                healthValue.textContent = health;
+                healthStatus.textContent = statusText;
+                healthStatus.className = 'gauge-status ' + level;
+
+                // Trend (random for demo)
+                const isUp = Math.random() > 0.3;
+                healthTrend.textContent = isUp ? '↑' : '↓';
+                healthTrend.className = 'gauge-trend ' + (isUp ? 'up' : 'down');
+            }
+
+            // Update quick stats
+            const todayScans = 150 + Math.floor(Math.random() * 50);
+            const todayLate = 10 + Math.floor(Math.random() * 10);
+            const todayFailed = Math.floor(Math.random() * 5);
+
+            document.getElementById('todayScans').textContent = todayScans;
+            document.getElementById('todayLate').textContent = todayLate;
+            document.getElementById('todayFailed').textContent = todayFailed;
+            document.getElementById('peakTime').textContent = '10:30 AM';
+        }
+
+        // ========================================
+        // Campus Lockdown
+        // ========================================
+        function activateLockdown() {
+            if (confirm('⚠️ EMERGENCY LOCKDOWN\n\nThis will:\n• Stop all active sessions\n• Disable all devices\n• Block all attendance scanning\n\nAre you sure?')) {
+                AdminState.isLockdown = true;
+
+                // Show banner
+                document.getElementById('lockdownBanner').style.display = 'flex';
+
+                // Reset control panel
+                document.getElementById('liveActiveSessions').textContent = '0';
+                document.getElementById('liveScanning').textContent = '0';
+
+                // Log activity
+                AdminCore.toast('🔒 Campus lockdown activated!', 'warning');
+            }
+        }
+
+        function liftLockdown() {
+            AdminState.isLockdown = false;
+            document.getElementById('lockdownBanner').style.display = 'none';
+            AdminCore.toast('✅ Lockdown lifted. Normal operations resumed.', 'success');
+            updateControlPanel();
         }
 
         function addLiveActivity() {
@@ -806,15 +1085,25 @@
             const tbody = document.getElementById('devicesTableBody');
 
             if (devices.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">📱</div><div class="empty-title">No devices registered</div><div class="empty-description">Click "Add Device" to register a new device</div></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="empty-icon">📱</div><div class="empty-title">No devices registered</div><div class="empty-description">Click "Add Device" to register a new device</div></td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = devices.map(dev => `
+            tbody.innerHTML = devices.map(dev => {
+                // Calculate reliability score (simulated)
+                const reliability = 85 + Math.floor(Math.random() * 15);
+                const reliabilityClass = reliability >= 90 ? 'high' : reliability >= 75 ? 'medium' : 'low';
+                const qrFailures = Math.floor(Math.random() * 5);
+
+                return `
                 <tr>
                     <td><code>${dev.deviceCode}</code></td>
                     <td>${dev.deviceName}</td>
                     <td>${dev.locationName}</td>
+                    <td>
+                        <span class="reliability-badge ${reliabilityClass}">${reliability}%</span>
+                        <small style="display:block;color:var(--text-muted);font-size:0.7rem;">${qrFailures} QR failures</small>
+                    </td>
                     <td>${dev.lastActive}</td>
                     <td><span class="status-dot ${dev.status}">${dev.status === 'online' ? '🟢 Online' : '🔴 Offline'}</span></td>
                     <td>
@@ -824,7 +1113,7 @@
                         </div>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         function renderStudentsTable(filters = {}) {

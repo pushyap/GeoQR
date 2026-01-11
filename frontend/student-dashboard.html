@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoQR Student Dashboard - Track your attendance">
+    <title>Student Dashboard - GeoQR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/student-dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="index.html" class="sidebar-logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 40 40" fill="none">
+                            <circle cx="20" cy="20" r="18" stroke="url(#studentGrad)" stroke-width="3" />
+                            <circle cx="20" cy="20" r="8" fill="url(#studentGrad)" />
+                            <defs>
+                                <linearGradient id="studentGrad" x1="0" y1="0" x2="40" y2="40">
+                                    <stop offset="0%" stop-color="#6366f1" />
+                                    <stop offset="100%" stop-color="#a855f7" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h1>GeoQR</h1>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <span class="nav-section-title">Main</span>
+                    <a href="#" class="nav-item active" data-tab="dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                        </svg>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-item" data-tab="attendance">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <span>Attendance</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Analytics</span>
+                    <a href="#" class="nav-item" data-tab="statistics">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 20V10" />
+                            <path d="M12 20V4" />
+                            <path d="M6 20v-6" />
+                        </svg>
+                        <span>Statistics</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">Settings</span>
+                    <a href="#" class="nav-item" data-tab="profile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span>Profile</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar" id="userAvatar">S</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Student</div>
+                        <div class="user-role" id="userStudentId">STU001</div>
+                    </div>
+                </div>
+                <button class="nav-item" id="logoutBtn" style="margin-top: var(--space-3);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <div class="mobile-header-content">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <span style="font-weight: 600;">Student Portal</span>
+                <div style="width: 30px;"></div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- ============= DASHBOARD TAB ============= -->
+            <div class="tab-content active" id="tab-dashboard">
+                <!-- Welcome Banner -->
+                <div class="welcome-banner">
+                    <div class="welcome-content">
+                        <div class="welcome-avatar" id="welcomeAvatar">S</div>
+                        <div class="welcome-text">
+                            <span class="welcome-label">Welcome back,</span>
+                            <h2 id="welcomeName">Student</h2>
+                            <span class="welcome-badge" id="welcomeCourse">B.Tech CSE • Year 3</span>
+                        </div>
+                        <!-- Attendance Streak Badge -->
+                        <div class="streak-badge" id="streakBadge">
+                            <span class="streak-fire">🔥</span>
+                            <span class="streak-count" id="streakCount">9</span>
+                            <span class="streak-label">day streak!</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Class Countdown (shown when class is active) -->
+                <div class="countdown-banner" id="countdownBanner" style="display: none;">
+                    <div class="countdown-icon">⏰</div>
+                    <div class="countdown-content">
+                        <span class="countdown-label">Attendance closes in</span>
+                        <span class="countdown-timer" id="countdownTimer">05:00</span>
+                    </div>
+                    <button class="countdown-action" onclick="window.location.href='scan.html'">Scan Now</button>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon primary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                                    <line x1="16" y1="2" x2="16" y2="6" />
+                                    <line x1="8" y1="2" x2="8" y2="6" />
+                                    <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalSessions">0</div>
+                        <div class="stat-label">Total Sessions</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon success">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="presentCount">0</div>
+                        <div class="stat-label">Present</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon warning">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 20V10" />
+                                    <path d="M12 20V4" />
+                                    <path d="M6 20v-6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="attendancePercent">0%</div>
+                        <div class="stat-label">Attendance Rate</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon danger">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="classesToday">0</div>
+                        <div class="stat-label">Classes Today</div>
+                    </div>
+                </div>
+
+                <!-- Achievement Badges Section -->
+                <div class="achievements-section">
+                    <h3 class="section-title">🏆 Your Achievements</h3>
+                    <div class="achievements-grid" id="achievementsGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="action-btn primary" id="scanBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        Scan Attendance
+                    </button>
+                    <button class="action-btn" id="viewHistoryBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        View History
+                    </button>
+                </div>
+
+                <!-- Recent Attendance Timeline -->
+                <div class="timeline-section">
+                    <h3 class="section-title">📅 Recent Activity</h3>
+                    <div class="timeline" id="attendanceTimeline">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Recent Attendance Table -->
+                <div class="table-container fade-in">
+                    <div class="table-header">
+                        <h3 class="table-title">Attendance Records</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentAttendanceTable">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============= ATTENDANCE TAB ============= -->
+            <div class="tab-content" id="tab-attendance">
+                <div class="page-header">
+                    <h1 class="page-title">Attendance History</h1>
+                    <p class="page-subtitle">View and filter your complete attendance records</p>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">All Records</h3>
+                        <div class="table-actions">
+                            <input type="date" class="filter-select" id="dateFilter">
+                            <select class="filter-select" id="subjectFilter">
+                                <option value="">All Subjects</option>
+                            </select>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="present">Present</option>
+                                <option value="late">Late</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Location</th>
+                                <th>Time</th>
+                                <th>Distance</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                    <div class="table-pagination">
+                        <span class="pagination-info" id="paginationInfo">Showing 1-10 of 0</span>
+                        <div class="pagination-buttons" id="paginationButtons">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============= STATISTICS TAB ============= -->
+            <div class="tab-content" id="tab-statistics">
+                <div class="page-header">
+                    <h1 class="page-title">Attendance Statistics</h1>
+                    <p class="page-subtitle">Analyze your attendance patterns and performance</p>
+                </div>
+
+                <!-- Eligibility Banner -->
+                <div class="eligibility-banner" id="eligibilityBanner">
+                    <div class="eligibility-icon">✓</div>
+                    <div class="eligibility-content">
+                        <h3 id="eligibilityTitle">Eligible for Exams</h3>
+                        <p id="eligibilityText">Your attendance is above the required 75% threshold</p>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="stats-overview">
+                    <div class="overview-card">
+                        <div class="circular-progress" id="overallProgress">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="progress-bg" cx="50" cy="50" r="42" />
+                                <circle class="progress-fill" cx="50" cy="50" r="42" id="progressCircle" />
+                            </svg>
+                            <div class="progress-text">
+                                <span class="progress-value" id="overallPercent">0%</span>
+                                <span class="progress-label">Overall</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="breakdown-card">
+                        <h4>Attendance Breakdown</h4>
+                        <div class="breakdown-items">
+                            <div class="breakdown-item present">
+                                <span class="breakdown-dot"></span>
+                                <span class="breakdown-label">Present</span>
+                                <span class="breakdown-value" id="breakdownPresent">0</span>
+                            </div>
+                            <div class="breakdown-item late">
+                                <span class="breakdown-dot"></span>
+                                <span class="breakdown-label">Late</span>
+                                <span class="breakdown-value" id="breakdownLate">0</span>
+                            </div>
+                            <div class="breakdown-item absent">
+                                <span class="breakdown-dot"></span>
+                                <span class="breakdown-label">Absent</span>
+                                <span class="breakdown-value" id="breakdownAbsent">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subject-wise Attendance -->
+                <div class="chart-container">
+                    <h3 class="chart-title">Subject-wise Attendance</h3>
+                    <div class="bar-chart" id="subjectChart">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Monthly Trend -->
+                <div class="chart-container">
+                    <h3 class="chart-title">Monthly Trend</h3>
+                    <div class="trend-chart" id="monthlyTrend">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============= PROFILE TAB ============= -->
+            <div class="tab-content" id="tab-profile">
+                <div class="page-header">
+                    <h1 class="page-title">My Profile</h1>
+                    <p class="page-subtitle">Manage your account settings</p>
+                </div>
+
+                <div class="profile-grid">
+                    <!-- Profile Card -->
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="profile-avatar" id="profileAvatar">S</div>
+                            <div class="profile-info">
+                                <h3 id="profileName">Student Name</h3>
+                                <span class="profile-badge active">Active Account</span>
+                            </div>
+                        </div>
+                        <div class="profile-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Student ID</span>
+                                <span class="detail-value" id="profileStudentId">STU001</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Email</span>
+                                <span class="detail-value" id="profileEmail">student@college.edu</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Course</span>
+                                <span class="detail-value" id="profileCourse">B.Tech Computer Science</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Year</span>
+                                <span class="detail-value" id="profileYear">3rd Year</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Card -->
+                    <div class="settings-card">
+                        <h3>Account Settings</h3>
+                        <div class="settings-actions">
+                            <button class="settings-btn" onclick="openEditProfileModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                                Edit Profile
+                            </button>
+                            <button class="settings-btn" onclick="openChangePasswordModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                </svg>
+                                Change Password
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Device Info -->
+                    <div class="settings-card">
+                        <h3>Device Information</h3>
+                        <div class="device-info">
+                            <div class="detail-item">
+                                <span class="detail-label">Last Device</span>
+                                <span class="detail-value" id="deviceName">Chrome on Windows</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Last Login</span>
+                                <span class="detail-value" id="lastLogin">Today, 9:30 AM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation (Mobile) -->
+        <nav class="bottom-nav">
+            <div class="bottom-nav-items">
+                <a href="#" class="bottom-nav-item active" data-tab="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-tab="attendance">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span>Attendance</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-tab="statistics">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10" />
+                        <path d="M12 20V4" />
+                        <path d="M6 20v-6" />
+                    </svg>
+                    <span>Stats</span>
+                </a>
+                <a href="#" class="bottom-nav-item" data-tab="profile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Profile</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+    </div>
+
+    <!-- ============= MODALS ============= -->
+
+    <!-- Attendance Detail Modal -->
+    <div class="modal" id="attendanceDetailModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Attendance Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="attendanceDetailContent">
+                <!-- Populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal" id="editProfileModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Edit Profile</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-input" id="editName" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="editEmail" placeholder="Email" disabled>
+                        <small style="color: var(--text-muted);">Email cannot be changed</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal" id="changePasswordModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Change Password</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" class="form-input" id="currentPassword" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-input" id="newPassword" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-input" id="confirmPassword" placeholder="••••••••">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/mock-data.js"></script>
+    <script>
+        // ========================================
+        // Student Dashboard State
+        // ========================================
+        const StudentState = {
+            currentTab: 'dashboard',
+            attendanceRecords: [],
+            filteredRecords: [],
+            currentPage: 1,
+            itemsPerPage: 10,
+            studentProfile: null
+        };
+
+        // Mock student profile data
+        const STUDENT_PROFILE = {
+            id: 1,
+            name: 'John Smith',
+            email: 'john@college.edu',
+            studentId: 'STU001',
+            course: 'B.Tech Computer Science',
+            year: '3rd Year',
+            semester: 6,
+            enrollmentDate: '2023-08-01',
+            isActive: true
+        };
+
+        // Mock subjects
+        const SUBJECTS = [
+            'Data Structures',
+            'Database Systems',
+            'Computer Networks',
+            'Web Development',
+            'Operating Systems',
+            'Software Engineering',
+            'Machine Learning',
+            'Artificial Intelligence'
+        ];
+
+        // ========================================
+        // Extended Mock API for Student
+        // ========================================
+        const StudentMockAPI = {
+            getStudentProfile() {
+                const user = Session.getUser();
+                return {
+                    ...STUDENT_PROFILE,
+                    name: user?.name || STUDENT_PROFILE.name,
+                    email: user?.email || STUDENT_PROFILE.email,
+                    studentId: user?.studentId || STUDENT_PROFILE.studentId
+                };
+            },
+
+            getAttendanceRecords() {
+                // Generate comprehensive attendance data
+                const records = [];
+                const statuses = ['present', 'present', 'present', 'present', 'late', 'absent'];
+                const today = new Date();
+
+                for (let i = 0; i < 60; i++) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - Math.floor(i / 3));
+                    const subject = SUBJECTS[i % SUBJECTS.length];
+                    const status = statuses[Math.floor(Math.random() * statuses.length)];
+                    const hour = 9 + (i % 4) * 2;
+                    const location = MOCK_LOCATIONS[i % MOCK_LOCATIONS.length];
+
+                    records.push({
+                        id: i + 1,
+                        date: date.toISOString().split('T')[0],
+                        subject: subject,
+                        location: location?.name || 'Room 101',
+                        time: `${String(hour).padStart(2, '0')}:${i % 2 === 0 ? '00' : '30'}`,
+                        distance: status !== 'absent' ? Math.floor(Math.random() * 40) + 5 : null,
+                        status: status,
+                        markedAt: `${date.toISOString().split('T')[0]}T${String(hour).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:00`
+                    });
+                }
+
+                return records.sort((a, b) => new Date(b.date) - new Date(a.date));
+            },
+
+            getStats(records) {
+                const total = records.length;
+                const present = records.filter(r => r.status === 'present').length;
+                const late = records.filter(r => r.status === 'late').length;
+                const absent = records.filter(r => r.status === 'absent').length;
+                const percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+
+                return { total, present, late, absent, percentage };
+            },
+
+            getClassesToday() {
+                const todayStr = new Date().toISOString().split('T')[0];
+                return MOCK_SESSIONS.filter(s => s.date === todayStr).length || 3;
+            },
+
+            getSubjectWiseAttendance(records) {
+                const subjectStats = {};
+                SUBJECTS.forEach(subject => {
+                    const subjectRecords = records.filter(r => r.subject === subject);
+                    const present = subjectRecords.filter(r => r.status === 'present' || r.status === 'late').length;
+                    const total = subjectRecords.length;
+                    subjectStats[subject] = {
+                        present,
+                        total,
+                        percentage: total > 0 ? Math.round((present / total) * 100) : 0
+                    };
+                });
+                return subjectStats;
+            },
+
+            getMonthlyTrend(records) {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const currentMonth = new Date().getMonth();
+                const trend = [];
+
+                for (let i = 5; i >= 0; i--) {
+                    const monthIndex = (currentMonth - i + 12) % 12;
+                    const monthName = months[monthIndex];
+                    // Mock data - in real app would filter by month
+                    trend.push({
+                        month: monthName,
+                        percentage: 70 + Math.floor(Math.random() * 25)
+                    });
+                }
+
+                return trend;
+            },
+
+            // Get attendance streak
+            getAttendanceStreak(records) {
+                let streak = 0;
+                const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+                const datesSeen = new Set();
+
+                for (const record of sortedRecords) {
+                    if (datesSeen.has(record.date)) continue;
+                    datesSeen.add(record.date);
+
+                    if (record.status === 'present' || record.status === 'late') {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+                return streak;
+            },
+
+            // Get achievements
+            getAchievements(records) {
+                const achievements = [];
+                const streak = this.getAttendanceStreak(records);
+                const stats = this.getStats(records);
+                const lateCount = records.filter(r => r.status === 'late').length;
+
+                // 7-day streak
+                if (streak >= 7) {
+                    achievements.push({
+                        id: 'streak_7',
+                        icon: '🔥',
+                        title: '7-Day Streak',
+                        description: 'Attended 7 classes in a row',
+                        unlocked: true,
+                        date: new Date().toISOString().split('T')[0]
+                    });
+                }
+
+                // Perfect week
+                if (streak >= 5) {
+                    achievements.push({
+                        id: 'perfect_week',
+                        icon: '⭐',
+                        title: 'Perfect Week',
+                        description: 'No absences this week',
+                        unlocked: true,
+                        date: new Date().toISOString().split('T')[0]
+                    });
+                }
+
+                // Never late
+                if (lateCount === 0 && stats.present >= 10) {
+                    achievements.push({
+                        id: 'never_late',
+                        icon: '⏰',
+                        title: 'Always On Time',
+                        description: 'Never marked late',
+                        unlocked: true,
+                        date: new Date().toISOString().split('T')[0]
+                    });
+                }
+
+                // Consistent
+                if (stats.percentage >= 90) {
+                    achievements.push({
+                        id: 'consistent',
+                        icon: '🏆',
+                        title: 'Consistent',
+                        description: '90%+ attendance rate',
+                        unlocked: true,
+                        date: new Date().toISOString().split('T')[0]
+                    });
+                }
+
+                // First scan
+                if (stats.present >= 1) {
+                    achievements.push({
+                        id: 'first_scan',
+                        icon: '📱',
+                        title: 'First Scan',
+                        description: 'Marked your first attendance',
+                        unlocked: true,
+                        date: records[records.length - 1]?.date
+                    });
+                }
+
+                return achievements;
+            },
+
+            // Get active class with countdown
+            getActiveClass() {
+                const now = new Date();
+                const hour = now.getHours();
+                const minute = now.getMinutes();
+
+                // Simulate an active class if time is between 9 AM and 5 PM
+                if (hour >= 9 && hour < 17) {
+                    const endMinute = 30 - (minute % 30); // Minutes until next half-hour
+                    return {
+                        active: true,
+                        subject: SUBJECTS[hour % SUBJECTS.length],
+                        location: MOCK_LOCATIONS[0]?.name || 'Room 101',
+                        remainingMinutes: endMinute,
+                        remainingSeconds: 60 - now.getSeconds()
+                    };
+                }
+                return { active: false };
+            }
+        };
+
+        // ========================================
+        // Initialize
+        // ========================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication
+            const user = Session.getUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Check role - only allow students
+            if (user.role !== 'student') {
+                const dashboards = {
+                    'admin': 'admin-dashboard.html',
+                    'faculty': 'faculty-dashboard.html',
+                    'device': 'device/'
+                };
+                window.location.href = dashboards[user.role] || 'login.html';
+                return;
+            }
+
+            // Initialize data
+            StudentState.studentProfile = StudentMockAPI.getStudentProfile();
+            StudentState.attendanceRecords = StudentMockAPI.getAttendanceRecords();
+            StudentState.filteredRecords = [...StudentState.attendanceRecords];
+
+            // Update UI
+            updateUserInfo();
+            loadDashboardData();
+            loadAttendanceHistory();
+            loadStatistics();
+            loadProfile();
+            populateFilters();
+            setupEventListeners();
+
+            // Load new features
+            loadStreak();
+            loadAchievements();
+            loadTimeline();
+            checkActiveClass();
+
+            // Simulate live updates
+            setInterval(simulateLiveUpdates, 30000);
+
+            // Update countdown every second
+            setInterval(updateCountdown, 1000);
+        });
+
+        // ========================================
+        // UI Updates
+        // ========================================
+        function updateUserInfo() {
+            const profile = StudentState.studentProfile;
+            document.getElementById('welcomeName').textContent = profile.name.split(' ')[0];
+            document.getElementById('welcomeAvatar').textContent = profile.name.charAt(0).toUpperCase();
+            document.getElementById('welcomeCourse').textContent = `${profile.course.split(' ').slice(0, 2).join(' ')} • ${profile.year}`;
+            document.getElementById('userName').textContent = profile.name;
+            document.getElementById('userStudentId').textContent = profile.studentId;
+            document.getElementById('userAvatar').textContent = profile.name.charAt(0).toUpperCase();
+        }
+
+        function loadDashboardData() {
+            const records = StudentState.attendanceRecords;
+            const stats = StudentMockAPI.getStats(records);
+            const classesToday = StudentMockAPI.getClassesToday();
+
+            animateNumber('totalSessions', stats.total);
+            animateNumber('presentCount', stats.present + stats.late);
+            document.getElementById('attendancePercent').textContent = stats.percentage + '%';
+            document.getElementById('attendancePercent').style.color =
+                stats.percentage >= 75 ? 'var(--success-light)' :
+                    stats.percentage >= 50 ? 'var(--warning)' : 'var(--danger)';
+            animateNumber('classesToday', classesToday);
+
+            // Recent attendance
+            renderRecentAttendance(records.slice(0, 5));
+        }
+
+        // ========================================
+        // New Features: Streak, Achievements, Timeline
+        // ========================================
+        function loadStreak() {
+            const records = StudentState.attendanceRecords;
+            const streak = StudentMockAPI.getAttendanceStreak(records);
+
+            document.getElementById('streakCount').textContent = streak;
+
+            // Hide streak badge if no streak
+            if (streak < 2) {
+                document.getElementById('streakBadge').style.display = 'none';
+            } else {
+                document.getElementById('streakBadge').style.display = 'flex';
+            }
+        }
+
+        function loadAchievements() {
+            const records = StudentState.attendanceRecords;
+            const achievements = StudentMockAPI.getAchievements(records);
+            const container = document.getElementById('achievementsGrid');
+
+            if (achievements.length === 0) {
+                container.innerHTML = '<p class="no-achievements">Keep attending to unlock achievements!</p>';
+                return;
+            }
+
+            container.innerHTML = achievements.slice(0, 4).map(achievement => `
+                <div class="achievement-badge ${achievement.unlocked ? 'unlocked' : 'locked'} fade-in">
+                    <span class="achievement-icon">${achievement.icon}</span>
+                    <div class="achievement-info">
+                        <span class="achievement-title">${achievement.title}</span>
+                        <span class="achievement-desc">${achievement.description}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadTimeline() {
+            const records = StudentState.attendanceRecords.slice(0, 5);
+            const container = document.getElementById('attendanceTimeline');
+
+            container.innerHTML = records.map((record, index) => {
+                const date = new Date(record.date);
+                const isToday = date.toDateString() === new Date().toDateString();
+                const isYesterday = date.toDateString() === new Date(Date.now() - 86400000).toDateString();
+                const dateLabel = isToday ? 'Today' : isYesterday ? 'Yesterday' : formatDate(record.date);
+
+                return `
+                    <div class="timeline-item fade-in" style="animation-delay: ${index * 0.1}s;">
+                        <div class="timeline-dot ${getStatusClass(record.status)}"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-date">${dateLabel}</span>
+                                <span class="timeline-time">${record.time}</span>
+                            </div>
+                            <div class="timeline-body">
+                                <strong>${record.subject}</strong>
+                                <span class="status-badge ${getStatusClass(record.status)}">
+                                    ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        let countdownInterval = null;
+        let countdownSeconds = 0;
+
+        function checkActiveClass() {
+            const activeClass = StudentMockAPI.getActiveClass();
+            const banner = document.getElementById('countdownBanner');
+
+            if (activeClass.active) {
+                countdownSeconds = activeClass.remainingMinutes * 60 + activeClass.remainingSeconds;
+                banner.style.display = 'flex';
+                updateCountdown();
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function updateCountdown() {
+            if (countdownSeconds <= 0) {
+                document.getElementById('countdownBanner').style.display = 'none';
+                return;
+            }
+
+            countdownSeconds--;
+            const minutes = Math.floor(countdownSeconds / 60);
+            const seconds = countdownSeconds % 60;
+            document.getElementById('countdownTimer').textContent =
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            // Add urgency styling when < 1 minute
+            const timer = document.getElementById('countdownTimer');
+            if (minutes < 1) {
+                timer.classList.add('urgent');
+            }
+        }
+
+        function animateNumber(id, target) {
+            const el = document.getElementById(id);
+            let current = 0;
+            const increment = Math.ceil(target / 20);
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                el.textContent = current;
+            }, 30);
+        }
+
+        function renderRecentAttendance(records) {
+            const tbody = document.getElementById('recentAttendanceTable');
+            tbody.innerHTML = records.map(record => `
+                <tr onclick="showAttendanceDetail(${record.id})" style="cursor:pointer;">
+                    <td><strong>${record.subject}</strong></td>
+                    <td>${formatDate(record.date)}</td>
+                    <td>${record.time}</td>
+                    <td>${record.location}</td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(record.status)}">
+                            ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ========================================
+        // Attendance History
+        // ========================================
+        function loadAttendanceHistory() {
+            renderAttendanceTable();
+        }
+
+        function renderAttendanceTable() {
+            const start = (StudentState.currentPage - 1) * StudentState.itemsPerPage;
+            const end = start + StudentState.itemsPerPage;
+            const pageRecords = StudentState.filteredRecords.slice(start, end);
+
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = pageRecords.map(record => `
+                <tr onclick="showAttendanceDetail(${record.id})" style="cursor:pointer;">
+                    <td>${formatDate(record.date)}</td>
+                    <td><strong>${record.subject}</strong></td>
+                    <td>${record.location}</td>
+                    <td>${record.time}</td>
+                    <td>${record.distance ? record.distance + 'm' : '-'}</td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(record.status)}">
+                            ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${start + 1}-${Math.min(end, StudentState.filteredRecords.length)} of ${StudentState.filteredRecords.length}`;
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(StudentState.filteredRecords.length / StudentState.itemsPerPage);
+            const container = document.getElementById('paginationButtons');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= Math.min(totalPages, 7); i++) {
+                const btn = document.createElement('button');
+                btn.className = `pagination-btn ${i === StudentState.currentPage ? 'active' : ''}`;
+                btn.textContent = i;
+                btn.onclick = () => {
+                    StudentState.currentPage = i;
+                    renderAttendanceTable();
+                };
+                container.appendChild(btn);
+            }
+        }
+
+        function applyFilters() {
+            const dateFilter = document.getElementById('dateFilter').value;
+            const subjectFilter = document.getElementById('subjectFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            StudentState.filteredRecords = StudentState.attendanceRecords.filter(record => {
+                if (dateFilter && record.date !== dateFilter) return false;
+                if (subjectFilter && record.subject !== subjectFilter) return false;
+                if (statusFilter && record.status !== statusFilter) return false;
+                return true;
+            });
+
+            StudentState.currentPage = 1;
+            renderAttendanceTable();
+        }
+
+        function populateFilters() {
+            const subjectSelect = document.getElementById('subjectFilter');
+            SUBJECTS.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject;
+                subjectSelect.appendChild(option);
+            });
+        }
+
+        // ========================================
+        // Statistics
+        // ========================================
+        function loadStatistics() {
+            const records = StudentState.attendanceRecords;
+            const stats = StudentMockAPI.getStats(records);
+
+            // Update eligibility banner
+            updateEligibilityBanner(stats.percentage);
+
+            // Update overall progress
+            updateProgressCircle(stats.percentage);
+
+            // Update breakdown
+            document.getElementById('breakdownPresent').textContent = stats.present;
+            document.getElementById('breakdownLate').textContent = stats.late;
+            document.getElementById('breakdownAbsent').textContent = stats.absent;
+
+            // Subject-wise chart
+            renderSubjectChart(StudentMockAPI.getSubjectWiseAttendance(records));
+
+            // Monthly trend
+            renderMonthlyTrend(StudentMockAPI.getMonthlyTrend(records));
+        }
+
+        function updateEligibilityBanner(percentage) {
+            const banner = document.getElementById('eligibilityBanner');
+            const icon = banner.querySelector('.eligibility-icon');
+            const title = document.getElementById('eligibilityTitle');
+            const text = document.getElementById('eligibilityText');
+
+            if (percentage >= 75) {
+                banner.className = 'eligibility-banner eligible';
+                icon.textContent = '✓';
+                title.textContent = 'Eligible for Exams';
+                text.textContent = 'Your attendance is above the required 75% threshold';
+            } else {
+                banner.className = 'eligibility-banner at-risk';
+                icon.textContent = '⚠';
+                title.textContent = 'At Risk - Low Attendance';
+                text.textContent = `You need ${75 - percentage}% more to meet the minimum requirement`;
+            }
+        }
+
+        function updateProgressCircle(percentage) {
+            const circle = document.getElementById('progressCircle');
+            const circumference = 2 * Math.PI * 42;
+            const offset = circumference - (percentage / 100) * circumference;
+            circle.style.strokeDasharray = circumference;
+            circle.style.strokeDashoffset = offset;
+
+            document.getElementById('overallPercent').textContent = percentage + '%';
+        }
+
+        function renderSubjectChart(subjectStats) {
+            const container = document.getElementById('subjectChart');
+            container.innerHTML = Object.entries(subjectStats).map(([subject, stats]) => `
+                <div class="bar-item">
+                    <div class="bar-label">${subject.split(' ').slice(0, 2).join(' ')}</div>
+                    <div class="bar-track">
+                        <div class="bar-fill ${getBarColor(stats.percentage)}" style="width: ${stats.percentage}%"></div>
+                    </div>
+                    <div class="bar-value">${stats.percentage}%</div>
+                </div>
+            `).join('');
+        }
+
+        function renderMonthlyTrend(trend) {
+            const container = document.getElementById('monthlyTrend');
+            const maxHeight = 100;
+            container.innerHTML = trend.map(item => `
+                <div class="trend-item">
+                    <div class="trend-bar-container">
+                        <div class="trend-bar ${getBarColor(item.percentage)}" style="height: ${item.percentage}%"></div>
+                    </div>
+                    <div class="trend-label">${item.month}</div>
+                    <div class="trend-value">${item.percentage}%</div>
+                </div>
+            `).join('');
+        }
+
+        function getBarColor(percentage) {
+            if (percentage >= 75) return 'high';
+            if (percentage >= 50) return 'medium';
+            return 'low';
+        }
+
+        // ========================================
+        // Profile
+        // ========================================
+        function loadProfile() {
+            const profile = StudentState.studentProfile;
+            document.getElementById('profileAvatar').textContent = profile.name.charAt(0).toUpperCase();
+            document.getElementById('profileName').textContent = profile.name;
+            document.getElementById('profileStudentId').textContent = profile.studentId;
+            document.getElementById('profileEmail').textContent = profile.email;
+            document.getElementById('profileCourse').textContent = profile.course;
+            document.getElementById('profileYear').textContent = profile.year;
+
+            // Device info
+            document.getElementById('deviceName').textContent = getBrowserInfo();
+            document.getElementById('lastLogin').textContent = formatLastLogin();
+        }
+
+        function getBrowserInfo() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Chrome')) return 'Chrome on ' + (ua.includes('Windows') ? 'Windows' : 'Mac');
+            if (ua.includes('Firefox')) return 'Firefox on ' + (ua.includes('Windows') ? 'Windows' : 'Mac');
+            if (ua.includes('Safari')) return 'Safari on Mac';
+            return 'Unknown Browser';
+        }
+
+        function formatLastLogin() {
+            const now = new Date();
+            return `Today, ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+        }
+
+        // ========================================
+        // Modals
+        // ========================================
+        function showAttendanceDetail(recordId) {
+            const record = StudentState.attendanceRecords.find(r => r.id === recordId);
+            if (!record) return;
+
+            const content = document.getElementById('attendanceDetailContent');
+            content.innerHTML = `
+                <div class="detail-card">
+                    <div class="detail-header">
+                        <span class="status-badge ${getStatusClass(record.status)} large">
+                            ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
+                        </span>
+                    </div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Subject</span>
+                            <span class="detail-value">${record.subject}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Date</span>
+                            <span class="detail-value">${formatDate(record.date)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Time</span>
+                            <span class="detail-value">${record.time}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Location</span>
+                            <span class="detail-value">${record.location}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Distance from Class</span>
+                            <span class="detail-value">${record.distance ? record.distance + ' meters' : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Marked At</span>
+                            <span class="detail-value">${record.markedAt ? new Date(record.markedAt).toLocaleString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openModal('attendanceDetailModal');
+        }
+
+        function openEditProfileModal() {
+            const profile = StudentState.studentProfile;
+            document.getElementById('editName').value = profile.name;
+            document.getElementById('editEmail').value = profile.email;
+            openModal('editProfileModal');
+        }
+
+        function openChangePasswordModal() {
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            openModal('changePasswordModal');
+        }
+
+        function saveProfile() {
+            const newName = document.getElementById('editName').value.trim();
+            if (newName) {
+                StudentState.studentProfile.name = newName;
+                updateUserInfo();
+                loadProfile();
+                closeModal('editProfileModal');
+                showToast('Profile updated successfully!', 'success');
+            }
+        }
+
+        function changePassword() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (!current || !newPass || !confirm) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+            if (newPass !== confirm) {
+                showToast('Passwords do not match', 'error');
+                return;
+            }
+            if (newPass.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            // Mock success
+            closeModal('changePasswordModal');
+            showToast('Password changed successfully!', 'success');
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // ========================================
+        // Event Listeners
+        // ========================================
+        function setupEventListeners() {
+            // Tab navigation
+            document.querySelectorAll('[data-tab]').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const tab = item.dataset.tab;
+                    showTab(tab);
+                });
+            });
+
+            // Mobile menu
+            document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('open');
+                document.getElementById('sidebarOverlay').classList.toggle('active');
+            });
+
+            document.getElementById('sidebarOverlay').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+            });
+
+            // Filters
+            document.getElementById('dateFilter').addEventListener('change', applyFilters);
+            document.getElementById('subjectFilter').addEventListener('change', applyFilters);
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+            // Quick actions
+            document.getElementById('scanBtn').addEventListener('click', () => {
+                window.location.href = 'scan.html';
+            });
+
+            document.getElementById('viewHistoryBtn').addEventListener('click', () => {
+                showTab('attendance');
+            });
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                Session.clear();
+                window.location.href = 'login.html';
+            });
+
+            // Modal close handlers
+            document.querySelectorAll('.modal-close, [data-dismiss="modal"]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.closest('.modal').classList.remove('active');
+                });
+            });
+
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.addEventListener('click', () => {
+                    backdrop.closest('.modal').classList.remove('active');
+                });
+            });
+        }
+
+        function showTab(tabName) {
+            StudentState.currentTab = tabName;
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Update nav items
+            document.querySelectorAll('[data-tab]').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => {
+                item.classList.add('active');
+            });
+
+            // Close mobile menu
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
+        // ========================================
+        // Utilities
+        // ========================================
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function getStatusClass(status) {
+            return status === 'present' ? 'success' : status === 'late' ? 'warning' : 'danger';
+        }
+
+        function getStatusIcon(status) {
+            return status === 'present' ? '✓' : status === 'late' ? '⏱' : '✗';
+        }
+
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">&times;</button>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function simulateLiveUpdates() {
+            // Simulate occasional new attendance being added
+            if (Math.random() > 0.7) {
+                const stats = StudentMockAPI.getStats(StudentState.attendanceRecords);
+                loadDashboardData();
+            }
+        }
+    </script>
+</body>
+
+</html>

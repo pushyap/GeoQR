@@ -127,6 +127,69 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Live Status Bar (shows during active session) -->
+            <div class="live-status-bar" id="liveStatusBar" style="display: none;">
+                <div class="live-status-indicator">
+                    <span class="live-dot"></span>
+                    <span class="live-text">ATTENDANCE ACTIVE</span>
+                </div>
+                <div class="live-status-info">
+                    <span class="live-stat">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                            height="16">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <span id="liveElapsedTime">00:00</span>
+                    </span>
+                    <span class="live-stat">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                            height="16">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                        </svg>
+                        <span id="livePresentCount">0</span> Present
+                    </span>
+                    <span class="live-stat">
+                        <span class="engagement-badge" id="liveEngagement">--</span>
+                    </span>
+                </div>
+                <button class="live-end-btn" onclick="endActiveSession()">End Session</button>
+            </div>
+
+            <!-- Live Classroom Radar (floating panel) -->
+            <div class="classroom-radar" id="classroomRadar" style="display: none;">
+                <div class="radar-header">
+                    <span class="radar-title">📡 Live Radar</span>
+                    <button class="radar-close" onclick="toggleRadar()">×</button>
+                </div>
+                <div class="radar-stats">
+                    <div class="radar-stat present">
+                        <span class="radar-icon">✅</span>
+                        <span class="radar-value" id="radarPresent">0</span>
+                        <span class="radar-label">Present</span>
+                    </div>
+                    <div class="radar-stat late">
+                        <span class="radar-icon">🟡</span>
+                        <span class="radar-value" id="radarLate">0</span>
+                        <span class="radar-label">Late</span>
+                    </div>
+                    <div class="radar-stat absent">
+                        <span class="radar-icon">❌</span>
+                        <span class="radar-value" id="radarAbsent">0</span>
+                        <span class="radar-label">Absent</span>
+                    </div>
+                    <div class="radar-stat outrange">
+                        <span class="radar-icon">⚠️</span>
+                        <span class="radar-value" id="radarOutRange">0</span>
+                        <span class="radar-label">Out of Range</span>
+                    </div>
+                </div>
+                <div class="radar-alerts" id="radarAlerts">
+                    <!-- Suspicious activity alerts -->
+                </div>
+            </div>
+
             <!-- Page Header -->
             <div class="page-header"
                 style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:var(--space-3);">
@@ -202,6 +265,31 @@
                     </div>
                 </div>
 
+                <!-- Live Student Counter (shows during active session) -->
+                <div class="live-counter-section" id="liveCounterSection" style="display: none;">
+                    <div class="live-counter-card">
+                        <div class="live-pulse"></div>
+                        <div class="live-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                        </div>
+                        <div class="live-content">
+                            <span class="live-label">LIVE • Students Present</span>
+                            <div class="live-count-wrapper">
+                                <span class="live-count" id="liveStudentCount">0</span>
+                                <span class="live-total">/ <span id="totalExpectedStudents">48</span></span>
+                            </div>
+                        </div>
+                        <div class="live-bar-container">
+                            <div class="live-bar" id="attendanceCompletionBar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Quick Actions -->
                 <div class="quick-actions">
                     <button class="action-btn primary" onclick="openCreateSessionModal()">
@@ -218,13 +306,50 @@
                         </svg>
                         View Attendance
                     </button>
-                    <button class="action-btn" onclick="showTab('reports')">
+                    <button class="action-btn warning" onclick="showDefaultersModal()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
-                        Generate Report
+                        Show Defaulters
                     </button>
+                    <button class="action-btn" onclick="downloadAbsentees()" id="downloadAbsenteesBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download Absentees
+                    </button>
+                </div>
+
+                <!-- Last Session Summary Card (shows after session ends) -->
+                <div class="session-summary-card" id="sessionSummaryCard" style="display: none;">
+                    <div class="summary-header">
+                        <span class="summary-title">📊 Last Session Summary</span>
+                        <button class="summary-close" onclick="hideSessionSummary()">×</button>
+                    </div>
+                    <div class="summary-subject" id="summarySubject">Data Structures</div>
+                    <div class="summary-stats">
+                        <div class="summary-stat present">
+                            <span class="summary-value" id="summaryPresent">0</span>
+                            <span class="summary-label">Present</span>
+                        </div>
+                        <div class="summary-stat late">
+                            <span class="summary-value" id="summaryLate">0</span>
+                            <span class="summary-label">Late</span>
+                        </div>
+                        <div class="summary-stat absent">
+                            <span class="summary-value" id="summaryAbsent">0</span>
+                            <span class="summary-label">Absent</span>
+                        </div>
+                        <div class="summary-stat engagement">
+                            <span class="summary-value" id="summaryEngagement">--</span>
+                            <span class="summary-label">Engagement</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Today's Sessions -->
@@ -349,25 +474,18 @@
                         <div id="reportPreview" style="display:none;">
                             <div class="settings-section">
                                 <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
-                                <div class="stats-grid"
-                                    style="grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
-                                    <div
-                                        style="text-align:center; padding: var(--space-3); background: rgba(16,185,129,0.1); border-radius: var(--radius-md);">
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;"
-                                            id="reportPresent">0</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Present</div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
+                                    <div class="report-stat present">
+                                        <div class="report-stat-value" id="reportPresent">0</div>
+                                        <div class="report-stat-label">Present</div>
                                     </div>
-                                    <div
-                                        style="text-align:center; padding: var(--space-3); background: rgba(239,68,68,0.1); border-radius: var(--radius-md);">
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;"
-                                            id="reportAbsent">0</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Absent</div>
+                                    <div class="report-stat absent">
+                                        <div class="report-stat-value" id="reportAbsent">0</div>
+                                        <div class="report-stat-label">Absent</div>
                                     </div>
-                                    <div
-                                        style="text-align:center; padding: var(--space-3); background: rgba(99,102,241,0.1); border-radius: var(--radius-md);">
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-400);"
-                                            id="reportPercentage">0%</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Rate</div>
+                                    <div class="report-stat rate">
+                                        <div class="report-stat-value" id="reportPercentage">0%</div>
+                                        <div class="report-stat-label">Attendance Rate</div>
                                     </div>
                                 </div>
                             </div>
@@ -477,7 +595,7 @@
             </div>
             <div class="modal-body">
                 <div style="text-align:center; margin-bottom: var(--space-5);">
-                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-400);" id="liveCount">0</div>
+                    <div class="attendance-count" id="liveCount">0</div>
                     <div style="color: var(--text-muted);">Students Present</div>
                     <div class="live-pulse" style="margin-top: var(--space-2);"></div>
                 </div>
@@ -535,7 +653,60 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Defaulters Modal -->
+    <div class="modal" id="defaultersModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>⚠️ Defaulters List (< 75% Attendance)</h3>
+                        <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="defaulters-filter">
+                    <label>Filter by Subject:</label>
+                    <select id="defaulterSubjectFilter" class="form-select" onchange="filterDefaulters()">
+                        <option value="all">All Subjects</option>
+                    </select>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Attendance %</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="defaultersTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <div class="defaulters-summary" id="defaultersSummary"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button class="btn btn-primary" onclick="exportDefaultersCSV()">Export CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suspicious Activity Modal -->
+    <div class="modal" id="suspiciousModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>🚨 Suspicious Activity Detected</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="suspiciousContent">
+                <!-- Populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-dismiss="modal">Dismiss</button>
+                <button class="btn btn-danger">Flag Student</button>
+            </div>
+        </div>
+    </div>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/mock-data.js"></script>
@@ -544,8 +715,11 @@
         // ========================================
         // Faculty Dashboard State
         // ========================================
+        const STORAGE_KEY = 'activeFacultySession';
+        const LATE_THRESHOLD_MINUTES = 5; // Students marked after 5 minutes are "Late"
+
         const FacultyState = {
-            activeSessions: new Map(), // sessionId -> { interval, studentCount, students }
+            activeSessions: new Map(), // sessionId -> { interval, studentCount, students, startedAt }
             currentFacultyId: 101, // Mock faculty ID
             liveUpdateInterval: null
         };
@@ -580,7 +754,7 @@
             },
 
             getTodaySessions() {
-                const today = '2026-01-10'; // Mock today
+                const today = new Date().toISOString().split('T')[0]; // Use actual today
                 return this.getFacultySessions().filter(s => s.date === today);
             },
 
@@ -602,15 +776,61 @@
             startSession(sessionId) {
                 if (FacultyState.activeSessions.has(sessionId)) return;
 
+                const session = MOCK_SESSIONS.find(s => s.id === sessionId);
+                const location = MOCK_LOCATIONS.find(l => l.id === session?.locationId);
+                const startedAt = new Date();
+
                 const sessionData = {
                     studentCount: 0,
                     students: [],
-                    startedAt: new Date()
+                    startedAt: startedAt
                 };
 
                 FacultyState.activeSessions.set(sessionId, sessionData);
 
+                // Save to localStorage for persistence
+                this.saveSessionToStorage(sessionId, session, location, startedAt);
+
                 // Simulate students joining every 2-3 seconds
+                this.startStudentSimulation(sessionId);
+                return true;
+            },
+
+            // Save session to localStorage
+            saveSessionToStorage(sessionId, session, location, startedAt) {
+                const data = FacultyState.activeSessions.get(sessionId);
+                const storageData = {
+                    sessionId: sessionId,
+                    subject: session?.subject || 'Unknown Session',
+                    location: location?.name || 'Unknown Location',
+                    startTime: startedAt.toISOString(),
+                    studentsPresent: data?.students || []
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
+            },
+
+            // Update localStorage with current students
+            updateStorageStudents(sessionId) {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    const sessionData = FacultyState.activeSessions.get(sessionId);
+                    if (sessionData) {
+                        data.studentsPresent = sessionData.students.map(s => ({
+                            id: s.id,
+                            name: s.name,
+                            studentId: s.studentId,
+                            joinedAt: s.joinedAt,
+                            distance: s.distance,
+                            status: s.status
+                        }));
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                    }
+                }
+            },
+
+            // Start student simulation for a session
+            startStudentSimulation(sessionId) {
                 const interval = setInterval(() => {
                     const data = FacultyState.activeSessions.get(sessionId);
                     if (!data || data.studentCount >= MOCK_STUDENTS.length) {
@@ -625,17 +845,64 @@
 
                     if (availableStudents.length > 0) {
                         const student = availableStudents[Math.floor(Math.random() * availableStudents.length)];
+                        const joinedAt = new Date();
+
+                        // Calculate if student is late (joined more than 5 minutes after session start)
+                        const elapsedMinutes = (joinedAt - data.startedAt) / (1000 * 60);
+                        const status = elapsedMinutes > LATE_THRESHOLD_MINUTES ? 'late' : 'present';
+
                         data.students.push({
                             ...student,
-                            joinedAt: new Date(),
-                            distance: Math.floor(Math.random() * 40) + 5
+                            joinedAt: joinedAt,
+                            distance: Math.floor(Math.random() * 40) + 5,
+                            status: status
                         });
                         data.studentCount = data.students.length;
+
+                        // Update localStorage
+                        this.updateStorageStudents(sessionId);
                     }
                 }, 2500);
 
-                sessionData.interval = interval;
-                return true;
+                const sessionData = FacultyState.activeSessions.get(sessionId);
+                if (sessionData) {
+                    sessionData.interval = interval;
+                }
+            },
+
+            // Restore session from localStorage
+            restoreSessionFromStorage() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (!stored) return null;
+
+                try {
+                    const data = JSON.parse(stored);
+                    const sessionId = data.sessionId;
+                    const startedAt = new Date(data.startTime);
+
+                    // Restore students with proper Date objects
+                    const students = (data.studentsPresent || []).map(s => ({
+                        ...s,
+                        joinedAt: new Date(s.joinedAt)
+                    }));
+
+                    const sessionData = {
+                        studentCount: students.length,
+                        students: students,
+                        startedAt: startedAt
+                    };
+
+                    FacultyState.activeSessions.set(sessionId, sessionData);
+
+                    // Resume student simulation
+                    this.startStudentSimulation(sessionId);
+
+                    return data;
+                } catch (e) {
+                    console.error('Failed to restore session:', e);
+                    localStorage.removeItem(STORAGE_KEY);
+                    return null;
+                }
             },
 
             // End a session
@@ -645,6 +912,9 @@
                     clearInterval(data.interval);
                 }
                 FacultyState.activeSessions.delete(sessionId);
+
+                // Clear localStorage
+                localStorage.removeItem(STORAGE_KEY);
             },
 
             getAttendanceForFaculty(filters = {}) {
@@ -693,6 +963,15 @@
             setupEventListeners();
             populateFilters();
 
+            // Restore any active session from localStorage
+            const restoredSession = FacultyMockAPI.restoreSessionFromStorage();
+            if (restoredSession) {
+                AdminCore.toast(`Session "${restoredSession.subject}" restored! Still live.`, 'success');
+                updateLiveIndicator();
+                renderTodaySessions();
+                renderSessionsTable();
+            }
+
             // Start live updates
             FacultyState.liveUpdateInterval = setInterval(() => {
                 updateStats();
@@ -730,6 +1009,352 @@
         function updateLiveIndicator() {
             const hasActive = FacultyState.activeSessions.size > 0;
             document.getElementById('liveIndicator').style.display = hasActive ? 'inline' : 'none';
+
+            // Update live counter section
+            const liveCounterSection = document.getElementById('liveCounterSection');
+            const liveStatusBar = document.getElementById('liveStatusBar');
+            const classroomRadar = document.getElementById('classroomRadar');
+
+            if (hasActive) {
+                liveCounterSection.style.display = 'block';
+                liveStatusBar.style.display = 'flex';
+                classroomRadar.style.display = 'block';
+
+                // Get the first active session data
+                const sessionEntry = FacultyState.activeSessions.entries().next().value;
+                const [sessionId, activeData] = sessionEntry || [null, null];
+
+                if (activeData) {
+                    const studentCount = activeData.studentCount;
+                    const totalStudents = MOCK_STUDENTS.length;
+                    const percentage = Math.round((studentCount / totalStudents) * 100);
+
+                    document.getElementById('liveStudentCount').textContent = studentCount;
+                    document.getElementById('totalExpectedStudents').textContent = totalStudents;
+                    document.getElementById('attendanceCompletionBar').style.width = percentage + '%';
+
+                    // Update live status bar
+                    updateLiveStatusBar(activeData, studentCount, totalStudents);
+
+                    // Update classroom radar
+                    updateClassroomRadar(activeData, totalStudents);
+                }
+            } else {
+                liveCounterSection.style.display = 'none';
+                liveStatusBar.style.display = 'none';
+                classroomRadar.style.display = 'none';
+            }
+        }
+
+        // ========================================
+        // Live Status Bar
+        // ========================================
+        function updateLiveStatusBar(activeData, presentCount, totalStudents) {
+            // Calculate elapsed time
+            if (activeData.startedAt) {
+                const elapsed = Date.now() - new Date(activeData.startedAt).getTime();
+                const mins = Math.floor(elapsed / 60000);
+                const secs = Math.floor((elapsed % 60000) / 1000);
+                document.getElementById('liveElapsedTime').textContent =
+                    `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+
+            // Update present count
+            document.getElementById('livePresentCount').textContent = presentCount;
+
+            // Calculate and update engagement score
+            const engagement = calculateEngagement(activeData.students || [], totalStudents);
+            const engagementEl = document.getElementById('liveEngagement');
+            engagementEl.textContent = engagement.score + '%';
+            engagementEl.className = 'engagement-badge ' + engagement.level;
+        }
+
+        // ========================================
+        // Classroom Radar
+        // ========================================
+        function updateClassroomRadar(activeData, totalStudents) {
+            const students = activeData.students || [];
+            const presentCount = students.filter(s => s.status === 'present').length;
+            const lateCount = students.filter(s => s.status === 'late').length;
+            const absentCount = totalStudents - students.length;
+            const outRangeCount = students.filter(s => s.outOfRange).length;
+
+            document.getElementById('radarPresent').textContent = presentCount;
+            document.getElementById('radarLate').textContent = lateCount;
+            document.getElementById('radarAbsent').textContent = absentCount;
+            document.getElementById('radarOutRange').textContent = outRangeCount;
+
+            // Update suspicious alerts
+            const alertsContainer = document.getElementById('radarAlerts');
+            if (FacultyState.suspiciousActivities && FacultyState.suspiciousActivities.length > 0) {
+                alertsContainer.innerHTML = FacultyState.suspiciousActivities.slice(-3).map(alert => `
+                    <div class="radar-alert">
+                        <span>⚠️</span>
+                        <span>${alert.message}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function toggleRadar() {
+            const radar = document.getElementById('classroomRadar');
+            radar.style.display = radar.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // ========================================
+        // Engagement Score Calculation
+        // ========================================
+        function calculateEngagement(students, totalStudents) {
+            if (totalStudents === 0) return { score: 0, level: 'low' };
+
+            const presentCount = students.filter(s => s.status === 'present').length;
+            const lateCount = students.filter(s => s.status === 'late').length;
+
+            // Engagement = (Present + 0.5 × Late) / Total × 100
+            const score = Math.round(((presentCount + 0.5 * lateCount) / totalStudents) * 100);
+
+            let level = 'low';
+            if (score >= 75) level = 'high';
+            else if (score >= 60) level = 'medium';
+
+            return { score, level };
+        }
+
+        // ========================================
+        // Late Entry Window Logic
+        // ========================================
+        function getAttendanceStatus(sessionStartTime, scanTime) {
+            const start = new Date(sessionStartTime).getTime();
+            const scan = new Date(scanTime).getTime();
+            const diffMinutes = (scan - start) / 60000;
+
+            if (diffMinutes <= 5) return 'present';
+            if (diffMinutes <= 15) return 'late';
+            return 'blocked';
+        }
+
+        // ========================================
+        // Defaulters Modal
+        // ========================================
+        function showDefaultersModal() {
+            const modal = document.getElementById('defaultersModal');
+
+            // Populate subject filter
+            const subjects = [...new Set(MOCK_SESSIONS.map(s => s.subject))];
+            const filterSelect = document.getElementById('defaulterSubjectFilter');
+            filterSelect.innerHTML = '<option value="all">All Subjects</option>' +
+                subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            // Load defaulters
+            loadDefaulters('all');
+
+            modal.classList.add('active');
+        }
+
+        function filterDefaulters() {
+            const subject = document.getElementById('defaulterSubjectFilter').value;
+            loadDefaulters(subject);
+        }
+
+        function loadDefaulters(subject) {
+            const tbody = document.getElementById('defaultersTableBody');
+            const summary = document.getElementById('defaultersSummary');
+
+            // Calculate attendance for each student
+            const defaulters = MOCK_STUDENTS.map(student => {
+                // Mock attendance calculation
+                const totalClasses = 20 + Math.floor(Math.random() * 10);
+                const attended = Math.floor(Math.random() * totalClasses);
+                const percentage = Math.round((attended / totalClasses) * 100);
+
+                return {
+                    ...student,
+                    attendance: percentage,
+                    status: percentage < 75 ? 'At Risk' : 'Safe'
+                };
+            }).filter(s => s.attendance < 75);
+
+            if (defaulters.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;">🎉 No defaulters! All students have good attendance.</td></tr>';
+                summary.innerHTML = '';
+                return;
+            }
+
+            tbody.innerHTML = defaulters.map(s => `
+                <tr>
+                    <td>${s.studentId}</td>
+                    <td>${s.name}</td>
+                    <td>
+                        <div class="progress-bar" style="width:100px;">
+                            <div class="progress-track">
+                                <div class="progress-fill ${s.attendance >= 60 ? 'medium' : 'low'}" style="width:${s.attendance}%;"></div>
+                            </div>
+                            <span class="progress-value">${s.attendance}%</span>
+                        </div>
+                    </td>
+                    <td><span class="status-badge danger">At Risk</span></td>
+                </tr>
+            `).join('');
+
+            summary.innerHTML = `⚠️ <strong>${defaulters.length}</strong> student(s) below 75% attendance threshold`;
+        }
+
+        function exportDefaultersCSV() {
+            const defaulters = MOCK_STUDENTS.map(student => {
+                const totalClasses = 20 + Math.floor(Math.random() * 10);
+                const attended = Math.floor(Math.random() * totalClasses);
+                const percentage = Math.round((attended / totalClasses) * 100);
+                return { ...student, attendance: percentage };
+            }).filter(s => s.attendance < 75);
+
+            const csv = 'Student ID,Name,Email,Attendance %\n' +
+                defaulters.map(s => `${s.studentId},${s.name},${s.email},${s.attendance}%`).join('\n');
+
+            downloadCSV(csv, 'defaulters_list.csv');
+            AdminCore.toast('Defaulters list exported!', 'success');
+        }
+
+        // ========================================
+        // Absentees CSV Export
+        // ========================================
+        function downloadAbsentees() {
+            const today = new Date().toISOString().split('T')[0];
+            const sessions = FacultyMockAPI.getTodaySessions();
+
+            if (sessions.length === 0) {
+                AdminCore.toast('No sessions today to export absentees from', 'warning');
+                return;
+            }
+
+            // Get students who were absent from last completed session
+            const lastSession = sessions.find(s => s.status === 'completed') || sessions[0];
+            const attendedStudentIds = new Set();
+
+            // Get attended students from active/completed session
+            FacultyState.activeSessions.forEach((data, sessionId) => {
+                data.students.forEach(s => attendedStudentIds.add(s.id));
+            });
+
+            const absentees = MOCK_STUDENTS.filter(s => !attendedStudentIds.has(s.id));
+
+            const csv = 'Student ID,Name,Subject,Date\n' +
+                absentees.map(s => `${s.studentId},${s.name},${lastSession.subject},${today}`).join('\n');
+
+            downloadCSV(csv, `absentees_${today}.csv`);
+            AdminCore.toast(`${absentees.length} absentees exported!`, 'success');
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        // ========================================
+        // Suspicious Activity Detection
+        // ========================================
+        FacultyState.suspiciousActivities = [];
+
+        function detectSuspiciousActivity(student, sessionData) {
+            const alerts = [];
+
+            // Check for duplicate scan
+            const existingStudent = sessionData.students.find(s => s.id === student.id);
+            if (existingStudent) {
+                alerts.push({
+                    type: 'duplicate',
+                    student: student.name,
+                    message: `${student.name}: Duplicate scan attempt`
+                });
+            }
+
+            // Check for out of range (simulated)
+            if (student.distance && student.distance > 100) {
+                alerts.push({
+                    type: 'gps',
+                    student: student.name,
+                    message: `${student.name}: Out of GPS range (${student.distance}m)`
+                });
+            }
+
+            // Add to suspicious activities
+            FacultyState.suspiciousActivities.push(...alerts);
+
+            // Show alert modal for serious issues
+            if (alerts.length > 0) {
+                showSuspiciousAlert(alerts[0]);
+            }
+
+            return alerts.length === 0;
+        }
+
+        function showSuspiciousAlert(alert) {
+            const content = document.getElementById('suspiciousContent');
+            content.innerHTML = `
+                <div style="text-align:center;padding:1rem;">
+                    <div style="font-size:3rem;margin-bottom:1rem;">🚨</div>
+                    <h4 style="margin-bottom:0.5rem;">${alert.type === 'duplicate' ? 'Duplicate Scan' : 'GPS Mismatch'}</h4>
+                    <p style="color:var(--text-secondary);">${alert.message}</p>
+                    <p style="margin-top:1rem;font-size:0.9rem;color:var(--text-muted);">
+                        This activity has been logged for review.
+                    </p>
+                </div>
+            `;
+            // Don't auto-show modal - just log it and show in radar
+        }
+
+        // ========================================
+        // Session Summary
+        // ========================================
+        function showSessionSummary(sessionId, sessionData) {
+            const session = MOCK_SESSIONS.find(s => s.id === sessionId);
+            const students = sessionData.students || [];
+            const totalStudents = MOCK_STUDENTS.length;
+
+            const presentCount = students.filter(s => s.status === 'present').length;
+            const lateCount = students.filter(s => s.status === 'late').length;
+            const absentCount = totalStudents - students.length;
+            const engagement = calculateEngagement(students, totalStudents);
+
+            document.getElementById('summarySubject').textContent = session?.subject || 'Session';
+            document.getElementById('summaryPresent').textContent = presentCount;
+            document.getElementById('summaryLate').textContent = lateCount;
+            document.getElementById('summaryAbsent').textContent = absentCount;
+
+            const engagementEl = document.getElementById('summaryEngagement');
+            engagementEl.textContent = engagement.score + '%';
+            engagementEl.className = 'summary-value';
+
+            document.getElementById('sessionSummaryCard').style.display = 'block';
+        }
+
+        function hideSessionSummary() {
+            document.getElementById('sessionSummaryCard').style.display = 'none';
+        }
+
+        // ========================================
+        // End Active Session (enhanced)
+        // ========================================
+        function endActiveSession() {
+            const sessionEntry = FacultyState.activeSessions.entries().next().value;
+            if (sessionEntry) {
+                const [sessionId, sessionData] = sessionEntry;
+
+                // Show session summary before ending
+                showSessionSummary(sessionId, sessionData);
+
+                // End the session
+                FacultyMockAPI.endSession(sessionId);
+
+                // Update UI
+                updateLiveIndicator();
+                renderTodaySessions();
+                renderSessionsTable();
+
+                AdminCore.toast('Session ended! Summary displayed.', 'success');
+            }
         }
 
         // ========================================
@@ -740,7 +1365,22 @@
             const tbody = document.getElementById('todaySessionsTable');
 
             if (sessions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No sessions today</div><div class="empty-description">Click "Create Session" to schedule a class</div></td></tr>`;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state-container">
+                                <div class="empty-state-icon">📅</div>
+                                <div class="empty-state-title">No sessions scheduled for today</div>
+                                <div class="empty-state-description">Click "Create Session" to schedule a class</div>
+                                <button class="btn btn-primary empty-state-action" onclick="openCreateSessionModal()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Create Session
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
                 return;
             }
 
@@ -765,12 +1405,33 @@
             const sessions = FacultyMockAPI.getFacultySessions();
             const tbody = document.getElementById('sessionsTableBody');
 
+            if (sessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state-container">
+                                <div class="empty-state-icon">📋</div>
+                                <div class="empty-state-title">No sessions found</div>
+                                <div class="empty-state-description">Create your first session to get started</div>
+                                <button class="btn btn-primary empty-state-action" onclick="openCreateSessionModal()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Create Session
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
             tbody.innerHTML = sessions.map(s => {
                 const activeData = FacultyState.activeSessions.get(s.id);
                 const rate = activeData ? Math.round((activeData.studentCount / MOCK_STUDENTS.length) * 100) : s.attendanceRate;
+                const isActive = FacultyState.activeSessions.has(s.id);
 
                 return `
-                    <tr>
+                    <tr class="${isActive ? 'session-active' : ''}">
                         <td><strong>${s.subject}</strong></td>
                         <td>${s.locationName}</td>
                         <td>${s.date}</td>
@@ -784,11 +1445,7 @@
                             </div>
                         </td>
                         <td>${getStatusBadge(s.status, s.isActive)}</td>
-                        <td>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                ${getSessionActions(s)}
-                            </div>
-                        </td>
+                        <td>${getSessionActions(s)}</td>
                     </tr>
                 `;
             }).join('');
@@ -804,24 +1461,53 @@
             const tbody = document.getElementById('attendanceTableBody');
 
             if (records.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No attendance records found</div><div class="empty-description">Try adjusting your filters</div></td></tr>`;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state-container">
+                                <div class="empty-state-icon">📊</div>
+                                <div class="empty-state-title">No attendance records found</div>
+                                <div class="empty-state-description">Try adjusting your filters or select a different session</div>
+                                <button class="btn btn-secondary empty-state-action" onclick="document.getElementById('attendanceSessionFilter').value='';document.getElementById('attendanceDateFilter').value='';renderAttendanceTable();">
+                                    Clear Filters
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
                 return;
             }
 
-            tbody.innerHTML = records.map(a => `
-                <tr style="cursor:pointer;" onclick="showStudentDetail(${a.studentId}, '${a.sessionName}', '${a.date}', '${a.timeMarked}', ${a.distance}, '${a.status}')">
+            tbody.innerHTML = records.map(a => {
+                const distanceClass = a.distance <= 30 ? 'close' : a.distance <= 50 ? 'medium' : 'far';
+                const statusDisplay = getAttendanceStatusDisplay(a.status);
+                return `
+                <tr class="clickable-row" onclick="showStudentDetail(${a.studentId}, '${a.sessionName}', '${a.date}', '${a.timeMarked}', ${a.distance}, '${a.status}')">
                     <td><code>${MOCK_STUDENTS.find(s => s.id === a.studentId)?.studentId || 'STU001'}</code></td>
                     <td>${a.studentName}</td>
                     <td>${a.sessionName}</td>
                     <td>${a.timeMarked}</td>
-                    <td><span class="${a.distance <= 30 ? 'status-dot active' : 'status-dot warning'}">${a.distance}m</span></td>
-                    <td><span class="status-dot ${a.status === 'present' ? 'active' : 'inactive'}">${a.status === 'present' ? '🟢 Present' : '🔴 Absent'}</span></td>
+                    <td><span class="distance-badge ${distanceClass}">${a.distance}m</span></td>
+                    <td>${statusDisplay}</td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
+        }
+
+        // Get attendance status display with proper styling
+        function getAttendanceStatusDisplay(status) {
+            switch (status) {
+                case 'present':
+                    return '<span class="attendance-status present">🟢 Present</span>';
+                case 'late':
+                    return '<span class="attendance-status late">🟡 Late</span>';
+                case 'absent':
+                default:
+                    return '<span class="attendance-status absent">🔴 Absent</span>';
+            }
         }
 
         function getStatusBadge(status, isActive) {
-            if (isActive) return '<span class="status-badge" style="background:rgba(239,68,68,0.2);color:#f87171;animation:pulse 1s infinite;">🔴 Live</span>';
+            if (isActive) return '<span class="live-badge">Live</span>';
             if (status === 'completed') return '<span class="status-badge success">✓ Completed</span>';
             return '<span class="status-badge info">⏰ Upcoming</span>';
         }
@@ -841,16 +1527,18 @@
 
             if (isActive) {
                 return `
-                    <button class="btn btn-sm btn-primary" onclick="openLiveAttendance(${session.id})">View Live</button>
-                    <button class="btn btn-sm btn-danger" onclick="endSession(${session.id})">End</button>
+                    <div class="session-controls">
+                        <button class="btn btn-sm btn-view" onclick="openLiveAttendance(${session.id})">👁 View Live</button>
+                        <button class="btn btn-sm btn-end" onclick="endSession(${session.id})">⏹ End</button>
+                    </div>
                 `;
             }
 
             if (session.status === 'completed') {
-                return `<button class="btn btn-sm btn-secondary" onclick="viewSessionAttendance(${session.id})">View Attendance</button>`;
+                return `<button class="btn btn-sm btn-secondary" onclick="viewSessionAttendance(${session.id})">📋 View Attendance</button>`;
             }
 
-            return `<button class="btn btn-sm btn-primary" onclick="startSession(${session.id})">Start Session</button>`;
+            return `<button class="btn btn-sm btn-start" onclick="startSession(${session.id})">▶ Start Session</button>`;
         }
 
         // ========================================
@@ -883,20 +1571,56 @@
             const data = FacultyState.activeSessions.get(sessionId);
 
             document.getElementById('liveSessionName').textContent = session?.subject || 'Session';
+            let lastCount = 0;
 
             // Update live modal
             const updateLiveModal = () => {
                 const currentData = FacultyState.activeSessions.get(sessionId);
                 if (!currentData) return;
 
-                document.getElementById('liveCount').textContent = currentData.studentCount;
-                document.getElementById('liveAttendanceList').innerHTML = currentData.students.map(s => `
-                    <tr>
-                        <td>${s.name}</td>
-                        <td>${s.joinedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td><span class="status-dot ${s.distance <= 30 ? 'active' : 'warning'}">${s.distance}m</span></td>
-                    </tr>
-                `).join('');
+                const countEl = document.getElementById('liveCount');
+                const newCount = currentData.studentCount;
+
+                // Animate count if changed
+                if (newCount !== lastCount) {
+                    countEl.classList.add('updating');
+                    setTimeout(() => countEl.classList.remove('updating'), 300);
+                    lastCount = newCount;
+                }
+
+                countEl.textContent = currentData.studentCount;
+
+                const listEl = document.getElementById('liveAttendanceList');
+                const existingIds = new Set([...listEl.querySelectorAll('tr')].map(tr => tr.dataset.studentId));
+
+                if (currentData.students.length === 0) {
+                    listEl.innerHTML = `
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state-container small">
+                                    <div class="empty-state-icon">⏳</div>
+                                    <div class="empty-state-title">Waiting for students...</div>
+                                    <div class="empty-state-description">Students will appear here as they scan the QR code</div>
+                                </div>
+                            </td>
+                        </tr>`;
+                } else {
+                    listEl.innerHTML = currentData.students.map(s => {
+                        const isNew = !existingIds.has(String(s.id));
+                        const distanceClass = s.distance <= 30 ? 'close' : s.distance <= 50 ? 'medium' : 'far';
+                        const statusClass = s.status === 'late' ? 'late' : 'present';
+                        const statusBadge = s.status === 'late'
+                            ? '<span class="live-status-badge late">Late</span>'
+                            : '<span class="live-status-badge present">On Time</span>';
+                        return `
+                        <tr data-student-id="${s.id}" class="${isNew ? 'student-row-new' : ''} ${statusClass}">
+                            <td><strong>${s.name}</strong> ${statusBadge}</td>
+                            <td>${s.joinedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+                            <td><span class="distance-badge ${distanceClass}">${s.distance}m</span></td>
+                        </tr>
+                    `;
+                    }).join('');
+                }
             };
 
             updateLiveModal();
@@ -1026,16 +1750,38 @@
             }
 
             const present = records.filter(r => r.status === 'present').length;
+            const late = records.filter(r => r.status === 'late').length;
             const absent = records.filter(r => r.status === 'absent').length;
-            const rate = records.length > 0 ? Math.round((present / records.length) * 100) : 0;
+            const onTimeRate = records.length > 0 ? Math.round(((present + late) / records.length) * 100) : 0;
 
-            // Show preview
-            document.getElementById('reportPreview').style.display = 'block';
-            document.getElementById('reportPresent').textContent = present;
-            document.getElementById('reportAbsent').textContent = absent;
-            document.getElementById('reportPercentage').textContent = rate + '%';
+            // Show preview with updated stats
+            const previewEl = document.getElementById('reportPreview');
+            previewEl.style.display = 'block';
+            previewEl.innerHTML = `
+                <div class="settings-section">
+                    <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);">
+                        <div class="report-stat present">
+                            <div class="report-stat-value">${present}</div>
+                            <div class="report-stat-label">Present</div>
+                        </div>
+                        <div class="report-stat late">
+                            <div class="report-stat-value">${late}</div>
+                            <div class="report-stat-label">Late</div>
+                        </div>
+                        <div class="report-stat absent">
+                            <div class="report-stat-value">${absent}</div>
+                            <div class="report-stat-label">Absent</div>
+                        </div>
+                        <div class="report-stat rate">
+                            <div class="report-stat-value">${onTimeRate}%</div>
+                            <div class="report-stat-label">Attendance Rate</div>
+                        </div>
+                    </div>
+                </div>
+            `;
 
-            // Generate CSV
+            // Generate CSV with late status
             const csvContent = [
                 ['Student ID', 'Name', 'Session', 'Date', 'Time', 'Status'].join(','),
                 ...records.map(r => [
@@ -1044,7 +1790,7 @@
                     r.sessionName,
                     r.date,
                     r.time,
-                    r.status
+                    r.status.charAt(0).toUpperCase() + r.status.slice(1) // Capitalize status
                 ].join(','))
             ].join('\n');
 
@@ -1140,6 +1886,19 @@
 
         .tab-content.active {
             display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .live-indicator {
@@ -1179,6 +1938,413 @@
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        /* Toast Container */
+        .toast-container {
+            position: fixed;
+            top: var(--space-4);
+            right: var(--space-4);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .toast {
+            padding: var(--space-3) var(--space-4);
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(10px);
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            min-width: 280px;
+        }
+
+        .toast.success {
+            border-left: 3px solid #10b981;
+        }
+
+        .toast.error {
+            border-left: 3px solid #ef4444;
+        }
+
+        .toast.warning {
+            border-left: 3px solid #f59e0b;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Stats Animation */
+        .stat-value {
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover .stat-value {
+            transform: scale(1.05);
+        }
+
+        /* Session Row Highlight */
+        .session-active {
+            background: rgba(239, 68, 68, 0.05) !important;
+            border-left: 3px solid #ef4444;
+        }
+
+        /* Live Badge */
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .live-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        /* Attendance Count Animation */
+        .attendance-count {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-400);
+            transition: all 0.3s ease;
+        }
+
+        .attendance-count.updating {
+            transform: scale(1.1);
+            color: #10b981;
+        }
+
+        /* Student Join Animation */
+        .student-row-new {
+            animation: highlightRow 1s ease-out;
+        }
+
+        @keyframes highlightRow {
+            0% {
+                background: rgba(16, 185, 129, 0.3);
+            }
+
+            100% {
+                background: transparent;
+            }
+        }
+
+        /* Report Summary Cards */
+        .report-stat {
+            text-align: center;
+            padding: var(--space-4);
+            border-radius: var(--radius-lg);
+            transition: transform 0.2s ease;
+        }
+
+        .report-stat:hover {
+            transform: translateY(-2px);
+        }
+
+        .report-stat.present {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .report-stat.absent {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .report-stat.rate {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .report-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: var(--space-1);
+        }
+
+        .report-stat.present .report-stat-value {
+            color: #10b981;
+        }
+
+        .report-stat.absent .report-stat-value {
+            color: #ef4444;
+        }
+
+        .report-stat.rate .report-stat-value {
+            color: var(--primary-400);
+        }
+
+        .report-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Distance Indicators */
+        .distance-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .distance-badge.close {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .distance-badge.medium {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+
+        .distance-badge.far {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        /* Clickable Row */
+        .clickable-row {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clickable-row:hover {
+            background: rgba(99, 102, 241, 0.08) !important;
+        }
+
+        /* Session Control Buttons */
+        .session-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            color: white;
+            border: none;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-end {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-end:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-view {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary-400);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-view:hover {
+            background: var(--gradient-primary);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* ========================================
+           Empty State Styles
+           ======================================== */
+        .empty-state-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8) var(--space-4);
+            text-align: center;
+        }
+
+        .empty-state-container.small {
+            padding: var(--space-5) var(--space-3);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-3);
+            opacity: 0.7;
+        }
+
+        .empty-state-container.small .empty-state-icon {
+            font-size: 2rem;
+            margin-bottom: var(--space-2);
+        }
+
+        .empty-state-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .empty-state-container.small .empty-state-title {
+            font-size: 0.95rem;
+        }
+
+        .empty-state-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-width: 320px;
+            margin-bottom: var(--space-4);
+        }
+
+        .empty-state-container.small .empty-state-description {
+            font-size: 0.85rem;
+            margin-bottom: var(--space-2);
+        }
+
+        .empty-state-action {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        /* ========================================
+           Attendance Status Styles
+           ======================================== */
+        .attendance-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+
+        .attendance-status.present {
+            color: #34d399;
+        }
+
+        .attendance-status.late {
+            color: #fbbf24;
+        }
+
+        .attendance-status.absent {
+            color: #f87171;
+        }
+
+        /* Live Attendance Modal Status Badges */
+        .live-status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: var(--space-2);
+        }
+
+        .live-status-badge.present {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .live-status-badge.late {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+
+        /* Late Row Highlight in Live Modal */
+        tr.late {
+            background: rgba(245, 158, 11, 0.05) !important;
+        }
+
+        tr.late:hover {
+            background: rgba(245, 158, 11, 0.1) !important;
+        }
+
+        /* Report Stat Late Styling */
+        .report-stat.late {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .report-stat.late .report-stat-value {
+            color: #fbbf24;
+        }
+
+        /* Progress Bar Styles */
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 8px;
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: var(--radius-full);
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.high {
+            background: linear-gradient(90deg, #10b981, #06b6d4);
+        }
+
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+
+        .progress-fill.low {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        .progress-value {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* Responsive adjustments for report stats */
+        @media (max-width: 768px) {
+            .report-stat {
+                padding: var(--space-3);
+            }
+
+            .report-stat-value {
+                font-size: 1.5rem;
             }
         }
     </style>
