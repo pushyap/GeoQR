@@ -9,8 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/admin.css">
+    <script src="js/theme-engine.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 
@@ -98,7 +100,12 @@
                         <div class="user-role">Instructor</div>
                     </div>
                 </div>
-                <button class="nav-item" id="logoutBtn" style="margin-top: var(--space-3);">
+                <button class="nav-item" onclick="ThemeEngine.nextTheme()" title="Switch Theme"
+                    style="margin-top: var(--space-3);">
+                    <span style="font-size:1.2rem;">🎨</span>
+                    <span>Theme</span>
+                </button>
+                <button class="nav-item" id="logoutBtn" style="margin-top: var(--space-2);">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                         <polyline points="16 17 21 12 16 7" />

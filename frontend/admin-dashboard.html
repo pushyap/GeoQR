@@ -9,8 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/admin.css">
+    <script src="js/theme-engine.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 
@@ -523,6 +525,18 @@
 
             <!-- ============= SETTINGS TAB ============= -->
             <div class="tab-content" id="tab-settings">
+                <!-- Theme Selector -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">🎨 Appearance</h3>
+                    <div class="settings-row">
+                        <div class="settings-info">
+                            <div class="settings-label">Theme</div>
+                            <div class="settings-description">Choose your preferred color theme</div>
+                        </div>
+                    </div>
+                    <div class="theme-selector"></div>
+                </div>
+
                 <div class="settings-section">
                     <h3 class="settings-section-title">📍 GPS Settings</h3>
                     <div class="settings-row">
