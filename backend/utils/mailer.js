@@ -8,7 +8,7 @@ require('dotenv').config();
 
 // Initialize Resend with API key
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@geoqr.app';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@geo-qr.app';
 
 if (!RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY not configured in .env');
