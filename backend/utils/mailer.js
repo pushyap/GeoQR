@@ -8,7 +8,7 @@ require('dotenv').config();
 
 // Initialize Resend with API key
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'GeoQR <noreply@geoqr.app>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@geoqr.app';
 
 if (!RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY not configured in .env');
@@ -241,9 +241,12 @@ async function sendEmail(to, templateName, ...args) {
 
     const { subject, html } = template(...args);
 
+    // SMART SENDER: If FROM_EMAIL already has <Name <email>>, use it. Else add "GeoQR".
+    const sender = FROM_EMAIL.includes('<') ? FROM_EMAIL : `GeoQR <${FROM_EMAIL}>`;
+
     try {
         const { data, error } = await resend.emails.send({
-            from: `GeoQR <${FROM_EMAIL}>`,
+            from: sender,
             to: [to],
             subject,
             html
@@ -265,6 +268,13 @@ async function sendEmail(to, templateName, ...args) {
                     return { success: true, id: fallback.data.id };
                 } else {
                     console.error(`❌ Fallback also failed:`, fallback.error.message);
+
+                    // Specific help for Sandbox restriction
+                    if (fallback.error.message && fallback.error.message.includes('only send testing emails to your own email')) {
+                        console.log('\n⚠️  RESEND SANDBOX LIMITATION DETECTED ⚠️');
+                        console.log('   You are in Sandbox mode. You can ONLY send emails to the address you signed up with.');
+                        console.log(`   👉 Try logging in with: ${fallback.error.message.match(/\((.*?)\)/)?.[1] || 'your registered email'}\n`);
+                    }
                 }
             }
 
@@ -291,8 +301,11 @@ async function sendEmail(to, templateName, ...args) {
  */
 async function sendCustomEmail({ to, subject, html, text }) {
     try {
+        // SMART SENDER: If FROM_EMAIL already has <Name <email>>, use it. Else add "GeoQR".
+        const sender = FROM_EMAIL.includes('<') ? FROM_EMAIL : `GeoQR <${FROM_EMAIL}>`;
+
         const { data, error } = await resend.emails.send({
-            from: `GeoQR <${FROM_EMAIL}>`,
+            from: sender,
             to: Array.isArray(to) ? to : [to],
             subject,
             html,
