@@ -15,6 +15,7 @@ const deviceRoutes = require('./routes/devices');
 const attendanceRoutes = require('./routes/attendance');
 const sessionRoutes = require('./routes/sessions');
 const adminRoutes = require('./routes/admin');
+const webhookRoutes = require('./routes/webhook');
 
 // Initialize Express app
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/webhook', webhookRoutes);
 
 // Default route
 app.get('/', (req, res) => {
@@ -63,7 +65,8 @@ app.get('/', (req, res) => {
             devices: '/api/devices',
             attendance: '/api/attendance',
             sessions: '/api/sessions',
-            admin: '/api/admin'
+            admin: '/api/admin',
+            webhook: '/api/webhook'
         }
     });
 });

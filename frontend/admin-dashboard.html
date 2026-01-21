@@ -8,11 +8,18 @@
     <title>Admin Dashboard - GeoQR</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="css/themes.css">
     <link rel="stylesheet" href="css/style.css">
 
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/admin.css">
-
+    <script>
+        (function () {
+            var theme = localStorage.getItem('geoqr-theme');
+            if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'soft-light-pro' : 'dark-pro';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 
@@ -120,6 +127,20 @@
                         <div class="user-role">Administrator</div>
                     </div>
                 </div>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme"
+                    style="margin-top: var(--space-3); width: 100%; justify-content: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg);">
+                    <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="20" height="20">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                    <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        width="20" height="20">
+                        <circle cx="12" cy="12" r="5" />
+                        <path
+                            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                    </svg>
+                    <span>Toggle Theme</span>
+                </button>
                 <button class="nav-item" id="logoutBtn" style="margin-top: var(--space-3);">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -1518,6 +1539,7 @@
             display: block;
         }
     </style>
+    <script src="js/theme-engine.js"></script>
 </body>
 
 </html>

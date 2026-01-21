@@ -30,26 +30,26 @@
     --warning: #f59e0b;
     --warning-light: #fbbf24;
 
-    /* Background Colors */
+    /* Background Colors - Clear Hierarchy: dark → primary → secondary → tertiary */
     --bg-dark: #030712;
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
+    --bg-primary: #0a0f1a;
+    --bg-secondary: #151c2c;
+    --bg-tertiary: #1e2a3d;
 
-    /* Glass Effect */
-    --glass-bg: rgba(30, 41, 59, 0.7);
-    --glass-border: rgba(148, 163, 184, 0.1);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    /* Glass Effect - Premium Crisp Glass */
+    --glass-bg: rgba(22, 30, 46, 0.65);
+    --glass-border: rgba(148, 163, 184, 0.18);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
 
-    /* Text Colors */
+    /* Text Colors - Strong Contrast Hierarchy */
     --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #64748b;
-    --text-disabled: #475569;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-disabled: #64748b;
 
     /* Border Colors */
-    --border-color: rgba(71, 85, 105, 0.5);
-    --border-light: rgba(148, 163, 184, 0.2);
+    --border-color: rgba(100, 116, 139, 0.35);
+    --border-light: rgba(148, 163, 184, 0.15);
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
@@ -57,12 +57,16 @@
     --gradient-danger: linear-gradient(135deg, #ef4444 0%, #ec4899 100%);
     --gradient-dark: linear-gradient(180deg, #0f172a 0%, #020617 100%);
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.4);
-    --shadow-glow-success: 0 0 30px rgba(16, 185, 129, 0.4);
+    /* Shadows - Enhanced Depth */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.15);
+    --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.35);
+    --shadow-glow-success: 0 0 40px rgba(16, 185, 129, 0.35);
+
+    /* Card Elevation */
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--glass-border);
+    --card-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--glass-border);
 
     /* Spacing */
     --space-1: 0.25rem;
@@ -77,10 +81,10 @@
     --space-16: 4rem;
 
     /* Border Radius */
-    --radius-sm: 0.375rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 1rem;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
     --radius-2xl: 1.5rem;
     --radius-full: 9999px;
 
@@ -393,15 +397,21 @@ body {
 }
 
 /* ========================================
-   Glass Card
+   Glass Card - Premium Elevated Style
    ======================================== */
 .glass-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-2xl);
-    box-shadow: var(--glass-shadow);
+    box-shadow: var(--card-shadow, var(--glass-shadow));
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover, 0 16px 48px rgba(0, 0, 0, 0.2));
 }
 
 /* ========================================
