@@ -8,7 +8,7 @@ require('dotenv').config();
 
 // Initialize Resend with API key
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'GeoQR <noreply@geoqr.app>';
 
 if (!RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY not configured in .env');
@@ -250,6 +250,24 @@ async function sendEmail(to, templateName, ...args) {
         });
 
         if (error) {
+            // Auto-fallback for unverified domains (common in dev)
+            if (error.message && (error.message.includes('not verified') || error.message.includes('verified domain'))) {
+                console.warn('⚠️ Domain not verified. Retrying with onboarding@resend.dev...');
+                const fallback = await resend.emails.send({
+                    from: 'onboarding@resend.dev',
+                    to: [to],
+                    subject,
+                    html
+                });
+
+                if (!fallback.error) {
+                    console.log(`✅ Fallback email sent to ${to} (ID: ${fallback.data.id})`);
+                    return { success: true, id: fallback.data.id };
+                } else {
+                    console.error(`❌ Fallback also failed:`, fallback.error.message);
+                }
+            }
+
             console.error(`❌ Email failed to ${to}:`, error.message);
             return { success: false, error: error.message };
         }

@@ -82,12 +82,12 @@ router.post('/login', [
         // Send OTP email
         console.log(`📧 Sending OTP to ${user.email}...`);
         console.log(`🔑 OTP: ${otp}`); // Visible in Render logs
-        try {
-            await sendEmail(user.email, 'loginOtp', user.name, otp);
+
+        const emailResult = await sendEmail(user.email, 'loginOtp', user.name, otp);
+        if (emailResult.success) {
             console.log('✅ Email sent successfully');
-        } catch (emailErr) {
-            console.warn('⚠️ Email failed (Allowing login to proceed):', emailErr.message);
-            // Fallback: Proceed even if email fails
+        } else {
+            console.warn('⚠️ Email send failed (Allowing login to proceed):', emailResult.error);
         }
 
         return res.json({
@@ -210,10 +210,9 @@ router.post('/register', [
         });
 
         // Send OTP email
-        try {
-            await sendEmail(email, 'registrationOtp', name, otp);
-        } catch (err) {
-            console.error('⚠️ Registration email failed:', err.message);
+        const emailResult = await sendEmail(email, 'registrationOtp', name, otp);
+        if (!emailResult.success) {
+            console.error('⚠️ Registration email failed:', emailResult.error);
         }
 
         res.status(200).json({
@@ -318,14 +317,20 @@ router.post('/resend-otp', async (req, res) => {
     store.set(tempToken, record);
 
     try {
+        let emailResult;
         if (type === 'login') {
             const user = await db.query('SELECT name, email FROM users WHERE id = $1', [record.userId]);
-            await sendEmail(user.rows[0].email, 'loginOtp', user.rows[0].name, newOtp);
+            emailResult = await sendEmail(user.rows[0].email, 'loginOtp', user.rows[0].name, newOtp);
         } else {
-            await sendEmail(record.email, 'registrationOtp', record.name, newOtp);
+            emailResult = await sendEmail(record.email, 'registrationOtp', record.name, newOtp);
         }
 
-        res.json({ success: true, message: 'OTP resent successfully' });
+        if (emailResult.success) {
+            res.json({ success: true, message: 'OTP resent successfully' });
+        } else {
+            console.error('Resend OTP email failed:', emailResult.error);
+            res.status(500).json({ success: false, error: 'Failed to send OTP email' });
+        }
     } catch (err) {
         console.error('Resend OTP error:', err);
         res.status(500).json({ success: false, error: 'Failed to resend OTP' });
@@ -387,13 +392,18 @@ router.post('/forgot-password', [
         });
 
         // Send password reset OTP email
-        await sendEmail(user.email, 'passwordReset', user.name, otp);
+        const emailResult = await sendEmail(user.email, 'passwordReset', user.name, otp);
 
-        res.json({
-            success: true,
-            message: 'OTP sent to your email',
-            tempToken
-        });
+        if (emailResult.success) {
+            res.json({
+                success: true,
+                message: 'OTP sent to your email',
+                tempToken
+            });
+        } else {
+            console.error('Forgot password email failed:', emailResult.error);
+            res.status(500).json({ success: false, error: 'Failed to send email. Please try again later.' });
+        }
 
     } catch (err) {
         console.error('Forgot password error:', err);
