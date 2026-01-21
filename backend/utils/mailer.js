@@ -248,6 +248,7 @@ async function sendEmail(to, templateName, ...args) {
         const { data, error } = await resend.emails.send({
             from: sender,
             to: [to],
+            reply_to: 'geoqr@uavenuaurk.resend.app',
             subject,
             html
         });
@@ -307,6 +308,7 @@ async function sendCustomEmail({ to, subject, html, text }) {
         const { data, error } = await resend.emails.send({
             from: sender,
             to: Array.isArray(to) ? to : [to],
+            reply_to: 'geoqr@uavenuaurk.resend.app',
             subject,
             html,
             text

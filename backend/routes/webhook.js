@@ -137,6 +137,23 @@ router.post('/email/events', verifySignature, async (req, res) => {
         console.log(`   Email ID: ${event.data?.email_id || 'N/A'}`);
 
         switch (event.type) {
+            case 'email.received':
+                console.log('   📩 Incoming email received');
+                console.log('   From:', event.data.from);
+                console.log('   To:', event.data.to);
+                console.log('   Subject:', event.data.subject);
+
+                // Fetch full email content
+                if (event.data.email_id) {
+                    try {
+                        const email = await require('../utils/mailer').resend.emails.get(event.data.email_id);
+                        console.log('   📄 Email Body Fetched:', email.data ? (email.data.subject || 'No subject') : 'Failed to fetch');
+                        // TODO: Store in DB or trigger Logic
+                    } catch (err) {
+                        console.error('   ❌ Failed to fetch email content:', err.message);
+                    }
+                }
+                break;
             case 'email.sent':
                 console.log('   ✅ Email sent');
                 break;
