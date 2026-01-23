@@ -202,8 +202,17 @@
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.2); }
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.2);
+    }
 }
 
 .hero-title {
@@ -297,6 +306,7 @@
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -422,7 +432,7 @@
 }
 
 .step-card {
-    flex: 0 1 200px;
+    flex: 0 0 220px;
     text-align: center;
     opacity: 0;
     transform: translateY(30px);
@@ -453,6 +463,10 @@
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
     padding: var(--space-6);
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .step-icon {
@@ -464,6 +478,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .step-icon svg {
@@ -482,6 +497,7 @@
     font-size: 0.85rem;
     color: var(--text-muted);
     line-height: 1.5;
+    flex-grow: 1;
 }
 
 .step-connector {
@@ -583,7 +599,7 @@
     margin-bottom: var(--space-3);
 }
 
-.role-card > p {
+.role-card>p {
     font-size: 0.9rem;
     color: var(--text-muted);
     line-height: 1.6;
@@ -784,89 +800,91 @@
    Responsive Design
    ======================================== */
 @media (max-width: 1024px) {
+
     .features-grid,
     .roles-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .steps-container {
         gap: var(--space-6);
     }
-    
+
     .step-connector {
         display: none;
     }
-    
+
     .step-card {
         flex: 0 1 calc(50% - var(--space-3));
     }
 }
 
 @media (max-width: 768px) {
+
     .nav-links,
     .nav-actions {
         display: none;
     }
-    
+
     .mobile-menu-btn {
         display: flex;
     }
-    
+
     .mobile-menu {
         display: flex;
     }
-    
+
     .hero-section {
         padding-top: calc(70px + var(--space-12));
     }
-    
+
     .hero-actions {
         flex-direction: column;
         align-items: center;
     }
-    
+
     .hero-actions .btn {
         width: 100%;
         max-width: 280px;
     }
-    
+
     .features-grid,
     .roles-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .step-card {
         flex: 0 1 100%;
     }
-    
+
     .footer-main {
         flex-direction: column;
         gap: var(--space-8);
     }
-    
+
     .footer-links {
         flex-wrap: wrap;
         gap: var(--space-8);
     }
-    
+
     .footer-column {
         flex: 0 1 calc(50% - var(--space-4));
     }
-    
+
     .cta-actions {
         flex-direction: column;
         align-items: center;
     }
-    
+
     .cta-actions .btn {
         width: 100%;
         max-width: 280px;
     }
-    
+
     .tech-grid {
         gap: var(--space-4);
     }
-    
+
     .tech-item {
         min-width: 100px;
         padding: var(--space-4);
@@ -877,21 +895,21 @@
     .nav-container {
         padding: 0 var(--space-4);
     }
-    
+
     .section-container {
         padding: 0 var(--space-4);
     }
-    
+
     .feature-card,
     .role-card,
     .step-content {
         padding: var(--space-6);
     }
-    
+
     .cta-card {
         padding: var(--space-8);
     }
-    
+
     .footer-column {
         flex: 0 1 100%;
     }

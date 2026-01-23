@@ -1508,6 +1508,15 @@ html.theme-transitioning *::after {
     border: none !important;
     border-radius: 12px !important;
     font-weight: 600 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="soft-light-pro"] .btn-primary *,
+[data-theme="soft-light-pro"] .btn-primary span,
+[data-theme="soft-light-pro"] .btn-primary .btn-content,
+[data-theme="soft-light-pro"] .btn-primary svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
 }
 
 [data-theme="soft-light-pro"] .btn-primary:hover {
