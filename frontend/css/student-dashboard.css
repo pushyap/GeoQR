@@ -187,11 +187,12 @@
     justify-content: center;
 }
 
-/* Circular Progress */
+/* Circular Progress - Premium Animated Ring */
 .circular-progress {
     position: relative;
     width: 160px;
     height: 160px;
+    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.35));
 }
 
 .circular-progress svg {
@@ -202,17 +203,29 @@
 
 .circular-progress .progress-bg {
     fill: none;
-    stroke: rgba(71, 85, 105, 0.3);
-    stroke-width: 8;
+    stroke: #eef2ff;
+    stroke-width: 10;
 }
 
 .circular-progress .progress-fill {
     fill: none;
     stroke: url(#progressGradient);
-    stroke-width: 8;
+    stroke-width: 10;
     stroke-linecap: round;
-    transition: stroke-dashoffset 1s ease-out;
-    stroke: var(--primary-400);
+    transition: stroke-dashoffset 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Fallback solid colors when gradient not available */
+.circular-progress .progress-fill.high {
+    stroke: #22c55e;
+}
+
+.circular-progress .progress-fill.medium {
+    stroke: #6366f1;
+}
+
+.circular-progress .progress-fill.low {
+    stroke: #ef4444;
 }
 
 .progress-text {
@@ -338,27 +351,36 @@
 
 .bar-track {
     height: 24px;
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, #f1f5ff 0%, #eef2ff 100%);
+    border-radius: 999px;
     overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .bar-fill {
     height: 100%;
-    border-radius: var(--radius-md);
-    transition: width 0.8s ease-out;
+    border-radius: 999px;
+    transition: width 900ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ≥ 85% - Green */
 .bar-fill.high {
-    background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, #22c55e, #4ade80);
 }
 
+/* 75-85% - Purple/Indigo */
+.bar-fill.good {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+/* 60-75% - Warning */
 .bar-fill.medium {
-    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
 }
 
+/* < 60% - Danger */
 .bar-fill.low {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444, #f87171);
 }
 
 .bar-value {
@@ -389,29 +411,44 @@
 .trend-bar-container {
     width: 40px;
     height: 140px;
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, #f1f5ff 0%, #eef2ff 100%);
+    border-radius: 999px;
     display: flex;
     align-items: flex-end;
     overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: transform 200ms ease;
+}
+
+.trend-bar-container:hover {
+    transform: scaleY(1.06);
 }
 
 .trend-bar {
     width: 100%;
-    border-radius: var(--radius-md);
-    transition: height 0.8s ease-out;
+    border-radius: 999px;
+    transition: height 900ms cubic-bezier(0.16, 1, 0.3, 1);
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.12));
 }
 
+/* ≥ 85% - Green gradient */
 .trend-bar.high {
-    background: linear-gradient(180deg, #10b981 0%, #06b6d4 100%);
+    background: linear-gradient(180deg, #22c55e, #4ade80);
 }
 
+/* 75-85% - Purple/Indigo gradient */
+.trend-bar.good {
+    background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+/* 60-75% - Warning gradient */
 .trend-bar.medium {
-    background: linear-gradient(180deg, #f59e0b 0%, #f97316 100%);
+    background: linear-gradient(180deg, #f59e0b, #fbbf24);
 }
 
+/* < 60% - Danger gradient */
 .trend-bar.low {
-    background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(180deg, #ef4444, #f87171);
 }
 
 .trend-label {
@@ -1311,4 +1348,17 @@
     .trend-bar-container {
         width: 30px;
     }
+}
+
+/* ============================
+   Dark Theme Overrides
+   ============================ */
+[data-theme="dark-pro"] .bar-track,
+[data-theme="dark-pro"] .trend-bar-container {
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark-pro"] .circular-progress .progress-bg {
+    stroke: rgba(71, 85, 105, 0.4);
 }

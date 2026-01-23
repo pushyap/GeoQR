@@ -361,6 +361,12 @@
                     <div class="overview-card">
                         <div class="circular-progress" id="overallProgress">
                             <svg viewBox="0 0 100 100">
+                                <defs>
+                                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366f1" />
+                                        <stop offset="100%" stop-color="#22c55e" />
+                                    </linearGradient>
+                                </defs>
                                 <circle class="progress-bg" cx="50" cy="50" r="42" />
                                 <circle class="progress-fill" cx="50" cy="50" r="42" id="progressCircle" />
                             </svg>
