@@ -918,3 +918,1134 @@ html.theme-transitioning *::after {
 [data-theme="soft-light-pro"] .data-table tbody tr:hover {
     background: #f8fafc !important;
 }
+
+/* ========================================
+   PREMIUM LIGHT THEME ENHANCEMENTS
+   Modern SaaS-style UI Upgrade
+   Apple + Linear + Notion + Vercel Inspired
+   ======================================== */
+
+/* ----------------------------------------
+   1. KPI CARD ICON ENHANCEMENT
+   Vibrant gradient backgrounds with glow
+   ---------------------------------------- */
+
+/* Remove old flat icon styles, apply premium gradients */
+[data-theme="soft-light-pro"] .stat-icon {
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+[data-theme="soft-light-pro"] .stat-icon svg {
+    width: 26px !important;
+    height: 26px !important;
+    color: white !important;
+    stroke: white !important;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1)) !important;
+}
+
+/* Total Sessions - Indigo Gradient */
+[data-theme="soft-light-pro"] .stat-icon.primary {
+    background: linear-gradient(135deg, #6366F1 0%, #818CF8 100%) !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35) !important;
+}
+
+[data-theme="soft-light-pro"] .stat-icon.primary:hover {
+    box-shadow: 0 8px 28px rgba(99, 102, 241, 0.5) !important;
+    transform: scale(1.05);
+}
+
+/* Present - Emerald Gradient */
+[data-theme="soft-light-pro"] .stat-icon.success {
+    background: linear-gradient(135deg, #10B981 0%, #34D399 100%) !important;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35) !important;
+}
+
+[data-theme="soft-light-pro"] .stat-icon.success:hover {
+    box-shadow: 0 8px 28px rgba(16, 185, 129, 0.5) !important;
+    transform: scale(1.05);
+}
+
+/* Attendance Rate - Amber Gradient */
+[data-theme="soft-light-pro"] .stat-icon.warning {
+    background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%) !important;
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35) !important;
+}
+
+[data-theme="soft-light-pro"] .stat-icon.warning:hover {
+    box-shadow: 0 8px 28px rgba(245, 158, 11, 0.5) !important;
+    transform: scale(1.05);
+}
+
+/* Classes Today - Rose Gradient */
+[data-theme="soft-light-pro"] .stat-icon.danger {
+    background: linear-gradient(135deg, #F43F5E 0%, #FB7185 100%) !important;
+    box-shadow: 0 6px 20px rgba(244, 63, 94, 0.35) !important;
+}
+
+[data-theme="soft-light-pro"] .stat-icon.danger:hover {
+    box-shadow: 0 8px 28px rgba(244, 63, 94, 0.5) !important;
+    transform: scale(1.05);
+}
+
+/* ----------------------------------------
+   2. KPI CARD BACKGROUND UPGRADE
+   Elevated glass cards with premium feel
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .stat-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 1px solid rgba(99, 102, 241, 0.12) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04),
+        0 12px 30px rgba(79, 70, 229, 0.06) !important;
+    border-radius: 20px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+[data-theme="soft-light-pro"] .stat-card:hover {
+    transform: translateY(-6px) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06),
+        0 20px 40px rgba(79, 70, 229, 0.15) !important;
+    border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+/* Stat value styling */
+[data-theme="soft-light-pro"] .stat-value {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    font-size: 2.25rem !important;
+}
+
+[data-theme="soft-light-pro"] .stat-label {
+    color: #64748b !important;
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    letter-spacing: 0.01em !important;
+}
+
+/* ----------------------------------------
+   3. WELCOME BANNER ENHANCEMENT
+   Premium gradient with shimmer effect
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .welcome-banner {
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%) !important;
+    border: none !important;
+    border-radius: 24px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Glass overlay effect */
+[data-theme="soft-light-pro"] .welcome-banner::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 100%) !important;
+    pointer-events: none !important;
+}
+
+/* Shimmer animation */
+[data-theme="soft-light-pro"] .welcome-banner::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 50% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent) !important;
+    animation: banner-shimmer 3s ease-in-out infinite !important;
+    pointer-events: none !important;
+}
+
+@keyframes banner-shimmer {
+    0% {
+        left: -100%;
+    }
+
+    50%,
+    100% {
+        left: 150%;
+    }
+}
+
+[data-theme="soft-light-pro"] .welcome-banner .welcome-text h2 {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="soft-light-pro"] .welcome-banner .welcome-label {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="soft-light-pro"] .welcome-banner .welcome-badge {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+[data-theme="soft-light-pro"] .welcome-avatar {
+    background: rgba(255, 255, 255, 0.25) !important;
+    border: 3px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ----------------------------------------
+   4. STREAK BADGE REDESIGN
+   Glowing fire gradient with glow
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .streak-badge {
+    background: linear-gradient(135deg, #FB7185 0%, #F97316 100%) !important;
+    border: none !important;
+    box-shadow: 0 0 18px rgba(249, 115, 22, 0.45),
+        0 4px 12px rgba(249, 115, 22, 0.3) !important;
+    padding: 10px 18px !important;
+    border-radius: 50px !important;
+}
+
+[data-theme="soft-light-pro"] .streak-badge .streak-count {
+    color: white !important;
+    font-weight: 800 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="soft-light-pro"] .streak-badge .streak-label {
+    color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* ----------------------------------------
+   5. ACHIEVEMENT CARDS GLASSMORPHISM
+   Premium frosted glass effect
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .achievement-badge {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(99, 102, 241, 0.15) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05),
+        0 2px 8px rgba(99, 102, 241, 0.08) !important;
+    border-radius: 16px !important;
+    transition: all 0.3s ease !important;
+}
+
+[data-theme="soft-light-pro"] .achievement-badge:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08),
+        0 4px 12px rgba(99, 102, 241, 0.15) !important;
+    border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+[data-theme="soft-light-pro"] .achievement-badge.unlocked {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(238, 242, 255, 0.9) 100%) !important;
+    border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+[data-theme="soft-light-pro"] .achievement-title {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+}
+
+[data-theme="soft-light-pro"] .achievement-desc {
+    color: #64748b !important;
+}
+
+/* ----------------------------------------
+   6. SECTION HEADINGS UPGRADE
+   Gradient underline decoration
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .section-title {
+    position: relative !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 20px !important;
+    color: #1e293b !important;
+    font-weight: 700 !important;
+    font-size: 1.15rem !important;
+}
+
+[data-theme="soft-light-pro"] .section-title::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 60px !important;
+    height: 3px !important;
+    background: linear-gradient(90deg, #6366F1 0%, #8B5CF6 100%) !important;
+    border-radius: 2px !important;
+}
+
+[data-theme="soft-light-pro"] .table-title,
+[data-theme="soft-light-pro"] .chart-title,
+[data-theme="soft-light-pro"] .page-title {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+[data-theme="soft-light-pro"] .page-subtitle {
+    color: #64748b !important;
+}
+
+/* ----------------------------------------
+   7. SIDEBAR + NAV ENHANCEMENT
+   Premium gradient with glow indicators
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .sidebar {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 50%, #eef2ff 100%) !important;
+    border-right: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="soft-light-pro"] .sidebar-header {
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1) !important;
+}
+
+[data-theme="soft-light-pro"] .nav-section-title {
+    color: #94a3b8 !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+}
+
+[data-theme="soft-light-pro"] .nav-item {
+    color: #64748b !important;
+    border-radius: 12px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+}
+
+/* Hover state - subtle gradient background */
+[data-theme="soft-light-pro"] .nav-item:hover:not(.active) {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%) !important;
+    color: #4F46E5 !important;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1) !important;
+}
+
+[data-theme="soft-light-pro"] .nav-item:hover:not(.active) svg {
+    color: #4F46E5 !important;
+}
+
+/* ACTIVE TAB - Premium styling with maximum contrast */
+[data-theme="soft-light-pro"] .nav-item.active {
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2px !important;
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35),
+        0 2px 6px rgba(99, 102, 241, 0.2) !important;
+    border-radius: 12px !important;
+}
+
+/* Active tab - glowing vertical indicator bar */
+[data-theme="soft-light-pro"] .nav-item.active::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 4px !important;
+    height: 60% !important;
+    background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.5) 100%) !important;
+    border-radius: 0 6px 6px 0 !important;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6),
+        0 0 20px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Active tab icon - pure white with glow */
+[data-theme="soft-light-pro"] .nav-item.active svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) !important;
+}
+
+/* Active tab text - ensure pure white */
+[data-theme="soft-light-pro"] .nav-item.active span {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* User card in sidebar footer */
+[data-theme="soft-light-pro"] .user-card {
+    background: rgba(99, 102, 241, 0.06) !important;
+    border: 1px solid rgba(99, 102, 241, 0.12) !important;
+    border-radius: 14px !important;
+}
+
+[data-theme="soft-light-pro"] .user-name {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+}
+
+[data-theme="soft-light-pro"] .user-role {
+    color: #64748b !important;
+}
+
+/* ----------------------------------------
+   8. VISUAL HIERARCHY ENHANCEMENTS
+   Strong contrast and spacing
+   ---------------------------------------- */
+
+/* Primary content background */
+[data-theme="soft-light-pro"] .main-content,
+[data-theme="soft-light-pro"] .dashboard-content {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+/* Table container premium style */
+[data-theme="soft-light-pro"] .table-container {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 20px !important;
+}
+
+[data-theme="soft-light-pro"] .table-header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.08) !important;
+}
+
+/* Chart container */
+[data-theme="soft-light-pro"] .chart-container {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 20px !important;
+}
+
+/* Breakdown card */
+[data-theme="soft-light-pro"] .breakdown-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 20px !important;
+}
+
+[data-theme="soft-light-pro"] .breakdown-item {
+    background: #f8fafc !important;
+    border-radius: 12px !important;
+}
+
+/* Overview card */
+[data-theme="soft-light-pro"] .overview-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 20px !important;
+}
+
+/* Progress ring enhancement */
+[data-theme="soft-light-pro"] .circular-progress .progress-fill {
+    stroke: url(#progressGradient) !important;
+}
+
+[data-theme="soft-light-pro"] .progress-value {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+}
+
+[data-theme="soft-light-pro"] .progress-label {
+    color: #64748b !important;
+}
+
+/* Timeline items */
+[data-theme="soft-light-pro"] .timeline-item {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="soft-light-pro"] .timeline-item:hover {
+    background: #fafaff !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.1) !important;
+}
+
+[data-theme="soft-light-pro"] .timeline::before {
+    background: linear-gradient(180deg, #6366f1 0%, #e2e8f0 100%) !important;
+}
+
+/* Quick action buttons */
+[data-theme="soft-light-pro"] .quick-actions .action-btn {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.15) !important;
+    color: #475569 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 14px !important;
+}
+
+[data-theme="soft-light-pro"] .quick-actions .action-btn:hover {
+    border-color: rgba(99, 102, 241, 0.3) !important;
+    background: #fafaff !important;
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.12) !important;
+}
+
+[data-theme="soft-light-pro"] .quick-actions .action-btn.primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35) !important;
+}
+
+[data-theme="soft-light-pro"] .quick-actions .action-btn.primary:hover {
+    box-shadow: 0 8px 28px rgba(79, 70, 229, 0.45) !important;
+    transform: translateY(-2px);
+}
+
+/* Bottom nav mobile */
+[data-theme="soft-light-pro"] .bottom-nav {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="soft-light-pro"] .bottom-nav-item {
+    color: #64748b !important;
+}
+
+[data-theme="soft-light-pro"] .bottom-nav-item.active {
+    color: #4f46e5 !important;
+}
+
+/* Mobile header */
+[data-theme="soft-light-pro"] .mobile-header {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Eligibility banner */
+[data-theme="soft-light-pro"] .eligibility-banner.eligible {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+    border-radius: 16px !important;
+}
+
+[data-theme="soft-light-pro"] .eligibility-banner.at-risk {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(244, 63, 94, 0.08) 100%) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    border-radius: 16px !important;
+}
+
+/* Profile and settings cards */
+[data-theme="soft-light-pro"] .profile-card,
+[data-theme="soft-light-pro"] .settings-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 20px !important;
+}
+
+[data-theme="soft-light-pro"] .settings-btn {
+    background: #f8fafc !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    color: #475569 !important;
+    border-radius: 12px !important;
+}
+
+[data-theme="soft-light-pro"] .settings-btn:hover {
+    background: #eef2ff !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+    color: #4338ca !important;
+}
+
+/* Countdown banner */
+[data-theme="soft-light-pro"] .countdown-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%) !important;
+    border: 1px solid rgba(245, 158, 11, 0.25) !important;
+    border-radius: 16px !important;
+}
+
+/* Labels and detail items */
+[data-theme="soft-light-pro"] .detail-label {
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-size: 0.75rem !important;
+}
+
+[data-theme="soft-light-pro"] .detail-value {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+}
+
+/* Modal enhancements */
+[data-theme="soft-light-pro"] .modal-content {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.12) !important;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 24px !important;
+}
+
+[data-theme="soft-light-pro"] .modal-header {
+    border-bottom: 1px solid rgba(99, 102, 241, 0.1) !important;
+}
+
+[data-theme="soft-light-pro"] .modal-footer {
+    border-top: 1px solid rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Button enhancements */
+[data-theme="soft-light-pro"] .btn-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+}
+
+[data-theme="soft-light-pro"] .btn-primary:hover {
+    box-shadow: 0 8px 28px rgba(79, 70, 229, 0.45) !important;
+    transform: translateY(-2px);
+}
+
+[data-theme="soft-light-pro"] .btn-secondary {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid rgba(99, 102, 241, 0.15) !important;
+    border-radius: 12px !important;
+}
+
+[data-theme="soft-light-pro"] .btn-secondary:hover {
+    background: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* ========================================
+   COMPREHENSIVE GREY UI FIX
+   Eliminate all dull grey elements
+   Premium SaaS aesthetic throughout
+   ======================================== */
+
+/* ----------------------------------------
+   GLOBAL TEXT COLOR OVERRIDES
+   Replace all grey text with proper colors
+   ---------------------------------------- */
+
+/* Primary text - Deep navy for maximum readability */
+[data-theme="soft-light-pro"] h1,
+[data-theme="soft-light-pro"] h2,
+[data-theme="soft-light-pro"] h3,
+[data-theme="soft-light-pro"] h4,
+[data-theme="soft-light-pro"] h5,
+[data-theme="soft-light-pro"] h6,
+[data-theme="soft-light-pro"] .user-name,
+[data-theme="soft-light-pro"] .student-name,
+[data-theme="soft-light-pro"] .faculty-name,
+[data-theme="soft-light-pro"] .admin-name,
+[data-theme="soft-light-pro"] .card-title,
+[data-theme="soft-light-pro"] .modal-title,
+[data-theme="soft-light-pro"] .section-header {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+/* Secondary text - Soft slate for subtitles */
+[data-theme="soft-light-pro"] .subtitle,
+[data-theme="soft-light-pro"] .description,
+[data-theme="soft-light-pro"] .card-subtitle,
+[data-theme="soft-light-pro"] p {
+    color: #475569 !important;
+}
+
+/* Muted text - Softer but still readable */
+[data-theme="soft-light-pro"] .text-muted,
+[data-theme="soft-light-pro"] .muted,
+[data-theme="soft-light-pro"] small,
+[data-theme="soft-light-pro"] .meta,
+[data-theme="soft-light-pro"] .timestamp,
+[data-theme="soft-light-pro"] .hint {
+    color: #64748b !important;
+}
+
+/* ----------------------------------------
+   LAST UPDATED BADGE - Vibrant gradient
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .last-updated,
+[data-theme="soft-light-pro"] .update-badge,
+[data-theme="soft-light-pro"] .refresh-badge,
+[data-theme="soft-light-pro"] .live-badge,
+[data-theme="soft-light-pro"] .sync-badge,
+[data-theme="soft-light-pro"] #lastUpdated {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 999px !important;
+    padding: 8px 16px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    animation: badge-pulse 6s ease-in-out infinite !important;
+}
+
+/* Ensure all text inside is white */
+[data-theme="soft-light-pro"] .last-updated *,
+[data-theme="soft-light-pro"] .last-updated span,
+[data-theme="soft-light-pro"] #lastUpdated *,
+[data-theme="soft-light-pro"] #lastUpdated span {
+    color: #ffffff !important;
+}
+
+/* Ensure SVG icon inside is white */
+[data-theme="soft-light-pro"] .last-updated svg,
+[data-theme="soft-light-pro"] #lastUpdated svg {
+    stroke: #ffffff !important;
+    color: #ffffff !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+@keyframes badge-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        transform: scale(1.02);
+    }
+}
+
+/* ----------------------------------------
+   DEFAULTERS MODAL & LIST ROW FIXES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .defaulter-row,
+[data-theme="soft-light-pro"] .student-row,
+[data-theme="soft-light-pro"] .user-row,
+[data-theme="soft-light-pro"] .list-item,
+[data-theme="soft-light-pro"] .data-row {
+    background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%) !important;
+    border: 1px solid rgba(99, 102, 241, 0.12) !important;
+    border-radius: 12px !important;
+    margin-bottom: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+[data-theme="soft-light-pro"] .defaulter-row:hover,
+[data-theme="soft-light-pro"] .student-row:hover,
+[data-theme="soft-light-pro"] .user-row:hover,
+[data-theme="soft-light-pro"] .list-item:hover,
+[data-theme="soft-light-pro"] .data-row:hover {
+    background: linear-gradient(135deg, #eef2ff 0%, #ffffff 100%) !important;
+    border-color: rgba(99, 102, 241, 0.25) !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1) !important;
+    transform: translateX(4px) !important;
+}
+
+/* Student/User name in rows */
+[data-theme="soft-light-pro"] .defaulter-row .name,
+[data-theme="soft-light-pro"] .student-row .name,
+[data-theme="soft-light-pro"] .user-row .name,
+[data-theme="soft-light-pro"] .student-name,
+[data-theme="soft-light-pro"] .user-name-cell {
+    color: #0f172a !important;
+    font-weight: 600 !important;
+}
+
+/* ----------------------------------------
+   PROGRESS BAR FIXES - Gradient bars
+   ---------------------------------------- */
+
+/* Progress bar track - soft indigo tint */
+[data-theme="soft-light-pro"] .progress,
+[data-theme="soft-light-pro"] .progress-track,
+[data-theme="soft-light-pro"] .progress-bar-track,
+[data-theme="soft-light-pro"] .bar-track {
+    background: #eef2ff !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+}
+
+/* High attendance - Emerald gradient */
+[data-theme="soft-light-pro"] .progress-bar.success,
+[data-theme="soft-light-pro"] .progress-bar.high,
+[data-theme="soft-light-pro"] .progress-fill.high,
+[data-theme="soft-light-pro"] .bar-fill.high,
+[data-theme="soft-light-pro"] .progress-bar[data-status="good"] {
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%) !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Medium attendance - Amber gradient */
+[data-theme="soft-light-pro"] .progress-bar.warning,
+[data-theme="soft-light-pro"] .progress-bar.medium,
+[data-theme="soft-light-pro"] .progress-fill.medium,
+[data-theme="soft-light-pro"] .bar-fill.medium,
+[data-theme="soft-light-pro"] .progress-bar[data-status="warning"] {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%) !important;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Low attendance - Rose gradient */
+[data-theme="soft-light-pro"] .progress-bar.danger,
+[data-theme="soft-light-pro"] .progress-bar.low,
+[data-theme="soft-light-pro"] .progress-fill.low,
+[data-theme="soft-light-pro"] .bar-fill.low,
+[data-theme="soft-light-pro"] .progress-bar[data-status="danger"] {
+    background: linear-gradient(90deg, #ef4444 0%, #fb7185 100%) !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Generic progress bar - Indigo gradient */
+[data-theme="soft-light-pro"] .progress-bar:not(.success):not(.warning):not(.danger):not(.high):not(.medium):not(.low) {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%) !important;
+}
+
+/* ----------------------------------------
+   STATUS BADGE FIXES - Vibrant pills
+   ---------------------------------------- */
+
+/* At Risk / Danger badge */
+[data-theme="soft-light-pro"] .badge-danger,
+[data-theme="soft-light-pro"] .status-danger,
+[data-theme="soft-light-pro"] .at-risk-badge,
+[data-theme="soft-light-pro"] .badge.danger,
+[data-theme="soft-light-pro"] .status-badge.at-risk {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
+    color: #dc2626 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    font-weight: 600 !important;
+}
+
+/* Success / Good badge */
+[data-theme="soft-light-pro"] .badge-success,
+[data-theme="soft-light-pro"] .status-success,
+[data-theme="soft-light-pro"] .badge.success {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+    color: #059669 !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    font-weight: 600 !important;
+}
+
+/* Warning badge */
+[data-theme="soft-light-pro"] .badge-warning,
+[data-theme="soft-light-pro"] .status-warning,
+[data-theme="soft-light-pro"] .badge.warning {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    color: #d97706 !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    font-weight: 600 !important;
+}
+
+/* Info badge */
+[data-theme="soft-light-pro"] .badge-info,
+[data-theme="soft-light-pro"] .status-info,
+[data-theme="soft-light-pro"] .badge.info {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%) !important;
+    color: #4338ca !important;
+    border: 1px solid rgba(99, 102, 241, 0.3) !important;
+    font-weight: 600 !important;
+}
+
+/* ----------------------------------------
+   TABLE ROW OVERRIDES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] table tbody tr {
+    background: rgba(255, 255, 255, 0.85) !important;
+    transition: all 0.2s ease !important;
+}
+
+[data-theme="soft-light-pro"] table tbody tr:nth-child(even) {
+    background: rgba(248, 250, 255, 0.9) !important;
+}
+
+[data-theme="soft-light-pro"] table tbody tr:hover {
+    background: linear-gradient(135deg, #eef2ff 0%, #ffffff 100%) !important;
+}
+
+[data-theme="soft-light-pro"] table td {
+    color: #334155 !important;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.08) !important;
+}
+
+/* ----------------------------------------
+   FORM LABELS & INPUT FIXES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] label,
+[data-theme="soft-light-pro"] .form-label {
+    color: #334155 !important;
+    font-weight: 500 !important;
+}
+
+[data-theme="soft-light-pro"] ::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* ----------------------------------------
+   STAT CARD VALUE OVERRIDES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .stat-value,
+[data-theme="soft-light-pro"] .metric-value,
+[data-theme="soft-light-pro"] .kpi-value,
+[data-theme="soft-light-pro"] .count-value {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+}
+
+[data-theme="soft-light-pro"] .stat-label,
+[data-theme="soft-light-pro"] .metric-label,
+[data-theme="soft-light-pro"] .kpi-label {
+    color: #64748b !important;
+    font-weight: 500 !important;
+}
+
+/* ----------------------------------------
+   CONTROL PANEL / QUICK STATS
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .control-stat,
+[data-theme="soft-light-pro"] .quick-stat,
+[data-theme="soft-light-pro"] .mini-stat {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 1px solid rgba(99, 102, 241, 0.12) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="soft-light-pro"] .control-value,
+[data-theme="soft-light-pro"] .quick-value {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+[data-theme="soft-light-pro"] .control-label,
+[data-theme="soft-light-pro"] .quick-label {
+    color: #64748b !important;
+}
+
+/* ----------------------------------------
+   HEALTH METRICS & GAUGES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .health-card,
+[data-theme="soft-light-pro"] .health-item,
+[data-theme="soft-light-pro"] .health-gauge-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 1px solid rgba(99, 102, 241, 0.12) !important;
+    border-radius: 16px !important;
+}
+
+[data-theme="soft-light-pro"] .health-value,
+[data-theme="soft-light-pro"] .gauge-value {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+/* ----------------------------------------
+   ACTIVITY LOG & TIMELINE
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .log-entry,
+[data-theme="soft-light-pro"] .activity-entry,
+[data-theme="soft-light-pro"] .activity-item {
+    background: #ffffff !important;
+    border: 1px solid rgba(99, 102, 241, 0.1) !important;
+    border-radius: 12px !important;
+}
+
+[data-theme="soft-light-pro"] .log-entry:hover,
+[data-theme="soft-light-pro"] .activity-entry:hover {
+    background: #fafaff !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+[data-theme="soft-light-pro"] .activity-content strong {
+    color: #0f172a !important;
+}
+
+[data-theme="soft-light-pro"] .activity-time,
+[data-theme="soft-light-pro"] .log-time {
+    color: #6366f1 !important;
+    font-weight: 500 !important;
+}
+
+/* ----------------------------------------
+   DROPDOWN & SELECT FIXES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] select,
+[data-theme="soft-light-pro"] .dropdown,
+[data-theme="soft-light-pro"] .select-menu {
+    background: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+}
+
+[data-theme="soft-light-pro"] select option,
+[data-theme="soft-light-pro"] .dropdown-item {
+    background: #ffffff !important;
+    color: #334155 !important;
+}
+
+[data-theme="soft-light-pro"] .dropdown-item:hover {
+    background: #eef2ff !important;
+    color: #4338ca !important;
+}
+
+/* ----------------------------------------
+   TOOLTIP FIXES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .tooltip,
+[data-theme="soft-light-pro"] [data-tooltip]::after {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ----------------------------------------
+   EMPTY STATE FIXES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .empty-state,
+[data-theme="soft-light-pro"] .no-data,
+[data-theme="soft-light-pro"] .no-results {
+    background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%) !important;
+    border: 2px dashed rgba(99, 102, 241, 0.25) !important;
+    border-radius: 16px !important;
+    color: #64748b !important;
+}
+
+[data-theme="soft-light-pro"] .empty-state-icon {
+    color: #a5b4fc !important;
+}
+
+[data-theme="soft-light-pro"] .empty-state-title {
+    color: #334155 !important;
+    font-weight: 600 !important;
+}
+
+/* ----------------------------------------
+   LOADING STATES
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .spinner,
+[data-theme="soft-light-pro"] .loader,
+[data-theme="soft-light-pro"] .loading-spinner {
+    border-color: #e0e7ff !important;
+    border-top-color: #6366f1 !important;
+}
+
+[data-theme="soft-light-pro"] .skeleton,
+[data-theme="soft-light-pro"] .loading-placeholder {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%) !important;
+    background-size: 200% 100% !important;
+    animation: skeleton-loading 1.5s infinite !important;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* ----------------------------------------
+   UNIVERSAL GREY OVERRIDE
+   Catch-all for any remaining grey
+   ---------------------------------------- */
+
+/* Override common grey text classes */
+[data-theme="soft-light-pro"] .text-gray-400,
+[data-theme="soft-light-pro"] .text-gray-500,
+[data-theme="soft-light-pro"] .text-slate-400,
+[data-theme="soft-light-pro"] .text-slate-500 {
+    color: #64748b !important;
+}
+
+[data-theme="soft-light-pro"] .text-gray-600,
+[data-theme="soft-light-pro"] .text-gray-700,
+[data-theme="soft-light-pro"] .text-slate-600,
+[data-theme="soft-light-pro"] .text-slate-700 {
+    color: #475569 !important;
+}
+
+/* Override grey backgrounds */
+[data-theme="soft-light-pro"] .bg-gray-100,
+[data-theme="soft-light-pro"] .bg-gray-200,
+[data-theme="soft-light-pro"] .bg-slate-100,
+[data-theme="soft-light-pro"] .bg-slate-200 {
+    background: #f8faff !important;
+}
+
+[data-theme="soft-light-pro"] .bg-gray-300,
+[data-theme="soft-light-pro"] .bg-gray-400,
+[data-theme="soft-light-pro"] .bg-slate-300,
+[data-theme="soft-light-pro"] .bg-slate-400 {
+    background: #eef2ff !important;
+}
+
+/* ----------------------------------------
+   FILTER CHIP BUTTONS (Activity Log)
+   Premium pill-style filter buttons
+   ---------------------------------------- */
+
+[data-theme="soft-light-pro"] .filter-chip,
+[data-theme="soft-light-pro"] .activity-filters button {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    border-radius: 999px !important;
+    padding: 8px 18px !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="soft-light-pro"] .filter-chip:hover,
+[data-theme="soft-light-pro"] .activity-filters button:hover {
+    background: #eef2ff !important;
+    color: #4338ca !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Active filter chip - premium gradient */
+[data-theme="soft-light-pro"] .filter-chip.active,
+[data-theme="soft-light-pro"] .activity-filters button.active {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+    font-weight: 600 !important;
+}
+
+[data-theme="soft-light-pro"] .filter-chip.active:hover,
+[data-theme="soft-light-pro"] .activity-filters button.active:hover {
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.5) !important;
+    transform: translateY(-2px) !important;
+}
