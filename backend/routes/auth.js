@@ -30,7 +30,8 @@ function generateOtp() {
 // =====================================
 router.post('/login', [
     body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 4 })
+    body('password').isLength({ min: 4 }),
+    body('role').optional().isIn(['student', 'faculty', 'admin'])
 ], async (req, res) => {
 
     const errors = validationResult(req);
@@ -38,9 +39,9 @@ router.post('/login', [
         return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
-    console.log('🔐 Login attempt:', email);
+    console.log('🔐 Login attempt:', email, role ? `(as ${role})` : '');
 
     try {
         const result = await db.query(
@@ -53,6 +54,15 @@ router.post('/login', [
 
         if (!user) {
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
+
+        // Validate that selected role matches user's actual role
+        if (role && user.role !== role) {
+            console.log(`⚠️ Role mismatch: selected ${role}, actual ${user.role}`);
+            return res.status(401).json({
+                success: false,
+                error: `Invalid credentials. Please select the correct role.`
+            });
         }
 
         console.log('🔑 is_active:', user.is_active);

@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { isAdmin } = require('../middleware/roleCheck');
+const { logDeviceActivity } = require('../utils/security');
 
 const router = express.Router();
 
@@ -65,6 +66,12 @@ router.post('/', authenticate, isAdmin, [
             location: result.rows[0]
         });
 
+        await logDeviceActivity(null, 'location_created', {
+            name: result.rows[0].name,
+            id: result.rows[0].id,
+            by: req.user.id
+        });
+
     } catch (error) {
         console.error('Create location error:', error);
         res.status(500).json({
@@ -104,6 +111,12 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
             location: result.rows[0]
         });
 
+        await logDeviceActivity(null, 'location_updated', {
+            id: req.params.id,
+            updates: { name, is_active },
+            by: req.user.id
+        });
+
     } catch (error) {
         console.error('Update location error:', error);
         res.status(500).json({
@@ -117,10 +130,21 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
  * DELETE /api/locations/:id
  */
 router.delete('/:id', authenticate, isAdmin, async (req, res) => {
+    const locationId = req.params.id;
     try {
+        // 1. Delete associated data to handle foreign keys
+        // Delete tokens and sessions first
+        await db.query('DELETE FROM qr_tokens WHERE location_id = $1', [locationId]);
+        await db.query('DELETE FROM attendance_logs WHERE location_id = $1', [locationId]);
+        await db.query('DELETE FROM sessions WHERE location_id = $1', [locationId]);
+
+        // 2. Clear location from devices before deleting location
+        await db.query('UPDATE devices SET location_id = NULL WHERE location_id = $1', [locationId]);
+
+        // 3. Delete the location
         const result = await db.query(
-            'UPDATE locations SET is_active = false WHERE id = $1 RETURNING id',
-            [req.params.id]
+            'DELETE FROM locations WHERE id = $1 RETURNING id, name',
+            [locationId]
         );
 
         if (result.rows.length === 0) {
@@ -130,16 +154,22 @@ router.delete('/:id', authenticate, isAdmin, async (req, res) => {
             });
         }
 
+        await logDeviceActivity(null, 'location_deleted', {
+            id: locationId,
+            name: result.rows[0].name,
+            by: req.user.id
+        });
+
         res.json({
             success: true,
-            message: 'Location deactivated'
+            message: `Location '${result.rows[0].name}' and associated data deleted permanently`
         });
 
     } catch (error) {
         console.error('Delete location error:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to deactivate location'
+            error: 'Failed to delete location permanently'
         });
     }
 });

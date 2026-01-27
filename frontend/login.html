@@ -164,7 +164,7 @@
 
             </form>
 
-            <div class="card-footer">
+            <div class="card-footer" id="registerFooter">
                 <p>Don't have an account?
                     <a href="register.html" class="register-link">Register here</a>
                 </p>
@@ -212,10 +212,11 @@
             loginBtn.disabled = true;
 
             try {
-                // Use Axios for API call
+                // Use Axios for API call - send role for validation
                 const response = await axios.post(`${API_BASE_URL}/auth/login`, {
                     email,
-                    password
+                    password,
+                    role
                 });
 
                 const data = response.data;
@@ -286,6 +287,26 @@
                 }
             }
         });
+
+        // Hide register link for admin role
+        function updateRegisterVisibility() {
+            const selectedRole = document.querySelector('input[name="role"]:checked').value;
+            const registerFooter = document.getElementById('registerFooter');
+
+            if (selectedRole === 'admin') {
+                registerFooter.style.display = 'none';
+            } else {
+                registerFooter.style.display = 'block';
+            }
+        }
+
+        // Listen for role changes
+        document.querySelectorAll('input[name="role"]').forEach(radio => {
+            radio.addEventListener('change', updateRegisterVisibility);
+        });
+
+        // Initial check on page load
+        document.addEventListener('DOMContentLoaded', updateRegisterVisibility);
     </script>
 
     <style>

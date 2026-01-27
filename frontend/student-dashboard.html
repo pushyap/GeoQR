@@ -614,10 +614,9 @@
     <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/mock-data.js"></script>
     <script>
         // ========================================
-        // Student Dashboard State
+        // Student Dashboard State (Real API)
         // ========================================
         const StudentState = {
             currentTab: 'dashboard',
@@ -625,651 +624,500 @@
             filteredRecords: [],
             currentPage: 1,
             itemsPerPage: 10,
-            studentProfile: null
-        };
-
-        // Mock student profile data
-        const STUDENT_PROFILE = {
-            id: 1,
-            name: 'John Smith',
-            email: 'john@college.edu',
-            studentId: 'STU001',
-            course: 'B.Tech Computer Science',
-            year: '3rd Year',
-            semester: 6,
-            enrollmentDate: '2023-08-01',
-            isActive: true
-        };
-
-        // Mock subjects
-        const SUBJECTS = [
-            'Data Structures',
-            'Database Systems',
-            'Computer Networks',
-            'Web Development',
-            'Operating Systems',
-            'Software Engineering',
-            'Machine Learning',
-            'Artificial Intelligence'
-        ];
-
-        // ========================================
-        // Extended Mock API for Student
-        // ========================================
-        const StudentMockAPI = {
-            getStudentProfile() {
-                const user = Session.getUser();
-                return {
-                    ...STUDENT_PROFILE,
-                    name: user?.name || STUDENT_PROFILE.name,
-                    email: user?.email || STUDENT_PROFILE.email,
-                    studentId: user?.studentId || STUDENT_PROFILE.studentId
-                };
-            },
-
-            getAttendanceRecords() {
-                // Generate comprehensive attendance data
-                const records = [];
-                const statuses = ['present', 'present', 'present', 'present', 'late', 'absent'];
-                const today = new Date();
-
-                for (let i = 0; i < 60; i++) {
-                    const date = new Date(today);
-                    date.setDate(date.getDate() - Math.floor(i / 3));
-                    const subject = SUBJECTS[i % SUBJECTS.length];
-                    const status = statuses[Math.floor(Math.random() * statuses.length)];
-                    const hour = 9 + (i % 4) * 2;
-                    const location = MOCK_LOCATIONS[i % MOCK_LOCATIONS.length];
-
-                    records.push({
-                        id: i + 1,
-                        date: date.toISOString().split('T')[0],
-                        subject: subject,
-                        location: location?.name || 'Room 101',
-                        time: `${String(hour).padStart(2, '0')}:${i % 2 === 0 ? '00' : '30'}`,
-                        distance: status !== 'absent' ? Math.floor(Math.random() * 40) + 5 : null,
-                        status: status,
-                        markedAt: `${date.toISOString().split('T')[0]}T${String(hour).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:00`
-                    });
-                }
-
-                return records.sort((a, b) => new Date(b.date) - new Date(a.date));
-            },
-
-            getStats(records) {
-                const total = records.length;
-                const present = records.filter(r => r.status === 'present').length;
-                const late = records.filter(r => r.status === 'late').length;
-                const absent = records.filter(r => r.status === 'absent').length;
-                const percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
-
-                return { total, present, late, absent, percentage };
-            },
-
-            getClassesToday() {
-                const todayStr = new Date().toISOString().split('T')[0];
-                return MOCK_SESSIONS.filter(s => s.date === todayStr).length || 3;
-            },
-
-            getSubjectWiseAttendance(records) {
-                const subjectStats = {};
-                SUBJECTS.forEach(subject => {
-                    const subjectRecords = records.filter(r => r.subject === subject);
-                    const present = subjectRecords.filter(r => r.status === 'present' || r.status === 'late').length;
-                    const total = subjectRecords.length;
-                    subjectStats[subject] = {
-                        present,
-                        total,
-                        percentage: total > 0 ? Math.round((present / total) * 100) : 0
-                    };
-                });
-                return subjectStats;
-            },
-
-            getMonthlyTrend(records) {
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const currentMonth = new Date().getMonth();
-                const trend = [];
-
-                for (let i = 5; i >= 0; i--) {
-                    const monthIndex = (currentMonth - i + 12) % 12;
-                    const monthName = months[monthIndex];
-                    // Mock data - in real app would filter by month
-                    trend.push({
-                        month: monthName,
-                        percentage: 70 + Math.floor(Math.random() * 25)
-                    });
-                }
-
-                return trend;
-            },
-
-            // Get attendance streak
-            getAttendanceStreak(records) {
-                let streak = 0;
-                const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
-                const datesSeen = new Set();
-
-                for (const record of sortedRecords) {
-                    if (datesSeen.has(record.date)) continue;
-                    datesSeen.add(record.date);
-
-                    if (record.status === 'present' || record.status === 'late') {
-                        streak++;
-                    } else {
-                        break;
-                    }
-                }
-                return streak;
-            },
-
-            // Get achievements
-            getAchievements(records) {
-                const achievements = [];
-                const streak = this.getAttendanceStreak(records);
-                const stats = this.getStats(records);
-                const lateCount = records.filter(r => r.status === 'late').length;
-
-                // 7-day streak
-                if (streak >= 7) {
-                    achievements.push({
-                        id: 'streak_7',
-                        icon: '🔥',
-                        title: '7-Day Streak',
-                        description: 'Attended 7 classes in a row',
-                        unlocked: true,
-                        date: new Date().toISOString().split('T')[0]
-                    });
-                }
-
-                // Perfect week
-                if (streak >= 5) {
-                    achievements.push({
-                        id: 'perfect_week',
-                        icon: '⭐',
-                        title: 'Perfect Week',
-                        description: 'No absences this week',
-                        unlocked: true,
-                        date: new Date().toISOString().split('T')[0]
-                    });
-                }
-
-                // Never late
-                if (lateCount === 0 && stats.present >= 10) {
-                    achievements.push({
-                        id: 'never_late',
-                        icon: '⏰',
-                        title: 'Always On Time',
-                        description: 'Never marked late',
-                        unlocked: true,
-                        date: new Date().toISOString().split('T')[0]
-                    });
-                }
-
-                // Consistent
-                if (stats.percentage >= 90) {
-                    achievements.push({
-                        id: 'consistent',
-                        icon: '🏆',
-                        title: 'Consistent',
-                        description: '90%+ attendance rate',
-                        unlocked: true,
-                        date: new Date().toISOString().split('T')[0]
-                    });
-                }
-
-                // First scan
-                if (stats.present >= 1) {
-                    achievements.push({
-                        id: 'first_scan',
-                        icon: '📱',
-                        title: 'First Scan',
-                        description: 'Marked your first attendance',
-                        unlocked: true,
-                        date: records[records.length - 1]?.date
-                    });
-                }
-
-                return achievements;
-            },
-
-            // Get active class with countdown
-            getActiveClass() {
-                const now = new Date();
-                const hour = now.getHours();
-                const minute = now.getMinutes();
-
-                // Simulate an active class if time is between 9 AM and 5 PM
-                if (hour >= 9 && hour < 17) {
-                    const endMinute = 30 - (minute % 30); // Minutes until next half-hour
-                    return {
-                        active: true,
-                        subject: SUBJECTS[hour % SUBJECTS.length],
-                        location: MOCK_LOCATIONS[0]?.name || 'Room 101',
-                        remainingMinutes: endMinute,
-                        remainingSeconds: 60 - now.getSeconds()
-                    };
-                }
-                return { active: false };
-            }
+            studentProfile: null,
+            dashboardData: null,
+            statisticsData: null
         };
 
         // ========================================
-        // Initialize
+        // Real API calls
         // ========================================
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check authentication
-            const user = Session.getUser();
-            if (!user) {
-                window.location.href = 'login.html';
-                return;
-            }
+        <script src="js/student-api.js"></script>
 
-            // Check role - only allow students
-            if (user.role !== 'student') {
-                const dashboards = {
-                    'admin': 'admin-dashboard.html',
-                    'faculty': 'faculty-dashboard.html',
-                    'device': 'device/'
-                };
-                window.location.href = dashboards[user.role] || 'login.html';
-                return;
-            }
+    // Helper functions
+    function getStats(records) {
+    const total = records.length;
+    const present = records.filter(r => r.status === 'present').length;
+    const late = records.filter(r => r.status === 'late').length;
+    const absent = records.filter(r => r.status === 'absent').length;
+    const percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+    return { total, present, late, absent, percentage };
+    }
 
-            // Initialize data
-            StudentState.studentProfile = StudentMockAPI.getStudentProfile();
-            StudentState.attendanceRecords = StudentMockAPI.getAttendanceRecords();
-            StudentState.filteredRecords = [...StudentState.attendanceRecords];
+    function getAchievements(dashboard) {
+    const achievements = [];
+    const streak = dashboard?.achievements?.currentStreak || 0;
+    const stats = dashboard?.summary || {};
 
-            // Update UI
-            updateUserInfo();
-            loadDashboardData();
-            loadAttendanceHistory();
-            loadStatistics();
-            loadProfile();
-            populateFilters();
-            setupEventListeners();
+    if (streak >= 7) {
+    achievements.push({ id: 'streak_7', icon: '🔥', title: '7-Day Streak', description: 'Attended 7 classes in a row',
+    unlocked: true });
+    }
+    if (streak >= 5) {
+    achievements.push({ id: 'perfect_week', icon: '⭐', title: 'Perfect Week', description: 'No absences this week',
+    unlocked: true });
+    }
+    if (stats.attendancePercentage >= 90) {
+    achievements.push({ id: 'consistent', icon: '🏆', title: 'Consistent', description: '90%+ attendance rate',
+    unlocked: true });
+    }
+    if (stats.presentCount >= 1) {
+    achievements.push({ id: 'first_scan', icon: '📱', title: 'First Scan', description: 'Marked your first attendance',
+    unlocked: true });
+    }
 
-            // Load new features
-            loadStreak();
-            loadAchievements();
-            loadTimeline();
-            checkActiveClass();
+    // Add locked achievements if not enough data
+    if (achievements.length < 3) { achievements.push({ id: 'locked_1' , icon: '🔒' , title: 'Keep Going!' ,
+        description: 'More achievements await' , unlocked: false }); } return achievements; }
+        //========================================// Initialize
+        //========================================document.addEventListener('DOMContentLoaded', async ()=> {
+        // Check authentication
+        const user = Session.getUser();
+        if (!user) {
+        window.location.href = 'login.html';
+        return;
+        }
 
-            // Simulate live updates
-            setInterval(simulateLiveUpdates, 30000);
+        // Check role - only allow students
+        if (user.role !== 'student') {
+        const dashboards = {
+        'admin': 'admin-dashboard.html',
+        'faculty': 'faculty-dashboard.html',
+        'device': 'device/'
+        };
+        window.location.href = dashboards[user.role] || 'login.html';
+        return;
+        }
 
-            // Update countdown every second
-            setInterval(updateCountdown, 1000);
+        // Load data from API
+        showLoading();
+
+        const [dashboard, stats, attendance, profile] = await Promise.all([
+        StudentAPI.getDashboard(),
+        StudentAPI.getStatistics(),
+        StudentAPI.getAttendance(),
+        StudentAPI.getProfile()
+        ]);
+
+        StudentState.dashboardData = dashboard;
+        StudentState.statisticsData = stats;
+        StudentState.studentProfile = profile || { name: user.name, email: user.email, studentId: user.studentId };
+        StudentState.attendanceRecords = attendance?.records || [];
+        StudentState.filteredRecords = [...StudentState.attendanceRecords];
+
+        hideLoading();
+
+        // Update UI
+        updateUserInfo();
+        loadDashboardData();
+        loadAttendanceHistory();
+        loadStatistics();
+        loadProfile();
+        populateFilters();
+        setupEventListeners();
+
+        // Load new features
+        loadStreak();
+        loadAchievements();
+        loadTimeline();
         });
+
+        function showLoading() {
+        document.body.style.opacity = '0.7';
+        }
+
+        function hideLoading() {
+        document.body.style.opacity = '1';
+        }
 
         // ========================================
         // UI Updates
         // ========================================
+        // ========================================
+        // UI Updates with Real Data
+        // ========================================
         function updateUserInfo() {
-            const profile = StudentState.studentProfile;
-            document.getElementById('welcomeName').textContent = profile.name.split(' ')[0];
-            document.getElementById('welcomeAvatar').textContent = profile.name.charAt(0).toUpperCase();
-            document.getElementById('welcomeCourse').textContent = `${profile.course.split(' ').slice(0, 2).join(' ')} • ${profile.year}`;
-            document.getElementById('userName').textContent = profile.name;
-            document.getElementById('userStudentId').textContent = profile.studentId;
-            document.getElementById('userAvatar').textContent = profile.name.charAt(0).toUpperCase();
+        const profile = StudentState.studentProfile;
+        if (!profile) return;
+
+        document.getElementById('welcomeName').textContent = profile.name.split(' ')[0];
+        document.getElementById('welcomeAvatar').textContent = profile.name.charAt(0).toUpperCase();
+        // Fallback for course/year since backend might not send it in profile endpoint yet
+        // or we add it to the backend profile response
+        document.getElementById('welcomeCourse').textContent = profile.course || 'Student'; // Backend needs to send
+        this or we mock it for now
+        document.getElementById('userName').textContent = profile.name;
+        document.getElementById('userStudentId').textContent = profile.studentId;
+        document.getElementById('userAvatar').textContent = profile.name.charAt(0).toUpperCase();
         }
 
         function loadDashboardData() {
-            const records = StudentState.attendanceRecords;
-            const stats = StudentMockAPI.getStats(records);
-            const classesToday = StudentMockAPI.getClassesToday();
+        const dashboard = StudentState.dashboardData;
+        if (!dashboard) return;
 
-            animateNumber('totalSessions', stats.total);
-            animateNumber('presentCount', stats.present + stats.late);
-            document.getElementById('attendancePercent').textContent = stats.percentage + '%';
-            document.getElementById('attendancePercent').style.color =
-                stats.percentage >= 75 ? 'var(--success-light)' :
-                    stats.percentage >= 50 ? 'var(--warning)' : 'var(--danger)';
-            animateNumber('classesToday', classesToday);
+        const summary = dashboard.summary || {};
 
-            // Recent attendance
-            renderRecentAttendance(records.slice(0, 5));
+        animateNumber('totalSessions', summary.totalSessions || 0);
+        animateNumber('presentCount', (summary.presentCount || 0) + (summary.lateCount || 0));
+
+        const percentage = summary.attendancePercentage || 0;
+        const percentEl = document.getElementById('attendancePercent');
+        percentEl.textContent = percentage + '%';
+        percentEl.style.color = percentage >= 75 ? 'var(--success-light)' :
+        percentage >= 50 ? 'var(--warning)' : 'var(--danger)';
+
+        animateNumber('classesToday', dashboard.today?.count || 0);
+
+        // Recent attendance
+        renderRecentAttendance(dashboard.recentActivity || []);
         }
 
-        // ========================================
-        // New Features: Streak, Achievements, Timeline
-        // ========================================
         function loadStreak() {
-            const records = StudentState.attendanceRecords;
-            const streak = StudentMockAPI.getAttendanceStreak(records);
+        const dashboard = StudentState.dashboardData;
+        const streak = dashboard?.achievements?.currentStreak || 0;
 
-            document.getElementById('streakCount').textContent = streak;
+        document.getElementById('streakCount').textContent = streak;
 
-            // Hide streak badge if no streak
-            if (streak < 2) {
-                document.getElementById('streakBadge').style.display = 'none';
-            } else {
-                document.getElementById('streakBadge').style.display = 'flex';
-            }
-        }
-
-        function loadAchievements() {
-            const records = StudentState.attendanceRecords;
-            const achievements = StudentMockAPI.getAchievements(records);
-            const container = document.getElementById('achievementsGrid');
-
-            if (achievements.length === 0) {
-                container.innerHTML = '<p class="no-achievements">Keep attending to unlock achievements!</p>';
-                return;
-            }
-
-            container.innerHTML = achievements.slice(0, 4).map(achievement => `
-                <div class="achievement-badge ${achievement.unlocked ? 'unlocked' : 'locked'} fade-in">
-                    <span class="achievement-icon">${achievement.icon}</span>
-                    <div class="achievement-info">
-                        <span class="achievement-title">${achievement.title}</span>
-                        <span class="achievement-desc">${achievement.description}</span>
-                    </div>
+        // Hide streak badge if no streak
+        if (streak < 2) { document.getElementById('streakBadge').style.display='none' ; } else {
+            document.getElementById('streakBadge').style.display='flex' ; } } function loadAchievements() { // Using
+            local helper but with real data const dashboard=StudentState.dashboardData; const
+            achievements=getAchievements(dashboard); const container=document.getElementById('achievementsGrid'); if
+            (!container) return; if (achievements.length===0) {
+            container.innerHTML='<p class="no-achievements">Keep attending to unlock achievements!</p>' ; return; }
+            container.innerHTML=achievements.slice(0, 4).map(achievement=> `
+            <div class="achievement-badge ${achievement.unlocked ? 'unlocked' : 'locked'} fade-in">
+                <span class="achievement-icon">${achievement.icon}</span>
+                <div class="achievement-info">
+                    <span class="achievement-title">${achievement.title}</span>
+                    <span class="achievement-desc">${achievement.description}</span>
                 </div>
+            </div>
             `).join('');
-        }
+            }
 
-        function loadTimeline() {
-            const records = StudentState.attendanceRecords.slice(0, 5);
+            function loadTimeline() {
+            // Use recent activity from dashboard data
+            const dashboard = StudentState.dashboardData;
+            const records = dashboard?.recentActivity || [];
             const container = document.getElementById('attendanceTimeline');
 
+            if (!container) return;
+
             container.innerHTML = records.map((record, index) => {
-                const date = new Date(record.date);
-                const isToday = date.toDateString() === new Date().toDateString();
-                const isYesterday = date.toDateString() === new Date(Date.now() - 86400000).toDateString();
-                const dateLabel = isToday ? 'Today' : isYesterday ? 'Yesterday' : formatDate(record.date);
+            const date = new Date(record.marked_at); // Backend uses snake_case usually
+            const isToday = date.toDateString() === new Date().toDateString();
+            const isYesterday = date.toDateString() === new Date(Date.now() - 86400000).toDateString();
+            const dateLabel = isToday ? 'Today' : isYesterday ? 'Yesterday' : formatDate(date);
 
-                return `
-                    <div class="timeline-item fade-in" style="animation-delay: ${index * 0.1}s;">
-                        <div class="timeline-dot ${getStatusClass(record.status)}"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-header">
-                                <span class="timeline-date">${dateLabel}</span>
-                                <span class="timeline-time">${record.time}</span>
-                            </div>
-                            <div class="timeline-body">
-                                <strong>${record.subject}</strong>
-                                <span class="status-badge ${getStatusClass(record.status)}">
-                                    ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
-                                </span>
-                            </div>
-                        </div>
+            const subject = record.subject || 'Session';
+            const status = record.status || 'present';
+            const time = new Date(record.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            return `
+            <div class="timeline-item fade-in" style="animation-delay: ${index * 0.1}s;">
+                <div class="timeline-dot ${getStatusClass(status)}"></div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-date">${dateLabel}</span>
+                        <span class="timeline-time">${time}</span>
                     </div>
-                `;
+                    <div class="timeline-body">
+                        <strong>${subject}</strong>
+                        <span class="status-badge ${getStatusClass(status)}">
+                            ${getStatusIcon(status)} ${capitalizeFirst(status)}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            `;
             }).join('');
-        }
-
-        let countdownInterval = null;
-        let countdownSeconds = 0;
-
-        function checkActiveClass() {
-            const activeClass = StudentMockAPI.getActiveClass();
-            const banner = document.getElementById('countdownBanner');
-
-            if (activeClass.active) {
-                countdownSeconds = activeClass.remainingMinutes * 60 + activeClass.remainingSeconds;
-                banner.style.display = 'flex';
-                updateCountdown();
-            } else {
-                banner.style.display = 'none';
-            }
-        }
-
-        function updateCountdown() {
-            if (countdownSeconds <= 0) {
-                document.getElementById('countdownBanner').style.display = 'none';
-                return;
             }
 
-            countdownSeconds--;
-            const minutes = Math.floor(countdownSeconds / 60);
-            const seconds = countdownSeconds % 60;
-            document.getElementById('countdownTimer').textContent =
-                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            let countdownInterval = null;
+            let countdownSeconds = 0;
 
-            // Add urgency styling when < 1 minute
-            const timer = document.getElementById('countdownTimer');
-            if (minutes < 1) {
-                timer.classList.add('urgent');
+            function checkActiveClass() {
+            // This would need a real endpoint, for now we rely on dashboard.activeSessions
+            // If we want countdown, we need to know when attendance closes.
+            // Assuming dashboard.activeSessions has this info or we skip countdown for now
             }
-        }
 
-        function animateNumber(id, target) {
+            function updateCountdown() {
+            // Skipped for now or needs real data logic
+            }
+
+            function animateNumber(id, target) {
             const el = document.getElementById(id);
+            if (!el) return;
             let current = 0;
             const increment = Math.ceil(target / 20);
+            if (target === 0) { el.textContent = '0'; return; }
+
             const timer = setInterval(() => {
-                current += increment;
-                if (current >= target) {
-                    current = target;
-                    clearInterval(timer);
-                }
-                el.textContent = current;
+            current += increment;
+            if (current >= target) {
+            current = target;
+            clearInterval(timer);
+            }
+            el.textContent = current;
             }, 30);
-        }
+            }
 
-        function renderRecentAttendance(records) {
+            function renderRecentAttendance(records) {
             const tbody = document.getElementById('recentAttendanceTable');
+            if (!tbody) return;
+
+            if (records.length === 0) {
+            tbody.innerHTML = '<tr>
+                <td colspan="5" class="text-center">No recent activity</td>
+            </tr>';
+            return;
+            }
+
             tbody.innerHTML = records.map(record => `
-                <tr onclick="showAttendanceDetail(${record.id})" style="cursor:pointer;">
-                    <td><strong>${record.subject}</strong></td>
-                    <td>${formatDate(record.date)}</td>
-                    <td>${record.time}</td>
-                    <td>${record.location}</td>
-                    <td>
-                        <span class="status-badge ${getStatusClass(record.status)}">
-                            ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
-                        </span>
-                    </td>
-                </tr>
+            <tr onclick="showAttendanceDetail('${record.id}')" style="cursor:pointer;">
+                <td><strong>${record.subject}</strong></td>
+                <td>${formatDate(record.marked_at)}</td>
+                <td>${new Date(record.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                <td>${record.location_name || 'Classroom'}</td>
+                <td>
+                    <span class="status-badge ${getStatusClass(record.status)}">
+                        ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
+                    </span>
+                </td>
+            </tr>
             `).join('');
-        }
+            }
 
-        // ========================================
-        // Attendance History
-        // ========================================
-        function loadAttendanceHistory() {
+            // ========================================
+            // Attendance History
+            // ========================================
+            function loadAttendanceHistory() {
             renderAttendanceTable();
-        }
+            }
 
-        function renderAttendanceTable() {
+            function renderAttendanceTable() {
+            const records = StudentState.filteredRecords || [];
             const start = (StudentState.currentPage - 1) * StudentState.itemsPerPage;
             const end = start + StudentState.itemsPerPage;
-            const pageRecords = StudentState.filteredRecords.slice(start, end);
+            const pageRecords = records.slice(start, end);
 
             const tbody = document.getElementById('attendanceTableBody');
+            if (!tbody) return;
+
+            if (pageRecords.length === 0) {
+            tbody.innerHTML = '<tr>
+                <td colspan="6" class="text-center">No records found</td>
+            </tr>';
+            return;
+            }
+
             tbody.innerHTML = pageRecords.map(record => `
-                <tr onclick="showAttendanceDetail(${record.id})" style="cursor:pointer;">
-                    <td>${formatDate(record.date)}</td>
-                    <td><strong>${record.subject}</strong></td>
-                    <td>${record.location}</td>
-                    <td>${record.time}</td>
-                    <td>${record.distance ? record.distance + 'm' : '-'}</td>
-                    <td>
-                        <span class="status-badge ${getStatusClass(record.status)}">
-                            ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
-                        </span>
-                    </td>
-                </tr>
+            <tr onclick="showAttendanceDetail('${record.id}')" style="cursor:pointer;">
+                <td>${formatDate(record.marked_at)}</td>
+                <td><strong>${record.subject}</strong></td>
+                <td>${record.location_name}</td>
+                <td>${new Date(record.marked_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                <td>${record.distance_from_device ? Math.round(record.distance_from_device) + 'm' : '-'}</td>
+                <td>
+                    <span class="status-badge ${getStatusClass(record.status)}">
+                        ${getStatusIcon(record.status)} ${capitalizeFirst(record.status)}
+                    </span>
+                </td>
+            </tr>
             `).join('');
 
-            document.getElementById('paginationInfo').textContent =
-                `Showing ${start + 1}-${Math.min(end, StudentState.filteredRecords.length)} of ${StudentState.filteredRecords.length}`;
+            const info = document.getElementById('paginationInfo');
+            if (info) info.textContent = `Showing ${start + 1}-${Math.min(end, records.length)} of ${records.length}`;
 
             renderPagination();
-        }
+            }
 
-        function renderPagination() {
+            function renderPagination() {
             const totalPages = Math.ceil(StudentState.filteredRecords.length / StudentState.itemsPerPage);
             const container = document.getElementById('paginationButtons');
+            if (!container) return;
             container.innerHTML = '';
 
-            for (let i = 1; i <= Math.min(totalPages, 7); i++) {
-                const btn = document.createElement('button');
-                btn.className = `pagination-btn ${i === StudentState.currentPage ? 'active' : ''}`;
-                btn.textContent = i;
-                btn.onclick = () => {
-                    StudentState.currentPage = i;
-                    renderAttendanceTable();
+            if (totalPages <= 1) return; for (let i=1; i <=Math.min(totalPages, 7); i++) { const
+                btn=document.createElement('button'); btn.className=`pagination-btn ${i===StudentState.currentPage
+                ? 'active' : '' }`; btn.textContent=i; btn.onclick=()=> {
+                StudentState.currentPage = i;
+                renderAttendanceTable();
                 };
                 container.appendChild(btn);
-            }
-        }
+                }
+                }
 
-        function applyFilters() {
-            const dateFilter = document.getElementById('dateFilter').value;
-            const subjectFilter = document.getElementById('subjectFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
+                function applyFilters() {
+                const dateFilter = document.getElementById('dateFilter').value;
+                const subjectFilter = document.getElementById('subjectFilter').value;
+                const statusFilter = document.getElementById('statusFilter').value;
 
-            StudentState.filteredRecords = StudentState.attendanceRecords.filter(record => {
-                if (dateFilter && record.date !== dateFilter) return false;
+                StudentState.filteredRecords = StudentState.attendanceRecords.filter(record => {
+                const recDate = new Date(record.marked_at).toISOString().split('T')[0];
+                if (dateFilter && recDate !== dateFilter) return false;
                 if (subjectFilter && record.subject !== subjectFilter) return false;
                 if (statusFilter && record.status !== statusFilter) return false;
                 return true;
-            });
+                });
 
-            StudentState.currentPage = 1;
-            renderAttendanceTable();
-        }
+                StudentState.currentPage = 1;
+                renderAttendanceTable();
+                }
 
-        function populateFilters() {
-            const subjectSelect = document.getElementById('subjectFilter');
-            SUBJECTS.forEach(subject => {
+                function populateFilters() {
+                const subjectSelect = document.getElementById('subjectFilter');
+                if (!subjectSelect) return;
+
+                // Extract unique subjects from records
+                const subjects = [...new Set(StudentState.attendanceRecords.map(r => r.subject))];
+
+                subjectSelect.innerHTML = '<option value="">All Subjects</option>';
+                subjects.forEach(subject => {
                 const option = document.createElement('option');
                 option.value = subject;
                 option.textContent = subject;
                 subjectSelect.appendChild(option);
-            });
-        }
+                });
+                }
 
-        // ========================================
-        // Statistics
-        // ========================================
-        function loadStatistics() {
-            const records = StudentState.attendanceRecords;
-            const stats = StudentMockAPI.getStats(records);
+                // ========================================
+                // Statistics
+                // ========================================
+                function loadStatistics() {
+                const stats = StudentState.statisticsData;
+                if (!stats) return;
 
-            // Update eligibility banner
-            updateEligibilityBanner(stats.percentage);
+                // Update eligibility banner
+                updateEligibilityBanner(stats.overall.percentage || 0);
 
-            // Update overall progress
-            updateProgressCircle(stats.percentage);
+                // Update overall progress
+                updateProgressCircle(stats.overall.percentage || 0);
 
-            // Update breakdown
-            document.getElementById('breakdownPresent').textContent = stats.present;
-            document.getElementById('breakdownLate').textContent = stats.late;
-            document.getElementById('breakdownAbsent').textContent = stats.absent;
+                // Update breakdown
+                document.getElementById('breakdownPresent').textContent = stats.overall.present;
+                document.getElementById('breakdownLate').textContent = stats.overall.late;
+                document.getElementById('breakdownAbsent').textContent = stats.overall.absent;
 
-            // Subject-wise chart
-            renderSubjectChart(StudentMockAPI.getSubjectWiseAttendance(records));
+                // Subject-wise chart
+                renderSubjectChart(stats.bySubject);
 
-            // Monthly trend
-            renderMonthlyTrend(StudentMockAPI.getMonthlyTrend(records));
-        }
+                // Monthly trend
+                renderMonthlyTrend(stats.monthlyTrend);
+                }
 
-        function updateEligibilityBanner(percentage) {
-            const banner = document.getElementById('eligibilityBanner');
-            const icon = banner.querySelector('.eligibility-icon');
-            const title = document.getElementById('eligibilityTitle');
-            const text = document.getElementById('eligibilityText');
+                function updateEligibilityBanner(percentage) {
+                const banner = document.getElementById('eligibilityBanner');
+                const icon = banner.querySelector('.eligibility-icon');
+                const title = document.getElementById('eligibilityTitle');
+                const text = document.getElementById('eligibilityText');
 
-            if (percentage >= 75) {
+                if (percentage >= 75) {
                 banner.className = 'eligibility-banner eligible';
                 icon.textContent = '✓';
                 title.textContent = 'Eligible for Exams';
                 text.textContent = 'Your attendance is above the required 75% threshold';
-            } else {
+                } else {
                 banner.className = 'eligibility-banner at-risk';
                 icon.textContent = '⚠';
                 title.textContent = 'At Risk - Low Attendance';
-                text.textContent = `You need ${75 - percentage}% more to meet the minimum requirement`;
-            }
-        }
+                text.textContent = `You need ${Math.round(75 - percentage)}% more to meet the minimum requirement`;
+                }
+                }
 
-        function updateProgressCircle(percentage) {
-            const circle = document.getElementById('progressCircle');
-            const circumference = 2 * Math.PI * 42;
-            const offset = circumference - (percentage / 100) * circumference;
-            circle.style.strokeDasharray = circumference;
-            circle.style.strokeDashoffset = offset;
+                function updateProgressCircle(percentage) {
+                const circle = document.getElementById('progressCircle');
+                const circumference = 2 * Math.PI * 42;
+                const offset = circumference - (percentage / 100) * circumference;
+                circle.style.strokeDasharray = circumference;
+                circle.style.strokeDashoffset = offset;
 
-            document.getElementById('overallPercent').textContent = percentage + '%';
-        }
+                document.getElementById('overallPercent').textContent = percentage + '%';
+                }
 
-        function renderSubjectChart(subjectStats) {
-            const container = document.getElementById('subjectChart');
-            container.innerHTML = Object.entries(subjectStats).map(([subject, stats]) => `
+                function renderSubjectChart(subjectStats) {
+                const container = document.getElementById('subjectChart');
+                if (!container) return;
+
+                container.innerHTML = subjectStats.map(stats => `
                 <div class="bar-item">
-                    <div class="bar-label">${subject.split(' ').slice(0, 2).join(' ')}</div>
+                    <div class="bar-label">${stats.subject.split(' ').slice(0, 2).join(' ')}</div>
                     <div class="bar-track">
-                        <div class="bar-fill ${getBarColor(stats.percentage)}" style="width: ${stats.percentage}%"></div>
+                        <div class="bar-fill ${getBarColor(stats.percentage)}" style="width: ${stats.percentage}%">
+                        </div>
                     </div>
                     <div class="bar-value">${stats.percentage}%</div>
                 </div>
-            `).join('');
-        }
+                `).join('');
+                }
 
-        function renderMonthlyTrend(trend) {
-            const container = document.getElementById('monthlyTrend');
-            const maxHeight = 100;
-            container.innerHTML = trend.map(item => `
+                function renderMonthlyTrend(trend) {
+                const container = document.getElementById('monthlyTrend');
+                if (!container) return;
+
+                container.innerHTML = trend.map(item => `
                 <div class="trend-item">
                     <div class="trend-bar-container">
-                        <div class="trend-bar ${getBarColor(item.percentage)}" style="height: ${item.percentage}%"></div>
+                        <div class="trend-bar ${getBarColor(item.percentage)}" style="height: ${item.percentage}%">
+                        </div>
                     </div>
-                    <div class="trend-label">${item.month}</div>
+                    <div class="trend-label">${item.monthName}</div>
                     <div class="trend-value">${item.percentage}%</div>
                 </div>
-            `).join('');
-        }
+                `).join('');
+                }
 
-        function getBarColor(percentage) {
-            if (percentage >= 75) return 'high';
-            if (percentage >= 50) return 'medium';
-            return 'low';
-        }
+                function getBarColor(percentage) {
+                if (percentage >= 75) return 'high';
+                if (percentage >= 50) return 'medium';
+                return 'low';
+                }
 
-        // ========================================
-        // Profile
-        // ========================================
-        function loadProfile() {
-            const profile = StudentState.studentProfile;
-            document.getElementById('profileAvatar').textContent = profile.name.charAt(0).toUpperCase();
-            document.getElementById('profileName').textContent = profile.name;
-            document.getElementById('profileStudentId').textContent = profile.studentId;
-            document.getElementById('profileEmail').textContent = profile.email;
-            document.getElementById('profileCourse').textContent = profile.course;
-            document.getElementById('profileYear').textContent = profile.year;
+                // ========================================
+                // Profile
+                // ========================================
+                function loadProfile() {
+                const profile = StudentState.studentProfile;
+                document.getElementById('profileAvatar').textContent = profile.name.charAt(0).toUpperCase();
+                document.getElementById('profileName').textContent = profile.name;
+                document.getElementById('profileStudentId').textContent = profile.studentId;
+                document.getElementById('profileEmail').textContent = profile.email;
 
-            // Device info
-            document.getElementById('deviceName').textContent = getBrowserInfo();
-            document.getElementById('lastLogin').textContent = formatLastLogin();
-        }
+                // Mock fields if missing from backend
+                document.getElementById('profileCourse').textContent = profile.course || 'Computer Science';
+                document.getElementById('profileYear').textContent = profile.year || '3rd Year';
 
-        function getBrowserInfo() {
-            const ua = navigator.userAgent;
-            if (ua.includes('Chrome')) return 'Chrome on ' + (ua.includes('Windows') ? 'Windows' : 'Mac');
-            if (ua.includes('Firefox')) return 'Firefox on ' + (ua.includes('Windows') ? 'Windows' : 'Mac');
-            if (ua.includes('Safari')) return 'Safari on Mac';
-            return 'Unknown Browser';
-        }
+                // Device info
+                document.getElementById('deviceName').textContent = getBrowserInfo();
+                document.getElementById('lastLogin').textContent = formatLastLogin();
+                }
 
-        function formatLastLogin() {
-            const now = new Date();
-            return `Today, ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
-        }
+                function getBrowserInfo() {
+                const ua = navigator.userAgent;
+                if (ua.includes('Chrome')) return 'Chrome';
+                if (ua.includes('Firefox')) return 'Firefox';
+                if (ua.includes('Safari')) return 'Safari';
+                return 'Web Browser';
+                }
 
-        // ========================================
-        // Modals
-        // ========================================
-        function showAttendanceDetail(recordId) {
-            const record = StudentState.attendanceRecords.find(r => r.id === recordId);
-            if (!record) return;
+                function formatLastLogin() {
+                const now = new Date();
+                return `Today, ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true
+                })}`;
+                }
 
-            const content = document.getElementById('attendanceDetailContent');
-            content.innerHTML = `
+                // ========================================
+                // Modals
+                // ========================================
+                function showAttendanceDetail(recordId) {
+                // Because recordId might be string from UUID
+                const record = StudentState.attendanceRecords.find(r => String(r.id) === String(recordId));
+                if (!record) return;
+
+                const content = document.getElementById('attendanceDetailContent');
+                content.innerHTML = `
                 <div class="detail-card">
                     <div class="detail-header">
                         <span class="status-badge ${getStatusClass(record.status)} large">
@@ -1283,207 +1131,183 @@
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Date</span>
-                            <span class="detail-value">${formatDate(record.date)}</span>
+                            <span class="detail-value">${formatDate(record.marked_at)}</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Time</span>
-                            <span class="detail-value">${record.time}</span>
+                            <span class="detail-value">${new Date(record.marked_at).toLocaleTimeString([], { hour:
+                                '2-digit', minute: '2-digit' })}</span>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Location</span>
-                            <span class="detail-value">${record.location}</span>
+                            <span class="detail-value">${record.location_name}</span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">Distance from Class</span>
-                            <span class="detail-value">${record.distance ? record.distance + ' meters' : 'N/A'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Marked At</span>
-                            <span class="detail-value">${record.markedAt ? new Date(record.markedAt).toLocaleString() : 'N/A'}</span>
+                            <span class="detail-label">Distance</span>
+                            <span class="detail-value">${record.distance_from_device ?
+                                Math.round(record.distance_from_device) + ' meters' : 'N/A'}</span>
                         </div>
                     </div>
                 </div>
-            `;
-            openModal('attendanceDetailModal');
-        }
+                `;
+                openModal('attendanceDetailModal');
+                }
 
-        function openEditProfileModal() {
-            const profile = StudentState.studentProfile;
-            document.getElementById('editName').value = profile.name;
-            document.getElementById('editEmail').value = profile.email;
-            openModal('editProfileModal');
-        }
+                function openEditProfileModal() {
+                const profile = StudentState.studentProfile;
+                document.getElementById('editName').value = profile.name;
+                document.getElementById('editEmail').value = profile.email;
+                openModal('editProfileModal');
+                }
 
-        function openChangePasswordModal() {
-            document.getElementById('currentPassword').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
-            openModal('changePasswordModal');
-        }
+                function openChangePasswordModal() {
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                openModal('changePasswordModal');
+                }
 
-        function saveProfile() {
-            const newName = document.getElementById('editName').value.trim();
-            if (newName) {
+                function saveProfile() {
+                const newName = document.getElementById('editName').value.trim();
+                if (newName) {
                 StudentState.studentProfile.name = newName;
                 updateUserInfo();
                 loadProfile();
                 closeModal('editProfileModal');
                 showToast('Profile updated successfully!', 'success');
-            }
-        }
+                }
+                }
 
-        function changePassword() {
-            const current = document.getElementById('currentPassword').value;
-            const newPass = document.getElementById('newPassword').value;
-            const confirm = document.getElementById('confirmPassword').value;
+                function changePassword() {
+                const current = document.getElementById('currentPassword').value;
+                const newPass = document.getElementById('newPassword').value;
+                const confirm = document.getElementById('confirmPassword').value;
 
-            if (!current || !newPass || !confirm) {
+                if (!current || !newPass || !confirm) {
                 showToast('Please fill all fields', 'error');
                 return;
-            }
-            if (newPass !== confirm) {
+                }
+                if (newPass !== confirm) {
                 showToast('Passwords do not match', 'error');
                 return;
-            }
-            if (newPass.length < 6) {
-                showToast('Password must be at least 6 characters', 'error');
-                return;
-            }
-
-            // Mock success
-            closeModal('changePasswordModal');
-            showToast('Password changed successfully!', 'success');
-        }
-
-        function openModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
-        // ========================================
-        // Event Listeners
-        // ========================================
-        function setupEventListeners() {
-            // Tab navigation
-            document.querySelectorAll('[data-tab]').forEach(item => {
-                item.addEventListener('click', (e) => {
+                }
+                if (newPass.length < 6) { showToast('Password must be at least 6 characters', 'error' ); return; } //
+                    Mock success closeModal('changePasswordModal'); showToast('Password changed
+                    successfully!', 'success' ); } function openModal(modalId) {
+                    document.getElementById(modalId).classList.add('active'); } function closeModal(modalId) {
+                    document.getElementById(modalId).classList.remove('active'); }
+                    //========================================// Event Listeners
+                    //========================================function setupEventListeners() { // Tab navigation
+                    document.querySelectorAll('[data-tab]').forEach(item=> {
+                    item.addEventListener('click', (e) => {
                     e.preventDefault();
                     const tab = item.dataset.tab;
                     showTab(tab);
-                });
-            });
+                    });
+                    });
 
-            // Mobile menu
-            document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('open');
-                document.getElementById('sidebarOverlay').classList.toggle('active');
-            });
+                    // Mobile menu
+                    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.toggle('open');
+                    document.getElementById('sidebarOverlay').classList.toggle('active');
+                    });
 
-            document.getElementById('sidebarOverlay').addEventListener('click', () => {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('active');
-            });
+                    document.getElementById('sidebarOverlay').addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('sidebarOverlay').classList.remove('active');
+                    });
 
-            // Filters
-            document.getElementById('dateFilter').addEventListener('change', applyFilters);
-            document.getElementById('subjectFilter').addEventListener('change', applyFilters);
-            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+                    // Filters
+                    document.getElementById('dateFilter').addEventListener('change', applyFilters);
+                    document.getElementById('subjectFilter').addEventListener('change', applyFilters);
+                    document.getElementById('statusFilter').addEventListener('change', applyFilters);
 
-            // Quick actions
-            document.getElementById('scanBtn').addEventListener('click', () => {
-                window.location.href = 'scan.html';
-            });
+                    // Quick actions
+                    document.getElementById('scanBtn').addEventListener('click', () => {
+                    window.location.href = 'scan.html';
+                    });
 
-            document.getElementById('viewHistoryBtn').addEventListener('click', () => {
-                showTab('attendance');
-            });
+                    document.getElementById('viewHistoryBtn').addEventListener('click', () => {
+                    showTab('attendance');
+                    });
 
-            // Logout
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                Session.clear();
-                window.location.href = 'login.html';
-            });
+                    // Logout
+                    document.getElementById('logoutBtn').addEventListener('click', () => {
+                    Session.clear();
+                    window.location.href = 'login.html';
+                    });
 
-            // Modal close handlers
-            document.querySelectorAll('.modal-close, [data-dismiss="modal"]').forEach(btn => {
-                btn.addEventListener('click', () => {
+                    // Modal close handlers
+                    document.querySelectorAll('.modal-close, [data-dismiss="modal"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
                     btn.closest('.modal').classList.remove('active');
-                });
-            });
+                    });
+                    });
 
-            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
-                backdrop.addEventListener('click', () => {
+                    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                    backdrop.addEventListener('click', () => {
                     backdrop.closest('.modal').classList.remove('active');
-                });
-            });
-        }
+                    });
+                    });
+                    }
 
-        function showTab(tabName) {
-            StudentState.currentTab = tabName;
+                    function showTab(tabName) {
+                    StudentState.currentTab = tabName;
 
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.getElementById(`tab-${tabName}`).classList.add('active');
+                    // Update tab content
+                    document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                    });
+                    document.getElementById(`tab-${tabName}`).classList.add('active');
 
-            // Update nav items
-            document.querySelectorAll('[data-tab]').forEach(item => {
-                item.classList.remove('active');
-            });
-            document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => {
-                item.classList.add('active');
-            });
+                    // Update nav items
+                    document.querySelectorAll('[data-tab]').forEach(item => {
+                    item.classList.remove('active');
+                    });
+                    document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => {
+                    item.classList.add('active');
+                    });
 
-            // Close mobile menu
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sidebarOverlay').classList.remove('active');
-        }
+                    // Close mobile menu
+                    document.getElementById('sidebar').classList.remove('open');
+                    document.getElementById('sidebarOverlay').classList.remove('active');
+                    }
 
-        // ========================================
-        // Utilities
-        // ========================================
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
+                    // ========================================
+                    // Utilities
+                    // ========================================
+                    function formatDate(dateStr) {
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
 
-        function getStatusClass(status) {
-            return status === 'present' ? 'success' : status === 'late' ? 'warning' : 'danger';
-        }
+                    function getStatusClass(status) {
+                    return status === 'present' ? 'success' : status === 'late' ? 'warning' : 'danger';
+                    }
 
-        function getStatusIcon(status) {
-            return status === 'present' ? '✓' : status === 'late' ? '⏱' : '✗';
-        }
+                    function getStatusIcon(status) {
+                    return status === 'present' ? '✓' : status === 'late' ? '⏱' : '✗';
+                    }
 
-        function capitalizeFirst(str) {
-            return str.charAt(0).toUpperCase() + str.slice(1);
-        }
+                    function capitalizeFirst(str) {
+                    return str.charAt(0).toUpperCase() + str.slice(1);
+                    }
 
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <span>${message}</span>
-                <button onclick="this.parentElement.remove()">&times;</button>
-            `;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 4000);
-        }
+                    function showToast(message, type = 'info') {
+                    const container = document.getElementById('toastContainer');
+                    const toast = document.createElement('div');
+                    toast.className = `toast ${type}`;
+                    toast.innerHTML = `
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.remove()">&times;</button>
+                    `;
+                    container.appendChild(toast);
+                    setTimeout(() => toast.remove(), 4000);
+                    }
 
-        function simulateLiveUpdates() {
-            // Simulate occasional new attendance being added
-            if (Math.random() > 0.7) {
-                const stats = StudentMockAPI.getStats(StudentState.attendanceRecords);
-                loadDashboardData();
-            }
-        }
-    </script>
-    <script src="js/theme-engine.js"></script>
+
+                    </script>
+                    <script src="js/theme-engine.js"></script>
 </body>
 
 </html>

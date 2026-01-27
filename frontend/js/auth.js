@@ -17,10 +17,12 @@ const CONFIG = {
 };
 
 // Role-based dashboards
+// Role-based dashboards
 const DASHBOARD_MAP = {
-    student: 'dashboard.html',
+    student: 'student-dashboard.html',
     faculty: 'faculty-dashboard.html',
-    admin: 'admin-dashboard.html'
+    admin: 'admin-dashboard.html',
+    device: 'device/'
 };
 
 // ========================================

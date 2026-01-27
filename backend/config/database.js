@@ -139,12 +139,58 @@ async function initializeDatabase() {
             )
         `);
 
+        // 7. Device Sessions table (JWT session tracking)
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS device_sessions (
+                id SERIAL PRIMARY KEY,
+                device_id INTEGER REFERENCES devices(id),
+                token_hash VARCHAR(255) NOT NULL,
+                issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                is_revoked BOOLEAN DEFAULT false
+            )
+        `);
+
+        // 8. Device Activity Logs table (audit trail)
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS device_activity_logs (
+                id SERIAL PRIMARY KEY,
+                device_id INTEGER REFERENCES devices(id),
+                action VARCHAR(50) NOT NULL,
+                details JSONB,
+                ip_address VARCHAR(45),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // 9. QR Nonces table (replay prevention)
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS qr_nonces (
+                id SERIAL PRIMARY KEY,
+                nonce VARCHAR(64) UNIQUE NOT NULL,
+                device_id INTEGER REFERENCES devices(id),
+                used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // 10. System Settings table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key VARCHAR(50) PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         // Create indexes
         await db.query('CREATE INDEX IF NOT EXISTS idx_tokens_hash ON qr_tokens(token_hash)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_tokens_expires ON qr_tokens(expires_at)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance_logs(student_id)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_attendance_session ON attendance_logs(session_id)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_device_sessions_device ON device_sessions(device_id)');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_device_activity_device ON device_activity_logs(device_id)');
+        await db.query('CREATE INDEX IF NOT EXISTS idx_nonces_nonce ON qr_nonces(nonce)');
 
         console.log('✅ Database schema initialized');
     } catch (error) {

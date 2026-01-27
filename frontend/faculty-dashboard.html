@@ -566,7 +566,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Create New Session</h3>
-                <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="sessionForm">
@@ -732,7 +731,6 @@
     </div>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/mock-data.js"></script>
     <script src="js/admin-core.js"></script>
     <script>
         // ========================================
@@ -750,211 +748,102 @@
         // ========================================
         // Faculty Mock Data Extensions
         // ========================================
-        const FacultyMockAPI = {
-            // Get sessions for this faculty
-            getFacultySessions() {
-                return MOCK_SESSIONS.map(s => ({
-                    ...s,
-                    locationName: MOCK_LOCATIONS.find(l => l.id === s.locationId)?.name || 'Unknown',
-                    status: this.getSessionStatus(s),
-                    attendanceCount: FacultyState.activeSessions.get(s.id)?.studentCount ||
-                        Math.floor(Math.random() * 40) + 30,
-                    attendanceRate: Math.floor(Math.random() * 20) + 75,
-                    isActive: FacultyState.activeSessions.has(s.id)
-                }));
-            },
+        // ========================================
+        // Faculty API Client
+        // ========================================
+        const API_BASE = 'http://localhost:3000';
 
-            getSessionStatus(session) {
-                if (FacultyState.activeSessions.has(session.id)) return 'active';
-                const today = new Date().toISOString().split('T')[0];
-                const now = new Date();
-                const sessionStart = new Date(`${session.date}T${session.startTime}`);
-                const sessionEnd = new Date(`${session.date}T${session.endTime}`);
-
-                if (session.date < today || (session.date === today && now > sessionEnd)) return 'completed';
-                if (session.date === today && now >= sessionStart && now <= sessionEnd) return 'upcoming';
-                return 'upcoming';
-            },
-
-            getTodaySessions() {
-                const today = new Date().toISOString().split('T')[0]; // Use actual today
-                return this.getFacultySessions().filter(s => s.date === today);
-            },
-
-            getStats() {
-                const sessions = this.getFacultySessions();
-                const attendance = MockAPI.getAttendance();
-                const present = attendance.filter(a => a.status === 'present').length;
-                const total = attendance.length;
-
-                return {
-                    totalSessions: sessions.length,
-                    totalStudents: MOCK_STUDENTS.length,
-                    avgAttendance: total > 0 ? Math.round((present / total) * 100) : 0,
-                    todaySessions: this.getTodaySessions().length
-                };
-            },
-
-            // Start a session (make it active)
-            startSession(sessionId) {
-                if (FacultyState.activeSessions.has(sessionId)) return;
-
-                const session = MOCK_SESSIONS.find(s => s.id === sessionId);
-                const location = MOCK_LOCATIONS.find(l => l.id === session?.locationId);
-                const startedAt = new Date();
-
-                const sessionData = {
-                    studentCount: 0,
-                    students: [],
-                    startedAt: startedAt
-                };
-
-                FacultyState.activeSessions.set(sessionId, sessionData);
-
-                // Save to localStorage for persistence
-                this.saveSessionToStorage(sessionId, session, location, startedAt);
-
-                // Simulate students joining every 2-3 seconds
-                this.startStudentSimulation(sessionId);
-                return true;
-            },
-
-            // Save session to localStorage
-            saveSessionToStorage(sessionId, session, location, startedAt) {
-                const data = FacultyState.activeSessions.get(sessionId);
-                const storageData = {
-                    sessionId: sessionId,
-                    subject: session?.subject || 'Unknown Session',
-                    location: location?.name || 'Unknown Location',
-                    startTime: startedAt.toISOString(),
-                    studentsPresent: data?.students || []
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
-            },
-
-            // Update localStorage with current students
-            updateStorageStudents(sessionId) {
-                const stored = localStorage.getItem(STORAGE_KEY);
-                if (stored) {
-                    const data = JSON.parse(stored);
-                    const sessionData = FacultyState.activeSessions.get(sessionId);
-                    if (sessionData) {
-                        data.studentsPresent = sessionData.students.map(s => ({
-                            id: s.id,
-                            name: s.name,
-                            studentId: s.studentId,
-                            joinedAt: s.joinedAt,
-                            distance: s.distance,
-                            status: s.status
-                        }));
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                    }
-                }
-            },
-
-            // Start student simulation for a session
-            startStudentSimulation(sessionId) {
-                const interval = setInterval(() => {
-                    const data = FacultyState.activeSessions.get(sessionId);
-                    if (!data || data.studentCount >= MOCK_STUDENTS.length) {
-                        clearInterval(interval);
-                        return;
-                    }
-
-                    // Add random student
-                    const availableStudents = MOCK_STUDENTS.filter(s =>
-                        !data.students.find(st => st.id === s.id) && s.isActive
-                    );
-
-                    if (availableStudents.length > 0) {
-                        const student = availableStudents[Math.floor(Math.random() * availableStudents.length)];
-                        const joinedAt = new Date();
-
-                        // Calculate if student is late (joined more than 5 minutes after session start)
-                        const elapsedMinutes = (joinedAt - data.startedAt) / (1000 * 60);
-                        const status = elapsedMinutes > LATE_THRESHOLD_MINUTES ? 'late' : 'present';
-
-                        data.students.push({
-                            ...student,
-                            joinedAt: joinedAt,
-                            distance: Math.floor(Math.random() * 40) + 5,
-                            status: status
-                        });
-                        data.studentCount = data.students.length;
-
-                        // Update localStorage
-                        this.updateStorageStudents(sessionId);
-                    }
-                }, 2500);
-
-                const sessionData = FacultyState.activeSessions.get(sessionId);
-                if (sessionData) {
-                    sessionData.interval = interval;
-                }
-            },
-
-            // Restore session from localStorage
-            restoreSessionFromStorage() {
-                const stored = localStorage.getItem(STORAGE_KEY);
-                if (!stored) return null;
-
+        const FacultyAPI = {
+            async getDashboard() {
                 try {
-                    const data = JSON.parse(stored);
-                    const sessionId = data.sessionId;
-                    const startedAt = new Date(data.startTime);
-
-                    // Restore students with proper Date objects
-                    const students = (data.studentsPresent || []).map(s => ({
-                        ...s,
-                        joinedAt: new Date(s.joinedAt)
-                    }));
-
-                    const sessionData = {
-                        studentCount: students.length,
-                        students: students,
-                        startedAt: startedAt
-                    };
-
-                    FacultyState.activeSessions.set(sessionId, sessionData);
-
-                    // Resume student simulation
-                    this.startStudentSimulation(sessionId);
-
-                    return data;
-                } catch (e) {
-                    console.error('Failed to restore session:', e);
-                    localStorage.removeItem(STORAGE_KEY);
+                    const response = await axios.get(`${API_BASE}/api/faculty/dashboard`, {
+                        headers: { Authorization: `Bearer ${Session.getToken()}` }
+                    });
+                    return response.data.dashboard;
+                } catch (error) {
+                    console.error('API Error:', error);
                     return null;
                 }
             },
 
-            // End a session
-            endSession(sessionId) {
-                const data = FacultyState.activeSessions.get(sessionId);
-                if (data?.interval) {
-                    clearInterval(data.interval);
-                }
-                FacultyState.activeSessions.delete(sessionId);
+            async getAttendance(filters = {}) {
+                try {
+                    const params = new URLSearchParams();
+                    if (filters.sessionId) params.append('sessionId', filters.sessionId);
+                    if (filters.date) params.append('date', filters.date);
+                    if (filters.limit) params.append('limit', filters.limit);
 
-                // Clear localStorage
-                localStorage.removeItem(STORAGE_KEY);
+                    const response = await axios.get(`${API_BASE}/api/faculty/attendance?${params.toString()}`, {
+                        headers: { Authorization: `Bearer ${Session.getToken()}` }
+                    });
+                    return response.data.records;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    return [];
+                }
             },
 
-            getAttendanceForFaculty(filters = {}) {
-                let records = MockAPI.getAttendance().map(a => ({
-                    ...a,
-                    timeMarked: a.time,
-                    distance: Math.floor(Math.random() * 45) + 5
-                }));
+            async createSession(data) {
+                const response = await axios.post(`${API_BASE}/api/sessions/start`, data, {
+                    headers: { Authorization: `Bearer ${Session.getToken()}` }
+                });
+                return response.data;
+            },
 
-                if (filters.sessionId) {
-                    records = records.filter(a => a.sessionId === parseInt(filters.sessionId));
-                }
-                if (filters.date) {
-                    records = records.filter(a => a.date === filters.date);
-                }
+            async endSession(sessionId) {
+                const response = await axios.post(`${API_BASE}/api/sessions/end/${sessionId}`, {}, {
+                    headers: { Authorization: `Bearer ${Session.getToken()}` }
+                });
+                return response.data;
+            },
 
-                return records.slice(0, 50);
+            async getSessionDetails(sessionId) {
+                try {
+                    const response = await axios.get(`${API_BASE}/api/faculty/attendance/session/${sessionId}`, {
+                        headers: { Authorization: `Bearer ${Session.getToken()}` }
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    return null;
+                }
+            },
+
+            async getReports(params) {
+                try {
+                    const query = new URLSearchParams(params).toString();
+                    const response = await axios.get(`${API_BASE}/api/faculty/reports?${query}`, {
+                        headers: { Authorization: `Bearer ${Session.getToken()}` }
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    return null;
+                }
+            },
+
+            async getLocations() {
+                try {
+                    const response = await axios.get(`${API_BASE}/api/locations`, {
+                        headers: { Authorization: `Bearer ${Session.getToken()}` }
+                    });
+                    const locations = response.data.locations || [];
+                    return locations.filter(l => l.is_active);
+                } catch (e) {
+                    return [];
+                }
+            },
+
+            async getFacultySessions() {
+                // We use dashboard data usually, but if needed we can fetch history
+                try {
+                    const response = await axios.get(`${API_BASE}/api/sessions/history`, {
+                        headers: { Authorization: `Bearer ${Session.getToken()}` }
+                    });
+                    return response.data.sessions;
+                } catch (e) {
+                    return [];
+                }
             }
         };
 
@@ -975,693 +864,303 @@
                 return;
             }
 
-            // Update UI
-            document.getElementById('welcomeName').textContent = user.name?.split(' ')[0] || 'Professor';
-            document.getElementById('userName').textContent = user.name || 'Faculty';
-            document.getElementById('userAvatar').textContent = (user.name?.charAt(0) || 'F').toUpperCase();
-
-            // Initialize
-            AdminCore.initModalListeners();
-            loadDashboardData();
-            setupEventListeners();
-            populateFilters();
-
-            // Restore any active session from localStorage
-            const restoredSession = FacultyMockAPI.restoreSessionFromStorage();
-            if (restoredSession) {
-                AdminCore.toast(`Session "${restoredSession.subject}" restored! Still live.`, 'success');
-                updateLiveIndicator();
-                renderTodaySessions();
-                renderSessionsTable();
+            if (!user || user.role !== 'faculty') {
+                window.location.href = 'login.html';
+                return;
             }
 
-            // Start live updates
-            FacultyState.liveUpdateInterval = setInterval(() => {
-                updateStats();
-                updateLiveIndicator();
-                if (document.getElementById('tab-sessions').classList.contains('active')) {
-                    renderSessionsTable();
-                }
-            }, 3000);
+            // Load initial data
+            await loadDashboardData();
+            setupEventListeners();
+            populateFilters();
+            AdminCore.initModalListeners();
+
+            // Start polling for active sessions
+            startLiveUpdates();
         });
 
-        // ========================================
-        // Load Data
-        // ========================================
-        function loadDashboardData() {
-            updateStats();
-            renderTodaySessions();
-            renderSessionsTable();
-            renderAttendanceTable();
+        async function loadDashboardData() {
+            const dashboard = await FacultyAPI.getDashboard();
+            if (!dashboard) return;
+
+            // Update stats
+            document.getElementById('totalSessions').textContent = dashboard.stats.totalSessions;
+            document.getElementById('totalStudents').textContent = dashboard.stats.uniqueStudents;
+            document.getElementById('avgAttendance').textContent =
+                Math.round((dashboard.stats.presentCount / (dashboard.stats.totalAttendance || 1)) * 100) + '%';
+            document.getElementById('todaySessionsCount').textContent = dashboard.stats.todaySessions;
+
+            // Check for active session
+            if (dashboard.activeSession) {
+                const session = dashboard.activeSession;
+                // Add to active map to track live status
+                FacultyState.activeSessions.set(session.id, {
+                    ...session,
+                    studentCount: parseInt(session.attendance_count) || 0,
+                    startedAt: session.start_time
+                });
+                updateLiveIndicator();
+            }
+
+            // Render tables if first load
+            renderTodaySessions(dashboard.stats.todaySessionsList || (dashboard.recentSessions || []).filter(s => new Date(s.startTime).toDateString() === new Date().toDateString()));
+            renderSessionsTable(dashboard.recentSessions);
         }
 
-        function updateStats() {
-            const stats = FacultyMockAPI.getStats();
+        function startLiveUpdates() {
+            if (FacultyState.isPolling) return;
+            FacultyState.isPolling = true;
 
-            document.getElementById('totalSessions').textContent = stats.totalSessions;
-            document.getElementById('totalStudents').textContent = stats.totalStudents;
-            document.getElementById('avgAttendance').textContent = stats.avgAttendance + '%';
-            document.getElementById('todaySessionsCount').textContent = stats.todaySessions;
-
-            // Update timestamp
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('lastUpdated').querySelector('span').textContent = `Last updated: ${timeStr}`;
+            setInterval(async () => {
+                if (FacultyState.activeSessions.size > 0) {
+                    // Update active session data
+                    for (const [sessionId, data] of FacultyState.activeSessions) {
+                        const details = await FacultyAPI.getSessionDetails(sessionId);
+                        if (details) {
+                            FacultyState.activeSessions.set(sessionId, {
+                                ...data,
+                                studentCount: details.summary.present + details.summary.late,
+                                students: details.attendance // Store for radar
+                            });
+                        }
+                    }
+                    updateLiveIndicator();
+                }
+            }, 5000);
         }
+
+        // ========================================
+        // Live Dashboard Logic
+        // ========================================
 
         function updateLiveIndicator() {
             const hasActive = FacultyState.activeSessions.size > 0;
-            document.getElementById('liveIndicator').style.display = hasActive ? 'inline' : 'none';
+            const indicator = document.getElementById('liveIndicator');
+            if (indicator) indicator.style.display = hasActive ? 'inline' : 'none';
 
             // Update live counter section
             const liveCounterSection = document.getElementById('liveCounterSection');
-            const liveStatusBar = document.getElementById('liveStatusBar');
-            const classroomRadar = document.getElementById('classroomRadar');
+            if (liveCounterSection) liveCounterSection.style.display = hasActive ? 'block' : 'none';
 
             if (hasActive) {
-                liveCounterSection.style.display = 'block';
-                liveStatusBar.style.display = 'flex';
-                classroomRadar.style.display = 'block';
-
                 // Get the first active session data
                 const sessionEntry = FacultyState.activeSessions.entries().next().value;
                 const [sessionId, activeData] = sessionEntry || [null, null];
 
                 if (activeData) {
                     const studentCount = activeData.studentCount;
-                    const totalStudents = MOCK_STUDENTS.length;
+                    const totalStudents = 60; // Mock total for class size
                     const percentage = Math.round((studentCount / totalStudents) * 100);
 
                     document.getElementById('liveStudentCount').textContent = studentCount;
-                    document.getElementById('totalExpectedStudents').textContent = totalStudents;
                     document.getElementById('attendanceCompletionBar').style.width = percentage + '%';
 
-                    // Update live status bar
-                    updateLiveStatusBar(activeData, studentCount, totalStudents);
-
-                    // Update classroom radar
-                    updateClassroomRadar(activeData, totalStudents);
+                    if (activeData.startedAt) {
+                        const elapsed = Date.now() - new Date(activeData.startedAt).getTime();
+                        const mins = Math.floor(elapsed / 60000);
+                        document.getElementById('liveElapsedTime').textContent = `${mins}m`;
+                    }
                 }
-            } else {
-                liveCounterSection.style.display = 'none';
-                liveStatusBar.style.display = 'none';
-                classroomRadar.style.display = 'none';
             }
         }
 
         // ========================================
-        // Live Status Bar
+        // Session Management
         // ========================================
-        function updateLiveStatusBar(activeData, presentCount, totalStudents) {
-            // Calculate elapsed time
-            if (activeData.startedAt) {
-                const elapsed = Date.now() - new Date(activeData.startedAt).getTime();
-                const mins = Math.floor(elapsed / 60000);
-                const secs = Math.floor((elapsed % 60000) / 1000);
-                document.getElementById('liveElapsedTime').textContent =
-                    `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            }
 
-            // Update present count
-            document.getElementById('livePresentCount').textContent = presentCount;
+        async function createSession() {
+            const subject = document.getElementById('sessionSubject').value;
+            const locationId = document.getElementById('sessionLocation').value;
+            const duration = document.getElementById('sessionDuration').value;
 
-            // Calculate and update engagement score
-            const engagement = calculateEngagement(activeData.students || [], totalStudents);
-            const engagementEl = document.getElementById('liveEngagement');
-            engagementEl.textContent = engagement.score + '%';
-            engagementEl.className = 'engagement-badge ' + engagement.level;
-        }
-
-        // ========================================
-        // Classroom Radar
-        // ========================================
-        function updateClassroomRadar(activeData, totalStudents) {
-            const students = activeData.students || [];
-            const presentCount = students.filter(s => s.status === 'present').length;
-            const lateCount = students.filter(s => s.status === 'late').length;
-            const absentCount = totalStudents - students.length;
-            const outRangeCount = students.filter(s => s.outOfRange).length;
-
-            document.getElementById('radarPresent').textContent = presentCount;
-            document.getElementById('radarLate').textContent = lateCount;
-            document.getElementById('radarAbsent').textContent = absentCount;
-            document.getElementById('radarOutRange').textContent = outRangeCount;
-
-            // Update suspicious alerts
-            const alertsContainer = document.getElementById('radarAlerts');
-            if (FacultyState.suspiciousActivities && FacultyState.suspiciousActivities.length > 0) {
-                alertsContainer.innerHTML = FacultyState.suspiciousActivities.slice(-3).map(alert => `
-                    <div class="radar-alert">
-                        <span>⚠️</span>
-                        <span>${alert.message}</span>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function toggleRadar() {
-            const radar = document.getElementById('classroomRadar');
-            radar.style.display = radar.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // ========================================
-        // Engagement Score Calculation
-        // ========================================
-        function calculateEngagement(students, totalStudents) {
-            if (totalStudents === 0) return { score: 0, level: 'low' };
-
-            const presentCount = students.filter(s => s.status === 'present').length;
-            const lateCount = students.filter(s => s.status === 'late').length;
-
-            // Engagement = (Present + 0.5 × Late) / Total × 100
-            const score = Math.round(((presentCount + 0.5 * lateCount) / totalStudents) * 100);
-
-            let level = 'low';
-            if (score >= 75) level = 'high';
-            else if (score >= 60) level = 'medium';
-
-            return { score, level };
-        }
-
-        // ========================================
-        // Late Entry Window Logic
-        // ========================================
-        function getAttendanceStatus(sessionStartTime, scanTime) {
-            const start = new Date(sessionStartTime).getTime();
-            const scan = new Date(scanTime).getTime();
-            const diffMinutes = (scan - start) / 60000;
-
-            if (diffMinutes <= 5) return 'present';
-            if (diffMinutes <= 15) return 'late';
-            return 'blocked';
-        }
-
-        // ========================================
-        // Defaulters Modal
-        // ========================================
-        function showDefaultersModal() {
-            const modal = document.getElementById('defaultersModal');
-
-            // Populate subject filter
-            const subjects = [...new Set(MOCK_SESSIONS.map(s => s.subject))];
-            const filterSelect = document.getElementById('defaulterSubjectFilter');
-            filterSelect.innerHTML = '<option value="all">All Subjects</option>' +
-                subjects.map(s => `<option value="${s}">${s}</option>`).join('');
-
-            // Load defaulters
-            loadDefaulters('all');
-
-            modal.classList.add('active');
-        }
-
-        function filterDefaulters() {
-            const subject = document.getElementById('defaulterSubjectFilter').value;
-            loadDefaulters(subject);
-        }
-
-        function loadDefaulters(subject) {
-            const tbody = document.getElementById('defaultersTableBody');
-            const summary = document.getElementById('defaultersSummary');
-
-            // Calculate attendance for each student
-            const defaulters = MOCK_STUDENTS.map(student => {
-                // Mock attendance calculation
-                const totalClasses = 20 + Math.floor(Math.random() * 10);
-                const attended = Math.floor(Math.random() * totalClasses);
-                const percentage = Math.round((attended / totalClasses) * 100);
-
-                return {
-                    ...student,
-                    attendance: percentage,
-                    status: percentage < 75 ? 'At Risk' : 'Safe'
-                };
-            }).filter(s => s.attendance < 75);
-
-            if (defaulters.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;">🎉 No defaulters! All students have good attendance.</td></tr>';
-                summary.innerHTML = '';
+            if (!subject || !locationId) {
+                AdminCore.toast('Please fill all fields', 'error');
                 return;
             }
 
-            tbody.innerHTML = defaulters.map(s => `
-                <tr>
-                    <td>${s.studentId}</td>
-                    <td>${s.name}</td>
-                    <td>
-                        <div class="progress-bar" style="width:100px;">
-                            <div class="progress-track">
-                                <div class="progress-fill ${s.attendance >= 60 ? 'medium' : 'low'}" style="width:${s.attendance}%;"></div>
-                            </div>
-                            <span class="progress-value">${s.attendance}%</span>
-                        </div>
-                    </td>
-                    <td><span class="status-badge danger">At Risk</span></td>
-                </tr>
-            `).join('');
-
-            summary.innerHTML = `⚠️ <strong>${defaulters.length}</strong> student(s) below 75% attendance threshold`;
-        }
-
-        function exportDefaultersCSV() {
-            const defaulters = MOCK_STUDENTS.map(student => {
-                const totalClasses = 20 + Math.floor(Math.random() * 10);
-                const attended = Math.floor(Math.random() * totalClasses);
-                const percentage = Math.round((attended / totalClasses) * 100);
-                return { ...student, attendance: percentage };
-            }).filter(s => s.attendance < 75);
-
-            const csv = 'Student ID,Name,Email,Attendance %\n' +
-                defaulters.map(s => `${s.studentId},${s.name},${s.email},${s.attendance}%`).join('\n');
-
-            downloadCSV(csv, 'defaulters_list.csv');
-            AdminCore.toast('Defaulters list exported!', 'success');
-        }
-
-        // ========================================
-        // Absentees CSV Export
-        // ========================================
-        function downloadAbsentees() {
-            const today = new Date().toISOString().split('T')[0];
-            const sessions = FacultyMockAPI.getTodaySessions();
-
-            if (sessions.length === 0) {
-                AdminCore.toast('No sessions today to export absentees from', 'warning');
-                return;
-            }
-
-            // Get students who were absent from last completed session
-            const lastSession = sessions.find(s => s.status === 'completed') || sessions[0];
-            const attendedStudentIds = new Set();
-
-            // Get attended students from active/completed session
-            FacultyState.activeSessions.forEach((data, sessionId) => {
-                data.students.forEach(s => attendedStudentIds.add(s.id));
-            });
-
-            const absentees = MOCK_STUDENTS.filter(s => !attendedStudentIds.has(s.id));
-
-            const csv = 'Student ID,Name,Subject,Date\n' +
-                absentees.map(s => `${s.studentId},${s.name},${lastSession.subject},${today}`).join('\n');
-
-            downloadCSV(csv, `absentees_${today}.csv`);
-            AdminCore.toast(`${absentees.length} absentees exported!`, 'success');
-        }
-
-        function downloadCSV(content, filename) {
-            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-        }
-
-        // ========================================
-        // Suspicious Activity Detection
-        // ========================================
-        FacultyState.suspiciousActivities = [];
-
-        function detectSuspiciousActivity(student, sessionData) {
-            const alerts = [];
-
-            // Check for duplicate scan
-            const existingStudent = sessionData.students.find(s => s.id === student.id);
-            if (existingStudent) {
-                alerts.push({
-                    type: 'duplicate',
-                    student: student.name,
-                    message: `${student.name}: Duplicate scan attempt`
+            try {
+                const result = await FacultyAPI.createSession({
+                    subject,
+                    location_id: parseInt(locationId),
+                    duration_minutes: parseInt(duration),
+                    radius: 50 // Default radius
                 });
+
+                if (result.success) {
+                    AdminCore.toast('Session started successfully 🚀', 'success');
+                    AdminCore.closeModal('createSessionModal');
+
+                    // Add to local state
+                    FacultyState.activeSessions.set(result.session.id, {
+                        ...result.session,
+                        studentCount: 0,
+                        startedAt: new Date()
+                    });
+
+                    updateLiveIndicator();
+                    loadDashboardData(); // Refresh full data
+                }
+            } catch (err) {
+                AdminCore.toast(err.response?.data?.error || 'Failed to start session', 'error');
             }
-
-            // Check for out of range (simulated)
-            if (student.distance && student.distance > 100) {
-                alerts.push({
-                    type: 'gps',
-                    student: student.name,
-                    message: `${student.name}: Out of GPS range (${student.distance}m)`
-                });
-            }
-
-            // Add to suspicious activities
-            FacultyState.suspiciousActivities.push(...alerts);
-
-            // Show alert modal for serious issues
-            if (alerts.length > 0) {
-                showSuspiciousAlert(alerts[0]);
-            }
-
-            return alerts.length === 0;
         }
 
-        function showSuspiciousAlert(alert) {
-            const content = document.getElementById('suspiciousContent');
-            content.innerHTML = `
-                <div style="text-align:center;padding:1rem;">
-                    <div style="font-size:3rem;margin-bottom:1rem;">🚨</div>
-                    <h4 style="margin-bottom:0.5rem;">${alert.type === 'duplicate' ? 'Duplicate Scan' : 'GPS Mismatch'}</h4>
-                    <p style="color:var(--text-secondary);">${alert.message}</p>
-                    <p style="margin-top:1rem;font-size:0.9rem;color:var(--text-muted);">
-                        This activity has been logged for review.
-                    </p>
-                </div>
-            `;
-            // Don't auto-show modal - just log it and show in radar
-        }
-
-        // ========================================
-        // Session Summary
-        // ========================================
-        function showSessionSummary(sessionId, sessionData) {
-            const session = MOCK_SESSIONS.find(s => s.id === sessionId);
-            const students = sessionData.students || [];
-            const totalStudents = MOCK_STUDENTS.length;
-
-            const presentCount = students.filter(s => s.status === 'present').length;
-            const lateCount = students.filter(s => s.status === 'late').length;
-            const absentCount = totalStudents - students.length;
-            const engagement = calculateEngagement(students, totalStudents);
-
-            document.getElementById('summarySubject').textContent = session?.subject || 'Session';
-            document.getElementById('summaryPresent').textContent = presentCount;
-            document.getElementById('summaryLate').textContent = lateCount;
-            document.getElementById('summaryAbsent').textContent = absentCount;
-
-            const engagementEl = document.getElementById('summaryEngagement');
-            engagementEl.textContent = engagement.score + '%';
-            engagementEl.className = 'summary-value';
-
-            document.getElementById('sessionSummaryCard').style.display = 'block';
-        }
-
-        function hideSessionSummary() {
-            document.getElementById('sessionSummaryCard').style.display = 'none';
-        }
-
-        // ========================================
-        // End Active Session (enhanced)
-        // ========================================
-        function endActiveSession() {
+        async function endActiveSession() {
             const sessionEntry = FacultyState.activeSessions.entries().next().value;
             if (sessionEntry) {
                 const [sessionId, sessionData] = sessionEntry;
 
-                // Show session summary before ending
-                showSessionSummary(sessionId, sessionData);
+                if (confirm('Are you sure you want to end this session?')) {
+                    try {
+                        await FacultyAPI.endSession(sessionId);
+                        FacultyState.activeSessions.delete(sessionId);
 
-                // End the session
-                FacultyMockAPI.endSession(sessionId);
-
-                // Update UI
-                updateLiveIndicator();
-                renderTodaySessions();
-                renderSessionsTable();
-
-                AdminCore.toast('Session ended! Summary displayed.', 'success');
+                        AdminCore.toast('Session ended successfully', 'success');
+                        updateLiveIndicator();
+                        loadDashboardData();
+                    } catch (err) {
+                        AdminCore.toast('Failed to end session', 'error');
+                    }
+                }
             }
         }
 
         // ========================================
-        // Render Tables
+        // Render Functions
         // ========================================
-        function renderTodaySessions() {
-            const sessions = FacultyMockAPI.getTodaySessions();
+
+        function renderTodaySessions(sessions = []) {
             const tbody = document.getElementById('todaySessionsTable');
+            if (!tbody) return;
 
             if (sessions.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6">
-                            <div class="empty-state-container">
-                                <div class="empty-state-icon">📅</div>
-                                <div class="empty-state-title">No sessions scheduled for today</div>
-                                <div class="empty-state-description">Click "Create Session" to schedule a class</div>
-                                <button class="btn btn-primary empty-state-action" onclick="openCreateSessionModal()">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                                    </svg>
-                                    Create Session
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No sessions today</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = sessions.map(s => {
-                const activeData = FacultyState.activeSessions.get(s.id);
-                const studentCount = activeData ? activeData.studentCount : (s.status === 'completed' ? s.attendanceCount : '--');
-
-                return `
-                    <tr>
-                        <td><strong>${s.subject}</strong></td>
-                        <td>${s.locationName}</td>
-                        <td>${s.startTime} - ${s.endTime}</td>
-                        <td>${studentCount}/${MOCK_STUDENTS.length}</td>
-                        <td>${getStatusBadge(s.status, s.isActive)}</td>
-                        <td>${getSessionAction(s)}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderSessionsTable() {
-            const sessions = FacultyMockAPI.getFacultySessions();
-            const tbody = document.getElementById('sessionsTableBody');
-
-            if (sessions.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7">
-                            <div class="empty-state-container">
-                                <div class="empty-state-icon">📋</div>
-                                <div class="empty-state-title">No sessions found</div>
-                                <div class="empty-state-description">Create your first session to get started</div>
-                                <button class="btn btn-primary empty-state-action" onclick="openCreateSessionModal()">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                                    </svg>
-                                    Create Session
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
-                return;
-            }
-
-            tbody.innerHTML = sessions.map(s => {
-                const activeData = FacultyState.activeSessions.get(s.id);
-                const rate = activeData ? Math.round((activeData.studentCount / MOCK_STUDENTS.length) * 100) : s.attendanceRate;
                 const isActive = FacultyState.activeSessions.has(s.id);
-
                 return `
-                    <tr class="${isActive ? 'session-active' : ''}">
+                    <tr>
                         <td><strong>${s.subject}</strong></td>
-                        <td>${s.locationName}</td>
-                        <td>${s.date}</td>
-                        <td>${s.startTime} - ${s.endTime}</td>
+                        <td>${s.location || 'Unknown'}</td>
+                        <td>${new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>${s.attendanceCount || 0}</td>
+                        <td><span class="status-badge ${isActive ? 'success' : 'secondary'}">${isActive ? 'Live' : 'Completed'}</span></td>
                         <td>
-                            <div class="progress-bar">
-                                <div class="progress-track">
-                                    <div class="progress-fill ${rate >= 75 ? 'high' : rate >= 50 ? 'medium' : 'low'}" style="width: ${rate}%"></div>
-                                </div>
-                                <span class="progress-value">${rate}%</span>
-                            </div>
+                            ${isActive ?
+                        `<button class="btn btn-sm btn-danger" onclick="endActiveSession()">End</button>` :
+                        `<button class="btn btn-sm btn-secondary" onclick="viewReport('${s.id}')">Report</button>`
+                    }
                         </td>
-                        <td>${getStatusBadge(s.status, s.isActive)}</td>
-                        <td>${getSessionActions(s)}</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function renderAttendanceTable() {
-            const filters = {
-                sessionId: document.getElementById('attendanceSessionFilter').value,
-                date: document.getElementById('attendanceDateFilter').value
-            };
+        function renderSessionsTable(sessions = []) {
+            const tbody = document.getElementById('sessionsTableBody');
+            if (!tbody) return;
 
-            const records = FacultyMockAPI.getAttendanceForFaculty(filters);
-            const tbody = document.getElementById('attendanceTableBody');
-
-            if (records.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6">
-                            <div class="empty-state-container">
-                                <div class="empty-state-icon">📊</div>
-                                <div class="empty-state-title">No attendance records found</div>
-                                <div class="empty-state-description">Try adjusting your filters or select a different session</div>
-                                <button class="btn btn-secondary empty-state-action" onclick="document.getElementById('attendanceSessionFilter').value='';document.getElementById('attendanceDateFilter').value='';renderAttendanceTable();">
-                                    Clear Filters
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
+            if (!sessions || sessions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No recent sessions</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = records.map(a => {
-                const distanceClass = a.distance <= 30 ? 'close' : a.distance <= 50 ? 'medium' : 'far';
-                const statusDisplay = getAttendanceStatusDisplay(a.status);
-                return `
-                <tr class="clickable-row" onclick="showStudentDetail(${a.studentId}, '${a.sessionName}', '${a.date}', '${a.timeMarked}', ${a.distance}, '${a.status}')">
-                    <td><code>${MOCK_STUDENTS.find(s => s.id === a.studentId)?.studentId || 'STU001'}</code></td>
-                    <td>${a.studentName}</td>
-                    <td>${a.sessionName}</td>
-                    <td>${a.timeMarked}</td>
-                    <td><span class="distance-badge ${distanceClass}">${a.distance}m</span></td>
-                    <td>${statusDisplay}</td>
+            tbody.innerHTML = sessions.map(s => `
+                <tr>
+                    <td><strong>${s.subject}</strong></td>
+                    <td>${s.location}</td>
+                    <td>${new Date(s.startTime).toLocaleDateString()}</td>
+                    <td>${new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${s.attendanceCount}</td>
+                    <td><span class="status-badge ${s.isActive ? 'success' : 'secondary'}">${s.isActive ? 'Live' : 'Done'}</span></td>
+                    <td><button class="btn btn-sm btn-secondary" onclick="viewReport('${s.id}')">View</button></td>
                 </tr>
-            `;
-            }).join('');
+            `).join('');
         }
 
-        // Get attendance status display with proper styling
-        function getAttendanceStatusDisplay(status) {
-            switch (status) {
-                case 'present':
-                    return '<span class="attendance-status present">🟢 Present</span>';
-                case 'late':
-                    return '<span class="attendance-status late">🟡 Late</span>';
-                case 'absent':
-                default:
-                    return '<span class="attendance-status absent">🔴 Absent</span>';
-            }
-        }
+        async function renderAttendanceTable() {
+            const records = await FacultyAPI.getAttendance({ limit: 10 });
+            const tbody = document.getElementById('attendanceTableBody');
+            if (!tbody) return;
 
-        function getStatusBadge(status, isActive) {
-            if (isActive) return '<span class="live-badge">Live</span>';
-            if (status === 'completed') return '<span class="status-badge success">✓ Completed</span>';
-            return '<span class="status-badge info">⏰ Upcoming</span>';
-        }
+            // Handle records structure (if it returns {attendance: [], ...} or just [])
+            const list = records.attendance || records || [];
 
-        function getSessionAction(session) {
-            if (FacultyState.activeSessions.has(session.id)) {
-                return `<button class="btn btn-sm btn-danger" onclick="endSession(${session.id})">End Session</button>`;
-            }
-            if (session.status === 'completed') {
-                return `<button class="btn btn-sm btn-secondary" onclick="viewSessionAttendance(${session.id})">View</button>`;
-            }
-            return `<button class="btn btn-sm btn-primary" onclick="startSession(${session.id})">Start</button>`;
-        }
-
-        function getSessionActions(session) {
-            const isActive = FacultyState.activeSessions.has(session.id);
-
-            if (isActive) {
-                return `
-                    <div class="session-controls">
-                        <button class="btn btn-sm btn-view" onclick="openLiveAttendance(${session.id})">👁 View Live</button>
-                        <button class="btn btn-sm btn-end" onclick="endSession(${session.id})">⏹ End</button>
-                    </div>
-                `;
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No attendance records found</td></tr>`;
+                return;
             }
 
-            if (session.status === 'completed') {
-                return `<button class="btn btn-sm btn-secondary" onclick="viewSessionAttendance(${session.id})">📋 View Attendance</button>`;
-            }
-
-            return `<button class="btn btn-sm btn-start" onclick="startSession(${session.id})">▶ Start Session</button>`;
-        }
-
-        // ========================================
-        // Session Controls
-        // ========================================
-        function startSession(sessionId) {
-            FacultyMockAPI.startSession(sessionId);
-            AdminCore.toast('Session started! Students can now mark attendance.', 'success');
-            renderTodaySessions();
-            renderSessionsTable();
-            updateLiveIndicator();
-        }
-
-        function endSession(sessionId) {
-            FacultyMockAPI.endSession(sessionId);
-            AdminCore.toast('Session ended successfully.', 'success');
-            AdminCore.closeAllModals();
-            renderTodaySessions();
-            renderSessionsTable();
-            updateLiveIndicator();
-        }
-
-        function endActiveSession() {
-            const activeId = Array.from(FacultyState.activeSessions.keys())[0];
-            if (activeId) endSession(activeId);
+            tbody.innerHTML = list.map(r => `
+                <tr>
+                    <td><strong>${r.studentName || r.student_id}</strong></td>
+                    <td>${r.subject || '-'}</td>
+                    <td>${new Date(r.timestamp).toLocaleDateString()}</td>
+                    <td>${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td><span class="status-badge ${r.status === 'present' ? 'success' : 'warning'}">${r.status || 'Present'}</span></td>
+                    <td>${r.device_id || 'Unknown'}</td>
+                </tr>
+            `).join('');
         }
 
         function openLiveAttendance(sessionId) {
-            const session = MOCK_SESSIONS.find(s => s.id === sessionId);
-            const data = FacultyState.activeSessions.get(sessionId);
+            const currentData = FacultyState.activeSessions.get(sessionId);
+            if (!currentData) return;
 
-            document.getElementById('liveSessionName').textContent = session?.subject || 'Session';
-            let lastCount = 0;
+            document.getElementById('liveSessionName').textContent = currentData.subject || 'Session';
 
-            // Update live modal
-            const updateLiveModal = () => {
-                const currentData = FacultyState.activeSessions.get(sessionId);
-                if (!currentData) return;
-
-                const countEl = document.getElementById('liveCount');
-                const newCount = currentData.studentCount;
-
-                // Animate count if changed
-                if (newCount !== lastCount) {
-                    countEl.classList.add('updating');
-                    setTimeout(() => countEl.classList.remove('updating'), 300);
-                    lastCount = newCount;
-                }
-
-                countEl.textContent = currentData.studentCount;
+            const updateUI = () => {
+                const data = FacultyState.activeSessions.get(sessionId);
+                if (!data) return;
+                document.getElementById('liveCount').textContent = data.studentCount || 0;
 
                 const listEl = document.getElementById('liveAttendanceList');
-                const existingIds = new Set([...listEl.querySelectorAll('tr')].map(tr => tr.dataset.studentId));
-
-                if (currentData.students.length === 0) {
-                    listEl.innerHTML = `
+                if (data.students && data.students.length > 0) {
+                    listEl.innerHTML = data.students.map(s => `
                         <tr>
-                            <td colspan="4">
-                                <div class="empty-state-container small">
-                                    <div class="empty-state-icon">⏳</div>
-                                    <div class="empty-state-title">Waiting for students...</div>
-                                    <div class="empty-state-description">Students will appear here as they scan the QR code</div>
-                                </div>
-                            </td>
-                        </tr>`;
-                } else {
-                    listEl.innerHTML = currentData.students.map(s => {
-                        const isNew = !existingIds.has(String(s.id));
-                        const distanceClass = s.distance <= 30 ? 'close' : s.distance <= 50 ? 'medium' : 'far';
-                        const statusClass = s.status === 'late' ? 'late' : 'present';
-                        const statusBadge = s.status === 'late'
-                            ? '<span class="live-status-badge late">Late</span>'
-                            : '<span class="live-status-badge present">On Time</span>';
-                        return `
-                        <tr data-student-id="${s.id}" class="${isNew ? 'student-row-new' : ''} ${statusClass}">
-                            <td><strong>${s.name}</strong> ${statusBadge}</td>
-                            <td>${s.joinedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
-                            <td><span class="distance-badge ${distanceClass}">${s.distance}m</span></td>
+                            <td><strong>${s.student_name || s.student_id}</strong></td>
+                            <td>${new Date(s.marked_at).toLocaleTimeString()}</td>
+                            <td>${s.status}</td>
                         </tr>
-                    `;
-                    }).join('');
+                     `).join('');
+                } else {
+                    listEl.innerHTML = '<tr><td colspan="3">Waiting for students...</td></tr>';
                 }
             };
 
-            updateLiveModal();
+            updateUI();
             AdminCore.openModal('liveAttendanceModal');
 
-            // Keep updating while modal is open
-            const liveInterval = setInterval(() => {
-                if (!FacultyState.activeSessions.has(sessionId)) {
-                    clearInterval(liveInterval);
-                    AdminCore.closeModal('liveAttendanceModal');
-                    return;
-                }
-                updateLiveModal();
-            }, 1000);
+            // Poll
+            const pollId = setInterval(updateUI, 2000);
+
+            // Cleanup on close
+            // (Simpler to just let background poller update State, and this UI reads state)
+            // But we need to stop this specific interval
+            const modal = document.getElementById('liveAttendanceModal');
+            const cleanup = () => {
+                clearInterval(pollId);
+                modal.removeEventListener('click', checkClose);
+            }
+            const checkClose = (e) => {
+                if (!modal.classList.contains('active')) cleanup();
+            }
+            // Use AdminCore modal events if possible, or simple timeout check
+            setTimeout(() => {
+                if (!modal.classList.contains('active')) clearInterval(pollId);
+            }, 500);
         }
 
         function viewSessionAttendance(sessionId) {
-            document.getElementById('attendanceSessionFilter').value = sessionId;
+            // Filter attendance tab by session
+            const filter = document.getElementById('attendanceSessionFilter');
+            if (filter) {
+                filter.value = sessionId;
+                // If value doesn't exist in options, it selects nothing. 
+                // We should ensure options are loaded.
+            }
             showTab('attendance');
             renderAttendanceTable();
         }
@@ -1669,81 +1168,73 @@
         // ========================================
         // Modals
         // ========================================
-        function openCreateSessionModal() {
+        async function openCreateSessionModal() {
             document.getElementById('sessionForm').reset();
             document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
 
             // Populate locations
-            const locations = MockAPI.getLocations();
+            const locations = await FacultyAPI.getLocations();
             document.getElementById('sessionLocation').innerHTML = '<option value="">Select Location</option>' +
                 locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
 
             AdminCore.openModal('createSessionModal');
         }
 
-        function createSession() {
+        async function createSession() {
             const subject = document.getElementById('sessionSubject').value;
             const locationId = document.getElementById('sessionLocation').value;
-            const date = document.getElementById('sessionDate').value;
-            const startTime = document.getElementById('sessionStartTime').value;
-            const duration = parseInt(document.getElementById('sessionDuration').value);
+            const duration = document.getElementById('sessionDuration').value;
 
-            if (!subject || !locationId || !date || !startTime) {
+            if (!subject || !locationId) {
                 AdminCore.toast('Please fill all required fields', 'error');
                 return;
             }
 
-            // Calculate end time
-            const [h, m] = startTime.split(':').map(Number);
-            const endMinutes = h * 60 + m + duration;
-            const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+            try {
+                // Call API
+                const result = await FacultyAPI.createSession({
+                    subject,
+                    location_id: parseInt(locationId),
+                    duration_minutes: parseInt(duration)
+                });
 
-            const newSession = {
-                id: MOCK_SESSIONS.length + 1,
-                subject,
-                facultyId: FacultyState.currentFacultyId,
-                locationId: parseInt(locationId),
-                date,
-                startTime,
-                endTime
-            };
+                if (result.success) {
+                    AdminCore.toast('Session started! Students can now mark attendance.', 'success');
+                    AdminCore.closeModal('createSessionModal');
 
-            MOCK_SESSIONS.push(newSession);
+                    // Add to local state
+                    FacultyState.activeSessions.set(result.session.id, {
+                        ...result.session,
+                        studentCount: 0,
+                        startedAt: new Date()
+                    });
 
-            AdminCore.toast('Session created successfully!', 'success');
-            AdminCore.closeModal('createSessionModal');
-            loadDashboardData();
+                    updateLiveIndicator();
+                    loadDashboardData(); // Refresh full data
+                }
+            } catch (e) {
+                AdminCore.toast(e.response?.data?.error || 'Failed to start session', 'error');
+            }
         }
 
-        function showStudentDetail(studentId, session, date, time, distance, status) {
-            const student = MOCK_STUDENTS.find(s => s.id === studentId);
+
+
+        async function showStudentDetail(studentId, session, date, time, distance, status) {
+            // Fetch student info? Or just display passed info + random default logic
+            // Ideally we shouldn't fail if mock is missing.
+            // We'll just display what we have.
 
             document.getElementById('studentDetailContent').innerHTML = `
                 <div style="text-align:center;margin-bottom:var(--space-4);">
-                    <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;margin:0 auto var(--space-2);">${student?.name?.charAt(0) || 'S'}</div>
-                    <h4>${student?.name || 'Unknown'}</h4>
-                    <code>${student?.studentId || 'N/A'}</code>
+                    <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;margin:0 auto var(--space-2);">S</div>
+                    <h4>Student ${studentId}</h4>
+                    <code>ID: ${studentId}</code>
                 </div>
-                <div class="settings-section">
+                <!-- ... details ... -->
+                 <div class="settings-section">
                     <div class="settings-row">
                         <div class="settings-info"><div class="settings-label">Session</div></div>
                         <div>${session}</div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-info"><div class="settings-label">Date</div></div>
-                        <div>${date}</div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-info"><div class="settings-label">Time Marked</div></div>
-                        <div>${time}</div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-info"><div class="settings-label">Distance</div></div>
-                        <div><span class="status-dot ${distance <= 30 ? 'active' : 'warning'}">${distance}m</span></div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-info"><div class="settings-label">Status</div></div>
-                        <div><span class="status-dot ${status === 'present' ? 'active' : 'inactive'}">${status === 'present' ? '🟢 Present' : '🔴 Absent'}</span></div>
                     </div>
                 </div>
             `;
@@ -1754,80 +1245,75 @@
         // ========================================
         // Reports
         // ========================================
-        function generateReport() {
+        function viewReport(sessionId) {
+            const select = document.getElementById('reportSessionSelect');
+            if (select) {
+                select.value = sessionId;
+                // If the option doesn't exist (e.g. historical session not in list), this might fail to select.
+                // We populated filters with all sessions, so it should be fine.
+            }
+            showTab('reports');
+        }
+
+
+        async function generateReport() {
             const sessionId = document.getElementById('reportSessionSelect').value;
             const dateFrom = document.getElementById('reportDateFrom').value;
             const dateTo = document.getElementById('reportDateTo').value;
 
-            // Get filtered records
-            let records = MockAPI.getAttendance();
+            try {
+                const report = await FacultyAPI.getReports({
+                    type: 'summary',
+                    sessionId: sessionId || undefined,
+                    startDate: dateFrom || undefined,
+                    endDate: dateTo || undefined
+                });
 
-            if (sessionId) {
-                records = records.filter(r => r.sessionId === parseInt(sessionId));
-            }
-            if (dateFrom) {
-                records = records.filter(r => r.date >= dateFrom);
-            }
-            if (dateTo) {
-                records = records.filter(r => r.date <= dateTo);
-            }
+                if (!report || !report.report) {
+                    AdminCore.toast('No data for report', 'warning');
+                    return;
+                }
 
-            const present = records.filter(r => r.status === 'present').length;
-            const late = records.filter(r => r.status === 'late').length;
-            const absent = records.filter(r => r.status === 'absent').length;
-            const onTimeRate = records.length > 0 ? Math.round(((present + late) / records.length) * 100) : 0;
+                const sessions = report.report.sessions || [];
 
-            // Show preview with updated stats
-            const previewEl = document.getElementById('reportPreview');
-            previewEl.style.display = 'block';
-            previewEl.innerHTML = `
-                <div class="settings-section">
-                    <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);">
-                        <div class="report-stat present">
-                            <div class="report-stat-value">${present}</div>
-                            <div class="report-stat-label">Present</div>
-                        </div>
-                        <div class="report-stat late">
-                            <div class="report-stat-value">${late}</div>
-                            <div class="report-stat-label">Late</div>
-                        </div>
-                        <div class="report-stat absent">
-                            <div class="report-stat-value">${absent}</div>
-                            <div class="report-stat-label">Absent</div>
-                        </div>
-                        <div class="report-stat rate">
-                            <div class="report-stat-value">${onTimeRate}%</div>
-                            <div class="report-stat-label">Attendance Rate</div>
+                let present = 0, late = 0, total = 0;
+                sessions.forEach(s => {
+                    present += s.attendance.present;
+                    late += s.attendance.late;
+                    total += s.attendance.total;
+                });
+
+                const onTimeRate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+                const absent = total - (present + late); // Not quite accurate without enrollment, but okay for summary
+
+                // Show preview with updated stats
+                const previewEl = document.getElementById('reportPreview');
+                previewEl.style.display = 'block';
+                previewEl.innerHTML = `
+                    <div class="settings-section">
+                        <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);">
+                            <div class="report-stat present">
+                                <div class="report-stat-value">${present}</div>
+                                <div class="report-stat-label">Present</div>
+                            </div>
+                            <div class="report-stat late">
+                                <div class="report-stat-value">${late}</div>
+                                <div class="report-stat-label">Late</div>
+                            </div>
+                             <div class="report-stat rate">
+                                <div class="report-stat-value">${onTimeRate}%</div>
+                                <div class="report-stat-label">Attendance Rate</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-
-            // Generate CSV with late status
-            const csvContent = [
-                ['Student ID', 'Name', 'Session', 'Date', 'Time', 'Status'].join(','),
-                ...records.map(r => [
-                    MOCK_STUDENTS.find(s => s.id === r.studentId)?.studentId || 'N/A',
-                    r.studentName,
-                    r.sessionName,
-                    r.date,
-                    r.time,
-                    r.status.charAt(0).toUpperCase() + r.status.slice(1) // Capitalize status
-                ].join(','))
-            ].join('\n');
-
-            // Download CSV
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `attendance_report_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-
-            AdminCore.toast('Report generated and downloaded!', 'success');
+                `;
+            } catch (e) {
+                AdminCore.toast('Failed to generate report', 'error');
+            }
         }
+
+
 
         // ========================================
         // Tab Navigation
@@ -1847,10 +1333,10 @@
         // ========================================
         // Filters & Event Listeners
         // ========================================
-        function populateFilters() {
-            const sessions = MOCK_SESSIONS;
+        async function populateFilters() {
+            const sessions = await FacultyAPI.getFacultySessions();
             const sessionOptions = '<option value="">All Sessions</option>' +
-                sessions.map(s => `<option value="${s.id}">${s.subject}</option>`).join('');
+                sessions.map(s => `<option value="${s.id}">${s.subject} (${new Date(s.start_time).toLocaleDateString()})</option>`).join('');
 
             document.getElementById('attendanceSessionFilter').innerHTML = sessionOptions;
             document.getElementById('reportSessionSelect').innerHTML = sessionOptions;
@@ -1858,23 +1344,37 @@
 
         function setupEventListeners() {
             // Mobile menu
-            document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('open');
-                document.getElementById('sidebarOverlay').classList.toggle('active');
-            });
+            const mobileBtn = document.getElementById('mobileMenuBtn');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
 
-            document.getElementById('sidebarOverlay').addEventListener('click', () => {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('active');
-            });
+            if (mobileBtn && sidebar && overlay) {
+                mobileBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                });
+
+                overlay.addEventListener('click', () => {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                });
+
+                // Close sidebar on nav click (mobile)
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        if (window.innerWidth <= 768) {
+                            sidebar.classList.remove('active');
+                            overlay.classList.remove('active');
+                        }
+                    });
+                });
+            }
 
             // Tab navigation
             document.querySelectorAll('.nav-item[data-tab], .bottom-nav-item[data-tab]').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
                     showTab(item.dataset.tab);
-                    document.getElementById('sidebar').classList.remove('open');
-                    document.getElementById('sidebarOverlay').classList.remove('active');
                 });
             });
 

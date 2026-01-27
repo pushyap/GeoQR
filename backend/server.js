@@ -15,7 +15,14 @@ const deviceRoutes = require('./routes/devices');
 const attendanceRoutes = require('./routes/attendance');
 const sessionRoutes = require('./routes/sessions');
 const adminRoutes = require('./routes/admin');
+const studentRoutes = require('./routes/student');
+const facultyRoutes = require('./routes/faculty');
 const webhookRoutes = require('./routes/webhook');
+const { router: realtimeRoutes } = require('./routes/realtime');
+
+// Import utilities
+const { initRedis, getCacheStatus } = require('./config/redis');
+const { errorMiddleware } = require('./utils/errorHandler');
 
 // Initialize Express app
 const app = express();
@@ -36,12 +43,13 @@ app.use((req, res, next) => {
     next();
 });
 
-// Health check
+// Health check (enhanced with cache status)
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0.0',
+        cache: getCacheStatus()
     });
 });
 
@@ -52,7 +60,10 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/student', studentRoutes);
+app.use('/api/faculty', facultyRoutes);
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/realtime', realtimeRoutes);
 
 // Default route
 app.get('/', (req, res) => {
@@ -66,7 +77,10 @@ app.get('/', (req, res) => {
             attendance: '/api/attendance',
             sessions: '/api/sessions',
             admin: '/api/admin',
-            webhook: '/api/webhook'
+            student: '/api/student',
+            faculty: '/api/faculty',
+            webhook: '/api/webhook',
+            realtime: '/api/realtime'
         }
     });
 });
@@ -79,20 +93,17 @@ app.use((req, res) => {
     });
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({
-        success: false,
-        error: 'Internal server error'
-    });
-});
+// Error handler (standardized format)
+app.use(errorMiddleware);
 
-// Initialize database and start server
+// Initialize database, cache, and start server
 async function start() {
     try {
         await initDB();
         initializeDatabase();
+
+        // Initialize Redis (optional - falls back to in-memory)
+        await initRedis();
 
         app.listen(PORT, () => {
             console.log(`
