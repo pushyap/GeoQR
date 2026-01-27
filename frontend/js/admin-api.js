@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:3000';
+// Use dynamic config - config.js must be loaded before this file
+const API_BASE = window.GeoQR?.config?.getApiUrl()?.replace('/api', '') || 'http://localhost:3000';
 
 /**
  * Admin API Client

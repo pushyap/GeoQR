@@ -751,7 +751,8 @@
         // ========================================
         // Faculty API Client
         // ========================================
-        const API_BASE = 'http://localhost:3000';
+        // Use dynamic config - config.js loaded above
+        const API_BASE = window.GeoQR?.config?.getApiUrl()?.replace('/api', '') || 'http://localhost:3000';
 
         const FacultyAPI = {
             async getDashboard() {

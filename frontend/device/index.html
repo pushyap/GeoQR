@@ -204,33 +204,58 @@
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="../js/config.js"></script>
-    <script src="../js/auth.js"></script>
+    <!-- Config: Try local first (standalone deployment), then parent (full frontend) -->
+    <script src="config.js" onerror="loadFallbackConfig()"></script>
+    <script>
+        function loadFallbackConfig() {
+            // If local config.js doesn't exist, load from parent
+            const script = document.createElement('script');
+            script.src = '../js/config.js';
+            document.head.appendChild(script);
+        }
+    </script>
+    <script src="auth.js" onerror="loadFallbackAuth()"></script>
+    <script>
+        function loadFallbackAuth() {
+            const script = document.createElement('script');
+            script.src = '../js/auth.js';
+            document.head.appendChild(script);
+        }
+    </script>
     <script>
         // API_BASE_URL global from config.js
 
-        // Device state
+        // Device state - now includes JWT token for backend auth
         let deviceData = null;
-        let deviceCredentials = null;
+        let deviceToken = null;  // JWT token for authenticated requests
         let qrInstance = null;
         let timerInterval = null;
         let refreshInterval = null;
-        let timeRemaining = 15;
+        let timeRemaining = 10;
         let qrCount = 0;
-        const QR_REFRESH_SECONDS = 15;
+        let currentQrExpiry = null;
+        const DEFAULT_EXPIRY_SECONDS = 10; // Default fallback, actual value comes from backend
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             Toast.init();
 
-            // Check for saved device session
-            const savedDevice = sessionStorage.getItem('device_session');
-            if (savedDevice) {
+            // Check for saved device session with JWT token
+            const savedSession = sessionStorage.getItem('device_session');
+            if (savedSession) {
                 try {
-                    const data = JSON.parse(savedDevice);
+                    const data = JSON.parse(savedSession);
                     deviceData = data.device;
-                    deviceCredentials = data.credentials;
-                    showMainScreen();
+                    deviceToken = data.token;
+
+                    // Verify token is still valid
+                    if (data.expiresAt && new Date(data.expiresAt) > new Date()) {
+                        showMainScreen();
+                    } else {
+                        // Token expired, require re-login
+                        sessionStorage.removeItem('device_session');
+                        showLoginScreen();
+                    }
                 } catch (e) {
                     showLoginScreen();
                 }
@@ -260,8 +285,10 @@
             document.getElementById('mainScreen').classList.remove('hidden');
 
             // Update UI with device info
-            document.getElementById('deviceId').textContent = deviceData.code || deviceData.deviceCode || 'DEV-001';
-            document.getElementById('locationName').textContent = deviceData.location || deviceData.locationName || 'Unknown Location';
+            const code = deviceData.code || deviceData.device_code || 'DEV-001';
+            const location = deviceData.location?.name || deviceData.location || 'Unknown Location';
+            document.getElementById('deviceId').textContent = code;
+            document.getElementById('locationName').textContent = location;
         }
 
         async function handleDeviceLogin(e) {
@@ -277,29 +304,31 @@
             }
 
             loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span>Logging in...</span>';
+            loginBtn.innerHTML = '<span>Authenticating...</span>';
 
             try {
-                const response = await axios.post(`${API_BASE_URL}/devices/login`, {
+                // Use /api/devices/auth for JWT token-based authentication
+                const response = await axios.post(`${API_BASE_URL}/devices/auth`, {
                     device_code: deviceCode,
                     password: password
                 });
 
                 if (response.data.success) {
                     deviceData = response.data.device;
-                    deviceCredentials = { device_code: deviceCode, password: password };
+                    deviceToken = response.data.token;  // Store JWT token
 
-                    // Save to session
+                    // Save session with JWT token for authenticated API calls
                     sessionStorage.setItem('device_session', JSON.stringify({
                         device: deviceData,
-                        credentials: deviceCredentials
+                        token: deviceToken,
+                        expiresAt: response.data.expiresAt
                     }));
 
-                    Toast.success('Device logged in successfully!');
+                    Toast.success('Device authenticated successfully!');
                     showMainScreen();
                 }
             } catch (error) {
-                const message = error.response?.data?.error || 'Device login failed';
+                const message = error.response?.data?.error || 'Device authentication failed';
                 Toast.error(message);
             } finally {
                 loginBtn.disabled = false;
@@ -312,10 +341,10 @@
             if (timerInterval) clearInterval(timerInterval);
             if (refreshInterval) clearInterval(refreshInterval);
 
-            // Clear device session
+            // Clear device session and JWT token
             sessionStorage.removeItem('device_session');
             deviceData = null;
-            deviceCredentials = null;
+            deviceToken = null;
             qrCount = 0;
 
             // Reset QR display
@@ -366,54 +395,80 @@
             Toast.info('QR generation stopped');
         }
 
-        function generateQR() {
-            const timestamp = Date.now();
-            const randomPart = Math.random().toString(36).substring(2, 10);
-            const token = `GQR-${timestamp}-${randomPart}`;
+        async function generateQR() {
+            try {
+                // Call backend API for signed QR code
+                const response = await axios.get(`${API_BASE_URL}/devices/qr`, {
+                    headers: {
+                        'Authorization': `Bearer ${deviceToken}`
+                    }
+                });
 
-            const qrData = JSON.stringify({
-                token,
-                deviceId: deviceData.deviceCode,
-                locationId: deviceData.locationId,
-                latitude: deviceData.latitude,
-                longitude: deviceData.longitude,
-                radius: deviceData.radius,
-                expiresAt: timestamp + (QR_REFRESH_SECONDS * 1000)
-            });
+                if (!response.data.success) {
+                    throw new Error(response.data.error || 'Failed to generate QR');
+                }
 
-            // Clear old QR
-            const qrContainer = document.getElementById('qrCode');
-            qrContainer.innerHTML = '';
+                const qrData = response.data.qr;
+                const expirySeconds = qrData.expirySeconds || 10;
 
-            // Generate new QR
-            qrInstance = new QRCode(qrContainer, {
-                text: qrData,
-                width: 220,
-                height: 220,
-                colorDark: "#1e293b",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
+                // Clear old QR
+                const qrContainer = document.getElementById('qrCode');
+                qrContainer.innerHTML = '';
 
-            // Update token display
-            document.getElementById('tokenDisplay').textContent = token.substring(0, 18) + '...';
+                // Generate QR code with backend-signed content
+                qrInstance = new QRCode(qrContainer, {
+                    text: qrData.content,
+                    width: 220,
+                    height: 220,
+                    colorDark: "#1e293b",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
 
-            // Update count
-            qrCount++;
-            document.getElementById('qrCount').textContent = qrCount;
+                // Update token display (show nonce for verification)
+                document.getElementById('tokenDisplay').textContent = qrData.nonce.substring(0, 12) + '...';
 
-            // Update status
-            document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot"></span>QR Active';
-            document.getElementById('qrStatus').className = 'qr-status active';
+                // Update count
+                qrCount++;
+                document.getElementById('qrCount').textContent = qrCount;
 
-            // Reset timer
-            timeRemaining = QR_REFRESH_SECONDS;
-            updateTimerDisplay();
+                // Update status
+                const hasSession = response.data.hasActiveSession;
+                if (hasSession) {
+                    document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot"></span>Session Active';
+                    document.getElementById('qrStatus').className = 'qr-status active';
+                } else {
+                    document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot warning"></span>No Active Session';
+                    document.getElementById('qrStatus').className = 'qr-status warning';
+                }
+
+                // Set timer based on backend expiry
+                timeRemaining = expirySeconds;
+                currentQrExpiry = new Date(qrData.expiresAt);
+                updateTimerDisplay();
+
+            } catch (error) {
+                console.error('QR generation error:', error);
+
+                // Handle auth errors - redirect to login
+                if (error.response?.status === 401) {
+                    Toast.error('Session expired. Please login again.');
+                    handleLogout();
+                    return;
+                }
+
+                Toast.error(error.response?.data?.error || 'Failed to generate QR code');
+                document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot danger"></span>Error';
+                document.getElementById('qrStatus').className = 'qr-status danger';
+            }
         }
 
         function startTimer() {
             if (timerInterval) clearInterval(timerInterval);
             if (refreshInterval) clearInterval(refreshInterval);
+
+            // Get expiry seconds from current timeRemaining (set by generateQR)
+            const expirySeconds = timeRemaining || 10;
 
             timerInterval = setInterval(() => {
                 timeRemaining--;
@@ -425,9 +480,10 @@
                 }
             }, 1000);
 
+            // Refresh QR based on backend expiry time
             refreshInterval = setInterval(() => {
                 generateQR();
-            }, QR_REFRESH_SECONDS * 1000);
+            }, expirySeconds * 1000);
         }
 
         function updateTimerDisplay() {
@@ -438,7 +494,7 @@
 
             // Update progress ring
             const circumference = 2 * Math.PI * 54;
-            const progress = (timeRemaining / QR_REFRESH_SECONDS) * circumference;
+            const progress = (timeRemaining / DEFAULT_EXPIRY_SECONDS) * circumference;
             timerCircle.style.strokeDasharray = `${progress} ${circumference}`;
 
             // Color changes
