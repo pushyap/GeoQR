@@ -21,6 +21,8 @@
         })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
@@ -220,13 +222,9 @@
                     <h1 class="page-title">Welcome, <span id="welcomeName">Professor</span>!</h1>
                     <p class="page-subtitle">Manage your classes and track attendance</p>
                 </div>
-                <div class="last-updated" id="lastUpdated">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    <span>--</span>
-                </div>
+                <div id="dashboardClock"
+                    style="font-weight:600; font-size:1.1em; color:var(--text-primary); padding:8px 16px; background:var(--bg-card); border-radius:8px; box-shadow:var(--shadow-sm);">
+                    Loading...</div>
             </div>
 
             <!-- ============= OVERVIEW TAB ============= -->
@@ -314,8 +312,8 @@
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="quick-actions">
-                    <button class="action-btn primary" onclick="openCreateSessionModal()">
+                <div class="header-actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+                    <button class="btn btn-primary" onclick="openCreateSessionModal()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
@@ -489,7 +487,7 @@
                                     <polyline points="7 10 12 15 17 10" />
                                     <line x1="12" y1="15" x2="12" y2="3" />
                                 </svg>
-                                Generate & Download Report
+                                Generate Summary
                             </button>
                         </div>
 
@@ -590,13 +588,20 @@
                             <input type="time" class="form-input" id="sessionStartTime" required>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Duration</label>
-                        <select class="form-select" id="sessionDuration" style="width:100%;">
-                            <option value="60">1 hour</option>
-                            <option value="90" selected>1.5 hours</option>
-                            <option value="120">2 hours</option>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Duration</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="number" class="form-input" id="sessionDuration"
+                                    placeholder="Hours (e.g. 1)" min="1" step="1" required>
+                                <span style="align-self:center;">Hours</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Expected Students</label>
+                            <input type="number" class="form-input" id="sessionExpectedStudents" placeholder="e.g. 60"
+                                min="1">
+                        </div>
                     </div>
                 </form>
             </div>
@@ -836,14 +841,30 @@
             },
 
             async getFacultySessions() {
-                // We use dashboard data usually, but if needed we can fetch history
                 try {
-                    const response = await axios.get(`${API_BASE}/api/sessions/history`, {
-                        headers: { Authorization: `Bearer ${Session.getToken()}` }
-                    });
-                    return response.data.sessions;
+                    const [history, active] = await Promise.all([
+                        axios.get(`${API_BASE}/api/sessions/history`, { headers: { Authorization: `Bearer ${Session.getToken()}` } }),
+                        axios.get(`${API_BASE}/api/sessions/active`, { headers: { Authorization: `Bearer ${Session.getToken()}` } })
+                    ]);
+
+                    const activeSessions = active.data.sessions.map(s => ({ ...s, isActive: true }));
+                    const historySessions = history.data.sessions.map(s => ({ ...s, isActive: false }));
+
+                    // Sort by startTime desc
+                    return [...activeSessions, ...historySessions].sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
                 } catch (e) {
                     return [];
+                }
+            },
+
+            async getStudents() {
+                try {
+                    const response = await axios.get(`${API_BASE}/api/faculty/students`, {
+                        headers: { Authorization: `Bearer ${Session.getToken()}` }
+                    });
+                    return response.data;
+                } catch (e) {
+                    return { students: [], count: 0 };
                 }
             }
         };
@@ -950,7 +971,7 @@
 
                 if (activeData) {
                     const studentCount = activeData.studentCount;
-                    const totalStudents = 60; // Mock total for class size
+                    const totalStudents = activeData.expectedStudents || 60; // Use stored value or default
                     const percentage = Math.round((studentCount / totalStudents) * 100);
 
                     document.getElementById('liveStudentCount').textContent = studentCount;
@@ -969,42 +990,7 @@
         // Session Management
         // ========================================
 
-        async function createSession() {
-            const subject = document.getElementById('sessionSubject').value;
-            const locationId = document.getElementById('sessionLocation').value;
-            const duration = document.getElementById('sessionDuration').value;
 
-            if (!subject || !locationId) {
-                AdminCore.toast('Please fill all fields', 'error');
-                return;
-            }
-
-            try {
-                const result = await FacultyAPI.createSession({
-                    subject,
-                    location_id: parseInt(locationId),
-                    duration_minutes: parseInt(duration),
-                    radius: 50 // Default radius
-                });
-
-                if (result.success) {
-                    AdminCore.toast('Session started successfully 🚀', 'success');
-                    AdminCore.closeModal('createSessionModal');
-
-                    // Add to local state
-                    FacultyState.activeSessions.set(result.session.id, {
-                        ...result.session,
-                        studentCount: 0,
-                        startedAt: new Date()
-                    });
-
-                    updateLiveIndicator();
-                    loadDashboardData(); // Refresh full data
-                }
-            } catch (err) {
-                AdminCore.toast(err.response?.data?.error || 'Failed to start session', 'error');
-            }
-        }
 
         async function endActiveSession() {
             const sessionEntry = FacultyState.activeSessions.entries().next().value;
@@ -1041,12 +1027,17 @@
 
             tbody.innerHTML = sessions.map(s => {
                 const isActive = FacultyState.activeSessions.has(s.id);
+                // Use backend fields (snake_case) or fallback
+                const startTime = s.start_time || s.startTime;
+                const locationName = s.location_name || s.location || 'Unknown';
+                const attCount = s.attendance_count || s.attendanceCount || 0;
+
                 return `
                     <tr>
                         <td><strong>${s.subject}</strong></td>
-                        <td>${s.location || 'Unknown'}</td>
-                        <td>${new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td>${s.attendanceCount || 0}</td>
+                        <td>${locationName}</td>
+                        <td>${new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>${attCount}</td>
                         <td><span class="status-badge ${isActive ? 'success' : 'secondary'}">${isActive ? 'Live' : 'Completed'}</span></td>
                         <td>
                             ${isActive ?
@@ -1068,17 +1059,23 @@
                 return;
             }
 
-            tbody.innerHTML = sessions.map(s => `
+            tbody.innerHTML = sessions.map(s => {
+                // Use backend fields (snake_case) or fallback
+                const startTime = s.start_time || s.startTime;
+                const locationName = s.location_name || s.location || 'Unknown';
+                const attCount = s.attendance_count || s.attendanceCount || 0;
+
+                return `
                 <tr>
                     <td><strong>${s.subject}</strong></td>
-                    <td>${s.location}</td>
-                    <td>${new Date(s.startTime).toLocaleDateString()}</td>
-                    <td>${new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td>${s.attendanceCount}</td>
+                    <td>${locationName}</td>
+                    <td>${new Date(startTime).toLocaleDateString()}</td>
+                    <td>${new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${attCount}</td>
                     <td><span class="status-badge ${s.isActive ? 'success' : 'secondary'}">${s.isActive ? 'Live' : 'Done'}</span></td>
                     <td><button class="btn btn-sm btn-secondary" onclick="viewReport('${s.id}')">View</button></td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         async function renderAttendanceTable() {
@@ -1094,17 +1091,68 @@
                 return;
             }
 
-            tbody.innerHTML = list.map(r => `
+            tbody.innerHTML = list.map(r => {
+                const studentName = r.student?.name || r.student_name || 'Unknown';
+                const studentId = r.student?.studentId || r.student_id || '';
+                const subject = r.session?.subject || r.subject || '-';
+                const markedAt = r.markedAt || r.marked_at ? new Date(r.markedAt || r.marked_at) : null;
+                const timeStr = markedAt ? markedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+                const dateStr = markedAt ? markedAt.toLocaleDateString() : '-';
+
+                return `
                 <tr>
-                    <td><strong>${r.studentName || r.student_id}</strong></td>
-                    <td>${r.subject || '-'}</td>
-                    <td>${new Date(r.timestamp).toLocaleDateString()}</td>
-                    <td>${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>
+                        <div style="font-weight:600">${studentName}</div>
+                        <div style="font-size:0.8em; color:var(--text-muted)">${studentId}</div>
+                    </td>
+                    <td>${subject}</td>
+                    <td>${dateStr}</td>
+                    <td>${timeStr}</td>
                     <td><span class="status-badge ${r.status === 'present' ? 'success' : 'warning'}">${r.status || 'Present'}</span></td>
-                    <td>${r.device_id || 'Unknown'}</td>
+                    <td>${r.distance ? r.distance + 'm' : '-'}</td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
+
+        async function downloadFacultyReportPDF() {
+            try {
+                AdminCore.toast('Generating Report... Please wait', 'info');
+
+                // Fetch full attendance records for current faculty
+                const response = await FacultyAPI.getAttendance({ limit: 1000 });
+
+                // Check if response is array or object with records
+                const records = response.records || response.attendance || response || [];
+
+                if (!records || records.length === 0) {
+                    AdminCore.toast('No data available to export', 'warning');
+                    return;
+                }
+
+                const headers = ["Student", "Session", "Location", "Date", "Status"];
+                const data = records.map(r => [
+                    r.student?.name || r.student?.student_id || 'Unknown',
+                    r.session?.subject || '-',
+                    r.location || r.session?.location || '-',
+                    new Date(r.markedAt).toLocaleString(),
+                    r.status
+                ]);
+
+                AdminCore.generatePDF({
+                    title: 'Faculty Attendance Report',
+                    subtitle: 'Full Attendance History',
+                    filename: `faculty_report_${new Date().toISOString().split('T')[0]}.pdf`,
+                    headers: headers,
+                    data: data
+                });
+
+                AdminCore.toast('Report downloaded successfully', 'success');
+            } catch (err) {
+                console.error(err);
+                AdminCore.toast('Failed to generate PDF', 'error');
+            }
+        }
+
 
         function openLiveAttendance(sessionId) {
             const currentData = FacultyState.activeSessions.get(sessionId);
@@ -1184,19 +1232,25 @@
         async function createSession() {
             const subject = document.getElementById('sessionSubject').value;
             const locationId = document.getElementById('sessionLocation').value;
-            const duration = document.getElementById('sessionDuration').value;
+            const durationHours = document.getElementById('sessionDuration').value;
 
-            if (!subject || !locationId) {
+            // We can capture other fields if backend supports them, for now just UI validation
+            const expectedStudents = document.getElementById('sessionExpectedStudents')?.value;
+
+            if (!subject || !locationId || !durationHours) {
                 AdminCore.toast('Please fill all required fields', 'error');
                 return;
             }
+
+            const durationMinutes = parseInt(durationHours) * 60;
 
             try {
                 // Call API
                 const result = await FacultyAPI.createSession({
                     subject,
                     location_id: parseInt(locationId),
-                    duration_minutes: parseInt(duration)
+                    duration_minutes: parseInt(duration),
+                    expected_students: parseInt(expectedStudents) || 60
                 });
 
                 if (result.success) {
@@ -1207,6 +1261,7 @@
                     FacultyState.activeSessions.set(result.session.id, {
                         ...result.session,
                         studentCount: 0,
+                        expectedStudents: parseInt(expectedStudents) || 60,
                         startedAt: new Date()
                     });
 
@@ -1287,9 +1342,45 @@
                 const onTimeRate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
                 const absent = total - (present + late); // Not quite accurate without enrollment, but okay for summary
 
-                // Show preview with updated stats
+                // Show preview with updated stats and table
                 const previewEl = document.getElementById('reportPreview');
                 previewEl.style.display = 'block';
+
+                let sessionsTableHtml = '';
+                if (sessions.length > 0) {
+                    sessionsTableHtml = `
+                    <div style="margin-top: var(--space-6);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
+                            <h4>Detailed Session Report</h4>
+                            <button class="btn btn-sm btn-primary" onclick="downloadSummaryPDF()">Download PDF</button>
+                        </div>
+                        <table class="data-table" id="reportSessionsTable">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Date</th>
+                                    <th>Present</th>
+                                    <th>Late</th>
+                                    <th>Total</th>
+                                    <th>Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${sessions.map(s => `
+                                    <tr>
+                                        <td>${s.subject}</td>
+                                        <td>${new Date(s.start_time).toLocaleDateString()}</td>
+                                        <td>${s.attendance.present}</td>
+                                        <td>${s.attendance.late}</td>
+                                        <td>${s.attendance.total}</td>
+                                        <td>${s.attendance.total > 0 ? Math.round(((s.attendance.present + s.attendance.late) / s.attendance.total) * 100) : 0}%</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>`;
+                }
+
                 previewEl.innerHTML = `
                     <div class="settings-section">
                         <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
@@ -1307,14 +1398,63 @@
                                 <div class="report-stat-label">Attendance Rate</div>
                             </div>
                         </div>
+                        ${sessionsTableHtml}
                     </div>
                 `;
             } catch (e) {
+                console.error(e);
                 AdminCore.toast('Failed to generate report', 'error');
             }
         }
 
+        function downloadSummaryPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
+            doc.text("Faculty Summary Report", 14, 20);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+            // Stats
+            const present = document.querySelector('.report-stat.present .report-stat-value')?.innerText || '0';
+            const late = document.querySelector('.report-stat.late .report-stat-value')?.innerText || '0';
+            const rate = document.querySelector('.report-stat.rate .report-stat-value')?.innerText || '0%';
+
+            doc.text(`Total Present: ${present}  |  Total Late: ${late}  |  Avg Rate: ${rate}`, 14, 35);
+
+            const rows = [];
+            document.querySelectorAll("#reportSessionsTable tbody tr").forEach(tr => {
+                const rowData = [];
+                tr.querySelectorAll("td").forEach(td => rowData.push(td.innerText));
+                rows.push(rowData);
+            });
+
+            if (rows.length > 0) {
+                doc.autoTable({
+                    head: [['Subject', 'Date', 'Present', 'Late', 'Total', 'Rate']],
+                    body: rows,
+                    startY: 40,
+                    theme: 'grid'
+                });
+            } else {
+                doc.text("No session details available.", 14, 45);
+            }
+
+            doc.save("faculty-summary-report.pdf");
+        }
+
+
+
+        function toggleCustomDuration() {
+            const sel = document.getElementById('sessionDurationSelect');
+            const inp = document.getElementById('sessionDurationCustom');
+            if (sel.value === 'custom') {
+                inp.style.display = 'block';
+                inp.focus();
+            } else {
+                inp.style.display = 'none';
+            }
+        }
 
         // ========================================
         // Tab Navigation
@@ -1328,7 +1468,122 @@
 
             // Refresh data on tab switch
             if (tabName === 'attendance') renderAttendanceTable();
-            if (tabName === 'sessions') renderSessionsTable();
+            if (tabName === 'sessions') {
+                FacultyAPI.getFacultySessions().then(sessions => {
+                    renderSessionsTable(sessions);
+                });
+            }
+        }
+
+        // ========================================
+        // Defaulters & Downloads
+        // ========================================
+        let currentDefaulters = [];
+
+        async function showDefaultersModal() {
+            AdminCore.openModal('defaultersModal');
+            const tbody = document.getElementById('defaultersTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Loading data...</td></tr>';
+
+            try {
+                // Get data
+                const [studentsData, dashboardData] = await Promise.all([
+                    FacultyAPI.getStudents(),
+                    FacultyAPI.getDashboard()
+                ]);
+
+                const totalSessions = dashboardData.stats.totalSessions || 1;
+
+                // Calculate stats
+                // Setup default students list from API response
+                const list = studentsData.students || [];
+
+                currentDefaulters = list.map(s => {
+                    const percentage = Math.round((s.attendanceCount / totalSessions) * 100);
+                    return { ...s, percentage };
+                }).filter(s => s.percentage < 75);
+
+                renderDefaulters(currentDefaulters);
+                document.getElementById('defaultersSummary').innerHTML = `
+                    <div style="padding:10px; background:rgba(245, 158, 11, 0.1); border-radius:4px; margin-top:10px;">
+                        Found <strong>${currentDefaulters.length}</strong> students with less than 75% attendance.
+                    </div>
+                `;
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Failed to load data</td></tr>';
+            }
+        }
+
+        function renderDefaulters(list) {
+            const tbody = document.getElementById('defaultersTableBody');
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No defaulters found! 🎉</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(s => `
+                <tr>
+                    <td>${s.studentId || s.student_id}</td>
+                    <td>${s.name}</td>
+                    <td><span class="status-badge warning">${s.percentage}%</span></td>
+                    <td>${s.status || 'Active'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterDefaulters() {
+            renderDefaulters(currentDefaulters);
+        }
+
+        function exportDefaultersCSV() {
+            if (currentDefaulters.length === 0) {
+                AdminCore.toast('No data to export', 'warning');
+                return;
+            }
+            const csvContent = "data:text/csv;charset=utf-8,"
+                + "Student ID,Name,Email,Attendance %\n"
+                + currentDefaulters.map(s => `${s.studentId},${s.name},${s.email},${s.percentage}%`).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "defaulters_list.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function downloadAbsentees() {
+            if (confirm('Download list of students with excessively low attendance (< 50%)?')) {
+                try {
+                    const response = await FacultyAPI.getStudents();
+                    const dashboard = await FacultyAPI.getDashboard();
+                    const total = dashboard.stats.totalSessions || 1;
+
+                    const list = response.students || [];
+                    const absentees = list.filter(s => (s.attendanceCount / total) < 0.5);
+
+                    if (absentees.length === 0) {
+                        AdminCore.toast('No students with < 50% attendance found', 'success');
+                        return;
+                    }
+
+                    const csvContent = "data:text/csv;charset=utf-8,"
+                        + "Student ID,Name,Email,Attendance Count,Total Sessions\n"
+                        + absentees.map(s => `${s.studentId},${s.name},${s.email},${s.attendanceCount},${total}`).join("\n");
+
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", "absentees_alert.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (e) {
+                    AdminCore.toast('Failed to download absentees', 'error');
+                }
+            }
         }
 
         // ========================================
@@ -1400,7 +1655,27 @@
                 if (data.interval) clearInterval(data.interval);
             });
             if (FacultyState.liveUpdateInterval) clearInterval(FacultyState.liveUpdateInterval);
+            if (window.clockInterval) clearInterval(window.clockInterval);
         });
+
+        // Clock Update
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+            const clockEl = document.getElementById('dashboardClock');
+            if (clockEl) {
+                clockEl.innerHTML = `
+                    <div style="text-align:right; line-height:1.2;">
+                        <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);">${timeString}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">${dateString}</div>
+                    </div>
+                `;
+            }
+        }
+        window.clockInterval = setInterval(updateClock, 1000);
+        updateClock();
     </script>
 
     <style>

@@ -217,24 +217,21 @@ router.post('/scan', authenticate, isStudent, scanRateLimit, [
     body('lat').isFloat({ min: -90, max: 90 }),
     body('lng').isFloat({ min: -180, max: 180 })
 ], async (req, res) => {
-    // Map to /mark endpoint format
-    req.body.token = req.body.qr;
-    req.body.latitude = req.body.lat;
-    req.body.longitude = req.body.lng;
+    // Extract fields
+    const { qr, lat, lng } = req.body;
 
-    // Forward to mark handler
-    const markHandler = router.stack.find(r => r.route?.path === '/mark' && r.route?.methods?.post);
-    if (markHandler) {
-        // Re-validate and process
-        const { qr, lat, lng } = req.body;
-        req.body = { token: qr, latitude: lat, longitude: lng };
+    // Validate inputs
+    if (!qr || !lat || !lng) {
+        return res.status(400).json({
+            success: false,
+            error: 'Missing required fields: qr, lat, lng'
+        });
     }
 
-    // Call the mark logic directly
     const { token, latitude, longitude } = {
-        token: req.body.qr,
-        latitude: req.body.lat,
-        longitude: req.body.lng
+        token: qr,
+        latitude: lat,
+        longitude: lng
     };
     const studentId = req.user.id;
     const ipAddress = getClientIp(req);

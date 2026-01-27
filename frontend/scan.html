@@ -1308,10 +1308,10 @@
                 const token = sessionStorage.getItem('geoqr_token');
                 const API_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
 
-                const response = await axios.post(`${API_URL}/attendance/mark`, {
-                    token: scannedData.token || scannedData,
-                    latitude: currentLocation.latitude,
-                    longitude: currentLocation.longitude
+                const response = await axios.post(`${API_URL}/attendance/scan`, {
+                    qr: scannedData.token || scannedData,
+                    lat: currentLocation.latitude,
+                    lng: currentLocation.longitude
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });

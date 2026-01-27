@@ -345,7 +345,7 @@ router.get('/reports', authenticate, isFaculty, async (req, res) => {
         switch (type) {
             case 'summary':
                 // Overall summary for date range
-                result = await db.query(`
+                let summaryQuery = `
                     SELECT 
                         s.id as session_id, s.subject, s.start_time, s.end_time,
                         l.name as location_name,
@@ -357,13 +357,25 @@ router.get('/reports', authenticate, isFaculty, async (req, res) => {
                     LEFT JOIN attendance_logs al ON s.id = al.session_id
                     LEFT JOIN locations l ON s.location_id = l.id
                     WHERE s.faculty_id = $1
-                    ${startDate ? `AND s.start_time >= $2` : ''}
-                    ${endDate ? `AND s.start_time <= $${startDate ? 3 : 2}` : ''}
-                    GROUP BY s.id, s.subject, s.start_time, s.end_time, l.name
-                    ORDER BY s.start_time DESC
-                `, startDate && endDate ? [facultyId, startDate, endDate] :
-                    startDate ? [facultyId, startDate] :
-                        endDate ? [facultyId, endDate] : [facultyId]);
+                `;
+                const summaryParams = [facultyId];
+
+                if (sessionId) {
+                    summaryQuery += ` AND s.id = $${summaryParams.length + 1}`;
+                    summaryParams.push(sessionId);
+                }
+                if (startDate) {
+                    summaryQuery += ` AND s.start_time >= $${summaryParams.length + 1}`;
+                    summaryParams.push(startDate);
+                }
+                if (endDate) {
+                    summaryQuery += ` AND s.start_time <= $${summaryParams.length + 1}`;
+                    summaryParams.push(endDate);
+                }
+
+                summaryQuery += ` GROUP BY s.id, s.subject, s.start_time, s.end_time, l.name ORDER BY s.start_time DESC`;
+
+                result = await db.query(summaryQuery, summaryParams);
 
                 return res.json({
                     success: true,

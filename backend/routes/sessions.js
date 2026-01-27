@@ -54,11 +54,15 @@ router.post('/start', authenticate, isFaculty, [
             });
         }
 
+        // Calculate end time
+        const duration = req.body.duration_minutes || 90; // Default 90 mins
+        const endTime = new Date(Date.now() + duration * 60000);
+
         // Create session
         const result = await db.query(
-            `INSERT INTO sessions (faculty_id, location_id, subject)
-             VALUES ($1, $2, $3) RETURNING *`,
-            [facultyId, location_id, subject || 'General Class']
+            `INSERT INTO sessions (faculty_id, location_id, subject, end_time)
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [facultyId, location_id, subject || 'General Class', endTime]
         );
 
         res.status(201).json({

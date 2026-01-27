@@ -329,6 +329,58 @@ const AdminCore = {
                 this.closeAllModals();
             }
         });
+    },
+
+    // ========================================
+    // PDF Report Generator
+    // ========================================
+    generatePDF(config) {
+        // config: { title, subtitle, filename, headers: [], data: [], orientation: 'portrait' }
+        if (!window.jspdf) {
+            this.toast('PDF library not loaded', 'error');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF(config.orientation || 'portrait');
+
+        // Header Bar
+        doc.setFillColor(79, 70, 229); // Primary Indigo
+        doc.rect(0, 0, doc.internal.pageSize.width, 22, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text('GeoQR Attendance System', 14, 14);
+
+        // Report Title
+        doc.setTextColor(33, 33, 33);
+        doc.setFontSize(14);
+        doc.text(config.title || 'System Report', 14, 35);
+
+        // Metadata
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        const startY = config.subtitle ? 48 : 42;
+
+        if (config.subtitle) {
+            doc.text(config.subtitle, 14, 41);
+        }
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, startY);
+
+        // Table
+        if (config.headers && config.data) {
+            doc.autoTable({
+                head: [config.headers],
+                body: config.data,
+                startY: startY + 5,
+                theme: 'grid',
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 9, cellPadding: 3 },
+                alternateRowStyles: { fillColor: [249, 250, 251] }
+            });
+        }
+
+        doc.save(config.filename || `report_${Date.now()}.pdf`);
     }
 };
 

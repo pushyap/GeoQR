@@ -1,5 +1,6 @@
 // Use dynamic config - config.js must be loaded before this file
-const API_BASE_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
+// API_BASE_URL is defined globally in config.js
+// const API_BASE_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
 
 const StudentAPI = {
     async getDashboard() {

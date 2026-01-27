@@ -21,6 +21,8 @@
         })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
@@ -177,12 +179,8 @@
                     <h1 class="page-title">Admin Dashboard</h1>
                     <p class="page-subtitle">System overview and management</p>
                 </div>
-                <div class="last-updated" id="lastUpdated">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    <span>Last refreshed: --</span>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <div id="dashboardClock"></div>
                 </div>
             </div>
 
@@ -294,50 +292,7 @@
                 </div>
 
                 <!-- Health Index & Analytics Row -->
-                <div class="analytics-row">
-                    <!-- Health Index Gauge -->
-                    <div class="health-gauge-card">
-                        <h4>📊 Attendance Health Index</h4>
-                        <div class="health-gauge">
-                            <div class="gauge-circle" id="healthGauge">
-                                <svg viewBox="0 0 100 100">
-                                    <circle class="gauge-bg" cx="50" cy="50" r="45" />
-                                    <circle class="gauge-fill" cx="50" cy="50" r="45" id="gaugeFill" />
-                                </svg>
-                                <div class="gauge-value">
-                                    <span id="healthValue">--</span>%
-                                    <span class="gauge-trend" id="healthTrend">↑</span>
-                                </div>
-                            </div>
-                            <div class="gauge-legend">
-                                <span class="gauge-status" id="healthStatus">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Quick Stats -->
-                    <div class="quick-stats-card">
-                        <h4>📈 Today's Metrics</h4>
-                        <div class="quick-stats-grid">
-                            <div class="quick-stat">
-                                <span class="quick-stat-value" id="todayScans">0</span>
-                                <span class="quick-stat-label">Total Scans</span>
-                            </div>
-                            <div class="quick-stat">
-                                <span class="quick-stat-value" id="todayLate">0</span>
-                                <span class="quick-stat-label">Late Entries</span>
-                            </div>
-                            <div class="quick-stat">
-                                <span class="quick-stat-value" id="todayFailed">0</span>
-                                <span class="quick-stat-label">Failed Scans</span>
-                            </div>
-                            <div class="quick-stat">
-                                <span class="quick-stat-value" id="peakTime">--</span>
-                                <span class="quick-stat-label">Peak Time</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Quick Actions -->
                 <div class="quick-actions">
@@ -498,6 +453,14 @@
                             <select class="filter-select" id="studentFilter">
                                 <option value="">All Students</option>
                             </select>
+                            <button class="action-btn" onclick="downloadAdminReportPDF()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                PDF
+                            </button>
                         </div>
                     </div>
                     <table class="data-table">
@@ -870,6 +833,16 @@
             setupEventListeners(); // Initialize UI immediately
             loadSettings();
 
+            // Activity Filter Listeners
+            document.querySelectorAll('.filter-chip').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    AdminState.currentActivityFilter = e.target.dataset.filter;
+                    renderActivityTimeline();
+                });
+            });
+
             try {
                 await loadDashboardData();
             } catch (e) { console.error('Dashboard load failed', e); }
@@ -926,8 +899,15 @@
                 // Refresh stats occasionally too
                 try {
                     const dashboard = await AdminAPI.getDashboard();
-                    if (dashboard) AdminState.dashboardStats = dashboard.stats;
-                    updateStats();
+                    if (dashboard && dashboard.metrics) {
+                        AdminState.dashboardStats = {
+                            ...dashboard.metrics,
+                            totalStudents: dashboard.metrics.students,
+                            activeLocations: dashboard.metrics.locations
+                        };
+                        AdminState.dashboardAlerts = dashboard.alerts || {};
+                        updateStats();
+                    }
                 } catch (e) { }
 
                 updateControlPanel();
@@ -943,14 +923,22 @@
                 activeLocations: 0
             };
 
-            AdminCore.animateCounter(document.getElementById('totalStudents'), stats.totalStudents);
-            AdminCore.animateCounter(document.getElementById('activeDevices'), stats.activeDevices);
+            // Only animate if value changed
+            const updateIfChanged = (id, value) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const current = parseInt(el.textContent.replace(/,/g, '')) || 0;
+                if (current !== value) AdminCore.animateCounter(el, value);
+            };
+
+            updateIfChanged('totalStudents', stats.totalStudents);
+            updateIfChanged('activeDevices', stats.activeDevices);
 
             // Calculate percentage for display
             const pct = stats.totalStudents > 0 ? Math.round((stats.todayAttendance / stats.totalStudents) * 100) : 0;
             document.getElementById('todayAttendance').textContent = pct + '%';
 
-            AdminCore.animateCounter(document.getElementById('activeLocations'), stats.activeLocations);
+            updateIfChanged('activeLocations', stats.activeLocations);
         }
 
         function updateControlPanel() {
@@ -1104,9 +1092,9 @@
                 tbody.innerHTML = data.records.map(a => `
                 <tr>
                     <td>${new Date(a.markedAt).toLocaleDateString()}</td>
-                    <td>${a.student.name}</td>
-                    <td>${a.location.name || '--'}</td>
-                    <td>${a.session.subject}</td>
+                    <td>${a.student?.name || 'Unknown'}</td>
+                    <td>${a.location?.name || '--'}</td>
+                    <td>${a.session?.subject || '-'}</td>
                     <td>${new Date(a.markedAt).toLocaleTimeString()}</td>
                     <td><span class="status-badge ${a.status === 'present' ? 'success' : 'danger'}">${a.status}</span></td>
                 </tr>
@@ -1487,6 +1475,52 @@
             }
         }
 
+
+        async function downloadAdminReportPDF() {
+            try {
+                AdminCore.toast('Generating Report... Please wait', 'info');
+
+                // Fetch full attendance logs
+                const date = document.getElementById('dateFilter').value;
+                const locationId = document.getElementById('locationFilter').value;
+
+                // Using existing API wrapper but with higher limit
+                const response = await AdminAPI.getAttendance({
+                    limit: 1000,
+                    date: date,
+                    locationId: locationId
+                });
+
+                if (!response || !response.records || response.records.length === 0) {
+                    AdminCore.toast('No data available to export', 'warning');
+                    return;
+                }
+
+                const headers = ["Date", "Student", "Location", "Session", "Time", "Status"];
+                const data = response.records.map(r => [
+                    new Date(r.markedAt).toLocaleDateString(),
+                    r.student?.name || 'Unknown',
+                    r.location?.name || '--',
+                    r.session?.subject || '-',
+                    new Date(r.markedAt).toLocaleTimeString(),
+                    r.status
+                ]);
+
+                AdminCore.generatePDF({
+                    title: 'Admin Attendance Report',
+                    subtitle: date ? `Filtered by Date: ${date}` : 'All Recent Records',
+                    filename: `admin_attendance_report.pdf`,
+                    headers: headers,
+                    data: data
+                });
+
+                AdminCore.toast('Report downloaded successfully', 'success');
+            } catch (err) {
+                console.error(err);
+                AdminCore.toast('Failed to generate PDF', 'error');
+            }
+        }
+
         function showTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-item[data-tab]').forEach(item => item.classList.remove('active'));
@@ -1501,6 +1535,26 @@
             if (tabName === 'attendance') renderAttendanceTable();
             if (tabName === 'settings') loadSettings();
         }
+
+
+        // Clock Update
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+            const clockEl = document.getElementById('dashboardClock');
+            if (clockEl) {
+                clockEl.innerHTML = `
+                    <div style="text-align:right; line-height:1.2;">
+                        <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);">${timeString}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">${dateString}</div>
+                    </div>
+                `;
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
     </script>
     <style>
         .tab-content {

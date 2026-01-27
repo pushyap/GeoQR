@@ -105,6 +105,19 @@ async function start() {
         // Initialize Redis (optional - falls back to in-memory)
         await initRedis();
 
+        // Start background task to clean up expired sessions
+        const { db } = require('./config/database');
+        setInterval(async () => {
+            try {
+                const result = await db.query(
+                    "UPDATE sessions SET is_active = false WHERE is_active = true AND end_time < NOW()"
+                );
+                if (result.rowCount > 0) {
+                    console.log(`Auto-ended ${result.rowCount} expired sessions`);
+                }
+            } catch (e) { console.error('Auto-end session error:', e); }
+        }, 60000); // Check every minute
+
         app.listen(PORT, () => {
             console.log(`
 ╔════════════════════════════════════════════╗
