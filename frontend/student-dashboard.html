@@ -248,7 +248,7 @@
 
                 <!-- Quick Actions -->
                 <div class="quick-actions">
-                    <button class="action-btn primary" id="scanBtn">
+                    <button class="action-btn primary" onclick="fetchStudentLocationAndScan()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path
                                 d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -913,6 +913,63 @@
             </tr>
             `).join('');
         }
+
+        // ========================================
+        // Location fetch
+        // ========================================
+
+        function fetchStudentLocationAndScan() {
+            if (!navigator.geolocation) {
+                showToast('Geolocation is not supported by your browser', 'error');
+                return;
+            }
+
+            showToast('Fetching your current location...', 'info');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    // Display location to student
+                    showToast(
+                        `Location fetched ✔️<br>Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`,
+                        'success'
+                    );
+
+                    // Optional: store for later use (scan page / backend)
+                    sessionStorage.setItem('student_lat', latitude);
+                    sessionStorage.setItem('student_lng', longitude);
+
+                    // Redirect to scan page
+                    setTimeout(() => {
+                        window.location.href = 'scan.html';
+                    }, 1200);
+                },
+                (error) => {
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            showToast('Location permission denied', 'error');
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            showToast('Location unavailable', 'error');
+                            break;
+                        case error.TIMEOUT:
+                            showToast('Location request timed out', 'error');
+                            break;
+                        default:
+                            showToast('Failed to fetch location', 'error');
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+
 
         // ========================================
         // Attendance History

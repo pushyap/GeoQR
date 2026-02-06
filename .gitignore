@@ -1,5 +1,4 @@
 ## GeoQR Project .gitignore
-.gitignore
 
 # Node modules
 node_modules/
