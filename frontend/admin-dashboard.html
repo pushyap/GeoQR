@@ -727,6 +727,15 @@
                             <input type="number" step="any" class="form-input" id="locationLng" required>
                         </div>
                     </div>
+
+                    <button type="button" class="btn btn-secondary" style="margin-top:10px;"
+                        onclick="fetchCurrentLocation()">
+                        📍 Use Current Location
+                    </button>
+
+                    <p id="gpsStatus" style="font-size:0.85em;margin-top:6px;color:var(--text-muted);">
+                    </p>
+
                     <div class="form-group">
                         <label class="form-label">Radius (meters)</label>
                         <input type="number" class="form-input" id="locationRadius" value="50" required>
@@ -1136,6 +1145,51 @@
                 </div>
             `).join('');
         }
+        // ========================================
+        // Fetch Location
+        // ========================================
+        function fetchCurrentLocation() {
+            const status = document.getElementById('gpsStatus');
+            status.textContent = 'Requesting location permission...';
+
+            if (!navigator.geolocation) {
+                status.textContent = 'Geolocation is not supported by this browser.';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    document.getElementById('locationLat').value = lat;
+                    document.getElementById('locationLng').value = lng;
+
+                    status.textContent = 'Location fetched successfully ✅';
+                },
+                (error) => {
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            status.textContent = 'Permission denied. Please allow location access.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            status.textContent = 'Location information unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            status.textContent = 'Location request timed out.';
+                            break;
+                        default:
+                            status.textContent = 'Failed to fetch location.';
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
 
         // ========================================
         // Actions & CRUD

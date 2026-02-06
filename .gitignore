@@ -1,0 +1,72 @@
+## GeoQR Project .gitignore
+.gitignore
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+backend/.env
+frontend/.env
+
+# Backend data and DB files
+backend/data/*.db
+backend/data/*.sqlite
+
+# Build / bundler output
+dist/
+build/
+tmp/
+.cache/
+coverage/
+
+# Frontend specific
+frontend/dist/
+frontend/build/
+frontend/.cache/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Certificates, keys and secrets
+*.pem
+*.key
+*.crt
+secrets/
+*.secret
+
+# OneDrive/temp files
+~$*
+~*.tmp
+*.lnk
+
+# Archive files
+*.tgz
+*.zip
+*.tar.gz
+
+# Docker / compose local overrides
+docker-compose.override.yml
+.env.docker
+
+# Ignore local npm/yarn lock if you prefer not to track them (optional)
+# package-lock.json
+# yarn.lock

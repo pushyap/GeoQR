@@ -919,13 +919,18 @@
                 FacultyState.activeSessions.set(session.id, {
                     ...session,
                     studentCount: parseInt(session.attendance_count) || 0,
+                    expectedStudents: session.expected_students || session.expectedStudents || session.expectedStudentsCount || 60,
                     startedAt: session.start_time
                 });
                 updateLiveIndicator();
             }
 
             // Render tables if first load
-            renderTodaySessions(dashboard.stats.todaySessionsList || (dashboard.recentSessions || []).filter(s => new Date(s.startTime).toDateString() === new Date().toDateString()));
+            const todaySessions = dashboard.stats.todaySessionsList || (dashboard.recentSessions || []).filter(s => {
+                const sessionTime = s.start_time || s.startTime;
+                return sessionTime && new Date(sessionTime).toDateString() === new Date().toDateString();
+            });
+            renderTodaySessions(todaySessions);
             renderSessionsTable(dashboard.recentSessions);
         }
 
@@ -942,7 +947,8 @@
                             FacultyState.activeSessions.set(sessionId, {
                                 ...data,
                                 studentCount: details.summary.present + details.summary.late,
-                                students: details.attendance // Store for radar
+                                students: details.attendance, // Store for radar
+                                expectedStudents: data.expectedStudents || details.expected_students || details.expectedStudents || 60
                             });
                         }
                     }
@@ -970,11 +976,14 @@
                 const [sessionId, activeData] = sessionEntry || [null, null];
 
                 if (activeData) {
-                    const studentCount = activeData.studentCount;
+                    const studentCount = activeData.studentCount || 0;
                     const totalStudents = activeData.expectedStudents || 60; // Use stored value or default
                     const percentage = Math.round((studentCount / totalStudents) * 100);
 
+                    // Update live student count from actual session data
                     document.getElementById('liveStudentCount').textContent = studentCount;
+                    // Update expected student count dynamically from session data
+                    document.getElementById('totalExpectedStudents').textContent = totalStudents;
                     document.getElementById('attendanceCompletionBar').style.width = percentage + '%';
 
                     if (activeData.startedAt) {
@@ -1031,12 +1040,14 @@
                 const startTime = s.start_time || s.startTime;
                 const locationName = s.location_name || s.location || 'Unknown';
                 const attCount = s.attendance_count || s.attendanceCount || 0;
+                // Handle null/undefined startTime
+                const timeDisplay = startTime ? new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
 
                 return `
                     <tr>
                         <td><strong>${s.subject}</strong></td>
                         <td>${locationName}</td>
-                        <td>${new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>${timeDisplay}</td>
                         <td>${attCount}</td>
                         <td><span class="status-badge ${isActive ? 'success' : 'secondary'}">${isActive ? 'Live' : 'Completed'}</span></td>
                         <td>
@@ -1219,7 +1230,18 @@
         // ========================================
         async function openCreateSessionModal() {
             document.getElementById('sessionForm').reset();
-            document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('sessionDate').value = today;
+
+            // Set minimum date to today (prevent past dates)
+            document.getElementById('sessionDate').min = today;
+
+            // Set minimum time to current time (prevent past times)
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const currentTime = `${hours}:${minutes}`;
+            document.getElementById('sessionStartTime').min = currentTime;
 
             // Populate locations
             const locations = await FacultyAPI.getLocations();
@@ -1232,13 +1254,21 @@
         async function createSession() {
             const subject = document.getElementById('sessionSubject').value;
             const locationId = document.getElementById('sessionLocation').value;
+            const sessionDate = document.getElementById('sessionDate').value;
+            const sessionStartTime = document.getElementById('sessionStartTime').value;
             const durationHours = document.getElementById('sessionDuration').value;
-
-            // We can capture other fields if backend supports them, for now just UI validation
             const expectedStudents = document.getElementById('sessionExpectedStudents')?.value;
 
-            if (!subject || !locationId || !durationHours) {
+            if (!subject || !locationId || !sessionDate || !sessionStartTime || !durationHours) {
                 AdminCore.toast('Please fill all required fields', 'error');
+                return;
+            }
+
+            // Validate that start time is not in the past
+            const now = new Date();
+            const sessionDateTime = new Date(`${sessionDate}T${sessionStartTime}`);
+            if (sessionDateTime < now) {
+                AdminCore.toast('Start time cannot be in the past', 'error');
                 return;
             }
 
@@ -1257,12 +1287,12 @@
                     AdminCore.toast('Session started! Students can now mark attendance.', 'success');
                     AdminCore.closeModal('createSessionModal');
 
-                    // Add to local state
+                    // Add to local state with actual start time from form
                     FacultyState.activeSessions.set(result.session.id, {
                         ...result.session,
                         studentCount: 0,
                         expectedStudents: parseInt(expectedStudents) || 60,
-                        startedAt: new Date()
+                        startedAt: sessionDateTime.toISOString()
                     });
 
                     updateLiveIndicator();
