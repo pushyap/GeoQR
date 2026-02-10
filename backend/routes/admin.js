@@ -9,6 +9,7 @@ const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { isAdmin } = require('../middleware/roleCheck');
 const { logDeviceActivity } = require('../utils/security');
+const { generateAttendancePDF } = require('../utils/pdfGenerator');
 
 const router = express.Router();
 
@@ -161,6 +162,13 @@ router.get('/users', authenticate, isAdmin, async (req, res) => {
         if (role) {
             query += ` AND role = $${paramIndex}`;
             params.push(role);
+            paramIndex++;
+        }
+
+        const { status } = req.query;
+        if (status) {
+            query += ` AND is_active = $${paramIndex}`;
+            params.push(status === 'active');
             paramIndex++;
         }
 
@@ -518,60 +526,7 @@ router.get('/suspicious', authenticate, isAdmin, async (req, res) => {
 // ATTENDANCE LOGS
 // =========================================
 
-/**
- * GET /api/admin/attendance
- */
-router.get('/attendance', authenticate, isAdmin, async (req, res) => {
-    try {
-        const { date, location_id, limit = 100 } = req.query;
 
-        let query = `
-            SELECT 
-                al.*,
-                u.name as student_name, u.student_id,
-                l.name as location_name,
-                s.subject
-            FROM attendance_logs al
-            JOIN users u ON al.student_id = u.id
-            JOIN locations l ON al.location_id = l.id
-            LEFT JOIN sessions s ON al.session_id = s.id
-            WHERE 1=1
-        `;
-
-        const params = [];
-        let paramIndex = 1;
-
-        if (date) {
-            query += ` AND DATE(al.marked_at) = $${paramIndex}`;
-            params.push(date);
-            paramIndex++;
-        }
-
-        if (location_id) {
-            query += ` AND al.location_id = $${paramIndex}`;
-            params.push(location_id);
-            paramIndex++;
-        }
-
-        query += ` ORDER BY al.marked_at DESC LIMIT $${paramIndex}`;
-        params.push(parseInt(limit));
-
-        const result = await db.query(query, params);
-
-        res.json({
-            success: true,
-            logs: result.rows,
-            count: result.rows.length
-        });
-
-    } catch (error) {
-        console.error('Get attendance logs error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch attendance logs'
-        });
-    }
-});
 
 /**
  * GET /api/admin/stats
@@ -646,14 +601,23 @@ router.get('/activity', authenticate, isAdmin, async (req, res) => {
                 d.device_code, d.device_name
             FROM device_activity_logs dal
             LEFT JOIN devices d ON dal.device_id = d.id
+            WHERE 1=1
         `;
         const params = [];
         let paramCount = 0;
 
-        if (type) {
-            paramCount++;
-            query += ` WHERE dal.action = $${paramCount}`;
-            params.push(type);
+        if (type && type !== 'all') {
+            if (type === 'device') {
+                query += ` AND (dal.action LIKE 'device_%' OR dal.action LIKE 'auth_%' OR dal.action = 'suspicious')`;
+            } else if (type === 'session') {
+                query += ` AND dal.action LIKE 'session_%'`;
+            } else if (type === 'attendance') {
+                query += ` AND (dal.action LIKE 'scan_%' OR dal.action LIKE 'attendance_%')`;
+            } else {
+                paramCount++;
+                query += ` AND dal.action = $${paramCount}`;
+                params.push(type);
+            }
         }
 
         query += ` ORDER BY dal.created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;
@@ -662,9 +626,22 @@ router.get('/activity', authenticate, isAdmin, async (req, res) => {
         const result = await db.query(query, params);
 
         // Get count
-        let countQuery = 'SELECT COUNT(*) FROM device_activity_logs';
-        if (type) countQuery += ` WHERE action = $1`;
-        const countResult = await db.query(countQuery, type ? [type] : []);
+        let countQuery = 'SELECT COUNT(*) FROM device_activity_logs dal WHERE 1=1';
+        const countParams = [];
+
+        if (type && type !== 'all') {
+            if (type === 'device') {
+                countQuery += ` AND (dal.action LIKE 'device_%' OR dal.action LIKE 'auth_%' OR dal.action = 'suspicious')`;
+            } else if (type === 'session') {
+                countQuery += ` AND dal.action LIKE 'session_%'`;
+            } else if (type === 'attendance') {
+                countQuery += ` AND (dal.action LIKE 'scan_%' OR dal.action LIKE 'attendance_%')`;
+            } else {
+                countQuery += ` AND dal.action = $1`;
+                countParams.push(type);
+            }
+        }
+        const countResult = await db.query(countQuery, countParams);
 
         // Also include recent attendance as activity
         const attendanceActivity = await db.query(`
@@ -733,7 +710,6 @@ router.get('/attendance', authenticate, isAdmin, async (req, res) => {
         let query = `
             SELECT 
                 al.id, al.marked_at, al.status, al.distance_from_device,
-                al.device_verified, al.location_verified,
                 u.id as student_id, u.name as student_name, u.student_id as student_code, u.email,
                 l.name as location_name, l.id as location_id,
                 s.id as session_id, s.subject,
@@ -830,8 +806,71 @@ router.get('/attendance', authenticate, isAdmin, async (req, res) => {
 });
 
 // =========================================
-// SYSTEM SETTINGS
+// REPORTS
 // =========================================
+
+/**
+ * GET /api/admin/reports/pdf
+ * Download attendance report as PDF
+ */
+router.get('/reports/pdf', authenticate, isAdmin, async (req, res) => {
+    try {
+        const { date, locationId, studentId } = req.query;
+
+        let query = `
+            SELECT a.id, a.status, a.marked_at as timestamp, a.created_at,
+            u.name as student_name, u.student_id as student_code, u.email,
+            l.name as location_name,
+            s.subject, s.faculty_id
+            FROM attendance_logs a
+            LEFT JOIN users u ON a.student_id = u.id
+            LEFT JOIN locations l ON a.location_id = l.id
+            LEFT JOIN sessions s ON a.session_id = s.id
+            WHERE 1 = 1
+            `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (date) {
+            query += ` AND DATE(a.marked_at) = $${paramCount}`;
+            params.push(date);
+            paramCount++;
+        }
+
+        if (locationId) {
+            query += ` AND a.location_id = $${paramCount} `;
+            params.push(locationId);
+            paramCount++;
+        }
+
+        if (studentId) {
+            query += ` AND a.student_id = $${paramCount} `;
+            params.push(studentId);
+            paramCount++;
+        }
+
+        query += ` ORDER BY a.marked_at DESC LIMIT 1000`; // Limit to prevent memory issues
+
+        const result = await db.query(query, params);
+
+        // Generate PDF
+        generateAttendancePDF(res, result.rows, { date, locationId, studentId });
+
+        // Log activity (fire and forget)
+        logDeviceActivity(null, 'report_generated', {
+            type: 'pdf',
+            user: req.user.id,
+            count: result.rows.length
+        });
+
+    } catch (error) {
+        console.error('PDF Report error:', error);
+        res.status(500).send('Failed to generate PDF report');
+    }
+});
+
+
 
 /**
  * GET /api/admin/settings
@@ -842,7 +881,7 @@ router.get('/settings', authenticate, isAdmin, async (req, res) => {
         // Check if settings table exists
         const settingsResult = await db.query(`
             SELECT key, value FROM system_settings
-        `).catch(() => ({ rows: [] }));
+            `).catch(() => ({ rows: [] }));
 
         const settings = {};
         settingsResult.rows.forEach(row => {
@@ -886,9 +925,9 @@ router.put('/settings', authenticate, isAdmin, async (req, res) => {
         // Upsert each setting
         for (const [key, value] of Object.entries(settings)) {
             await db.query(`
-                INSERT INTO system_settings (key, value, updated_at)
-                VALUES ($1, $2, CURRENT_TIMESTAMP)
-                ON CONFLICT (key) 
+                INSERT INTO system_settings(key, value, updated_at)
+        VALUES($1, $2, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) 
                 DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
             `, [key, String(value)]).catch(() => {
                 // Table might not exist, that's ok
@@ -915,4 +954,3 @@ router.put('/settings', authenticate, isAdmin, async (req, res) => {
 });
 
 module.exports = router;
-

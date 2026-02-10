@@ -4,6 +4,18 @@
  */
 const crypto = require('crypto');
 const { db } = require('../config/database');
+// Lazy load to avoid circular dependency if possible, or use event bus.
+// For now, we will require it inside the function or use a global if initialized.
+// But better to just try require outside if no circular dep with utils/security -> ...
+// realtime.js depends on auth -> db. security -> db. 
+// realtime does NOT depend on security. So we can require realtime here.
+let broadcastToAdmin;
+try {
+    const rt = require('../routes/realtime');
+    broadcastToAdmin = rt.broadcastToAdmin;
+} catch (e) {
+    console.warn('Realtime module not loaded yet');
+}
 
 const QR_SIGNING_SECRET = process.env.QR_SIGNING_SECRET || process.env.JWT_SECRET || 'qr-signing-secret';
 

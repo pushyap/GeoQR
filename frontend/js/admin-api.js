@@ -9,6 +9,13 @@ const AdminAPI = {
     // =========================================
     // Dashboard
     // =========================================
+    getApiUrl() {
+        return API_BASE;
+    },
+
+    // =========================================
+    // Dashboard
+    // =========================================
     async getDashboard() {
         try {
             const response = await axios.get(`${API_BASE}/api/admin/dashboard`, {
@@ -36,9 +43,10 @@ const AdminAPI = {
     // =========================================
     // Locations
     // =========================================
-    async getLocations() {
+    async getLocations(status = 'all') {
         try {
-            const response = await axios.get(`${API_BASE}/api/locations`, {
+            const query = status && status !== 'all' ? `?status=${status}` : '';
+            const response = await axios.get(`${API_BASE}/api/locations${query}`, {
                 headers: { Authorization: `Bearer ${Session.getToken()}` }
             });
             return response.data.locations || [];
@@ -49,10 +57,17 @@ const AdminAPI = {
     },
 
     async createLocation(data) {
-        const response = await axios.post(`${API_BASE}/api/locations`, data, {
-            headers: { Authorization: `Bearer ${Session.getToken()}` }
-        });
-        return response.data;
+        try {
+            const response = await axios.post(`${API_BASE}/api/locations`, data, {
+                headers: { Authorization: `Bearer ${Session.getToken()}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('API Error:', error);
+            const msg = error.response?.data?.error || error.message || 'Operation failed';
+            if (window.AdminCore) AdminCore.toast(msg, 'error');
+            throw error;
+        }
     },
 
     async updateLocation(id, data) {
@@ -72,9 +87,10 @@ const AdminAPI = {
     // =========================================
     // Devices
     // =========================================
-    async getDevices() {
+    async getDevices(status = 'all') {
         try {
-            const response = await axios.get(`${API_BASE}/api/devices`, {
+            const query = status && status !== 'all' ? `?status=${status}` : '';
+            const response = await axios.get(`${API_BASE}/api/devices${query}`, {
                 headers: { Authorization: `Bearer ${Session.getToken()}` }
             });
             return response.data.devices || [];
@@ -85,10 +101,17 @@ const AdminAPI = {
     },
 
     async createDevice(data) {
-        const response = await axios.post(`${API_BASE}/api/devices/register`, data, {
-            headers: { Authorization: `Bearer ${Session.getToken()}` }
-        });
-        return response.data;
+        try {
+            const response = await axios.post(`${API_BASE}/api/devices/register`, data, {
+                headers: { Authorization: `Bearer ${Session.getToken()}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('API Error:', error);
+            const msg = error.response?.data?.error || error.message || 'Operation failed';
+            if (window.AdminCore) AdminCore.toast(msg, 'error');
+            throw error;
+        }
     },
 
     async updateDevice(id, data) {

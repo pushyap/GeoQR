@@ -14,12 +14,22 @@ const router = express.Router();
  * GET /api/locations
  */
 router.get('/', authenticate, async (req, res) => {
+    const { status } = req.query;
     try {
-        const result = await db.query(`
+        let query = `
             SELECT id, name, latitude, longitude, radius, is_active, created_at
             FROM locations
-            ORDER BY name
-        `);
+        `;
+        const params = [];
+
+        if (status && status !== 'all') {
+            query += ` WHERE is_active = $1`;
+            params.push(status === 'active');
+        }
+
+        query += ` ORDER BY name`;
+
+        const result = await db.query(query, params);
 
         res.json({
             success: true,
@@ -55,6 +65,19 @@ router.post('/', authenticate, isAdmin, [
     const { name, latitude, longitude, radius = 50 } = req.body;
 
     try {
+        // Check for duplicate name (case-insensitive)
+        const duplicateCheck = await db.query(
+            'SELECT id FROM locations WHERE LOWER(name) = LOWER($1)',
+            [name.trim()]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Location name already exists. Please choose a different name.'
+            });
+        }
+
         const result = await db.query(
             `INSERT INTO locations (name, latitude, longitude, radius)
              VALUES ($1, $2, $3, $4) RETURNING *`,

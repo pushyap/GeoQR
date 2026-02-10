@@ -28,6 +28,8 @@
         "jsonwebtoken": "^9.0.2",
         "mailgun.js": "^12.6.0",
         "nodemailer": "^7.0.12",
+        "pdfkit": "^0.17.2",
+        "pdfkit-table": "^0.1.99",
         "pg": "^8.16.3",
         "redis": "^5.10.0",
         "resend": "^6.8.0",

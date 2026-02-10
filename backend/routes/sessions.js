@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { isFaculty, isFacultyOrAdmin } = require('../middleware/roleCheck');
+const { logDeviceActivity } = require('../utils/security');
 
 const router = express.Router();
 
@@ -18,8 +19,10 @@ router.post('/start', authenticate, isFaculty, [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.error('Session start validation errors:', errors.array(), 'Body:', req.body);
         return res.status(400).json({
             success: false,
+            error: 'Validation failed: ' + errors.array().map(e => e.msg).join(', '),
             errors: errors.array()
         });
     }
@@ -41,34 +44,68 @@ router.post('/start', authenticate, isFaculty, [
             });
         }
 
-        // Check for existing active session
+        // Check for existing active session by this faculty
         const existingResult = await db.query(
-            'SELECT id FROM sessions WHERE location_id = $1 AND is_active = true',
-            [location_id]
+            'SELECT id, subject FROM sessions WHERE faculty_id = $1 AND is_active = true',
+            [facultyId]
         );
 
         if (existingResult.rows.length > 0) {
             return res.status(400).json({
                 success: false,
-                error: 'There is already an active session at this location'
+                error: `You already have an active session: "${existingResult.rows[0].subject}" (ID: ${existingResult.rows[0].id}). End it first.`
             });
         }
 
-        // Calculate end time
-        const duration = req.body.duration_minutes || 90; // Default 90 mins
-        const endTime = new Date(Date.now() + duration * 60000);
+        // Use start_time from frontend or default to now
+        const duration = req.body.duration_minutes || 90;
+        let startTime;
+        if (req.body.start_time) {
+            startTime = new Date(req.body.start_time);
+        } else {
+            startTime = new Date();
+        }
+        const endTime = new Date(startTime.getTime() + duration * 60000);
 
-        // Create session
+        // Create session with explicit start_time
         const result = await db.query(
-            `INSERT INTO sessions (faculty_id, location_id, subject, end_time)
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [facultyId, location_id, subject || 'General Class', endTime]
+            `INSERT INTO sessions (faculty_id, location_id, subject, start_time, end_time, expected_students)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [facultyId, location_id, subject || 'General Class', startTime, endTime, req.body.expected_students || 60]
         );
+
+        const session = result.rows[0];
+        console.log(`Session ${session.id} created | Start: ${startTime.toISOString()} | End: ${endTime.toISOString()}`);
+
+        // Schedule auto-end when end_time is reached
+        const msUntilEnd = endTime.getTime() - Date.now();
+        if (msUntilEnd > 0) {
+            setTimeout(async () => {
+                try {
+                    const check = await db.query('SELECT is_active FROM sessions WHERE id = $1', [session.id]);
+                    if (check.rows.length > 0 && check.rows[0].is_active) {
+                        await db.query(
+                            'UPDATE sessions SET is_active = false WHERE id = $1',
+                            [session.id]
+                        );
+                        console.log(`Session ${session.id} auto-ended after ${duration} minutes`);
+                    }
+                } catch (err) {
+                    console.error(`Auto-end failed for session ${session.id}:`, err);
+                }
+            }, msUntilEnd);
+        }
 
         res.status(201).json({
             success: true,
-            message: 'Session started successfully',
-            session: result.rows[0]
+            session
+        });
+
+        await logDeviceActivity(null, 'session_started', {
+            sessionId: session.id,
+            subject: session.subject,
+            locationId: location_id,
+            by: req.user.id
         });
 
     } catch (error) {
@@ -85,22 +122,34 @@ router.post('/start', authenticate, isFaculty, [
  */
 router.post('/end/:id', authenticate, isFacultyOrAdmin, async (req, res) => {
     try {
-        const sessionResult = await db.query(
-            'SELECT * FROM sessions WHERE id = $1 AND is_active = true',
+        // First check if session exists at all
+        const sessionCheck = await db.query(
+            'SELECT id, is_active, subject FROM sessions WHERE id = $1',
             [req.params.id]
         );
 
-        if (sessionResult.rows.length === 0) {
+        if (sessionCheck.rows.length === 0) {
             return res.status(404).json({
                 success: false,
-                error: 'Active session not found'
+                error: `Session ${req.params.id} does not exist`
             });
         }
 
-        const session = sessionResult.rows[0];
+        if (!sessionCheck.rows[0].is_active) {
+            // Session exists but already ended — treat as success so UI can recover
+            console.log(`Session ${req.params.id} already ended, returning success for UI recovery`);
+            return res.json({
+                success: true,
+                alreadyEnded: true,
+                attendanceCount: 0
+            });
+        }
+
+        const session = sessionCheck.rows[0];
 
         // Only owner or admin can end
-        if (req.user.role === 'faculty' && session.faculty_id !== req.user.id) {
+        const fullSession = await db.query('SELECT * FROM sessions WHERE id = $1', [req.params.id]);
+        if (req.user.role === 'faculty' && fullSession.rows[0].faculty_id !== req.user.id) {
             return res.status(403).json({
                 success: false,
                 error: 'You can only end your own sessions'
@@ -119,10 +168,17 @@ router.post('/end/:id', authenticate, isFacultyOrAdmin, async (req, res) => {
             [req.params.id]
         );
 
+        console.log(`Session ${req.params.id} ended. Attendance: ${countResult.rows[0].total}`);
+
         res.json({
             success: true,
-            message: 'Session ended successfully',
             attendanceCount: parseInt(countResult.rows[0].total)
+        });
+
+        await logDeviceActivity(null, 'session_ended', {
+            sessionId: req.params.id,
+            attendanceCount: parseInt(countResult.rows[0].total),
+            by: req.user.id
         });
 
     } catch (error) {
@@ -143,7 +199,7 @@ router.get('/active', authenticate, isFacultyOrAdmin, async (req, res) => {
 
         if (req.user.role === 'admin') {
             result = await db.query(`
-                SELECT s.*, l.name as location_name, u.name as faculty_name,
+                SELECT s.*, s.expected_students, l.name as location_name, u.name as faculty_name,
                     (SELECT COUNT(*) FROM attendance_logs WHERE session_id = s.id) as attendance_count
                 FROM sessions s
                 JOIN locations l ON s.location_id = l.id
@@ -153,7 +209,7 @@ router.get('/active', authenticate, isFacultyOrAdmin, async (req, res) => {
             `);
         } else {
             result = await db.query(`
-                SELECT s.*, l.name as location_name,
+                SELECT s.*, s.expected_students, l.name as location_name,
                     (SELECT COUNT(*) FROM attendance_logs WHERE session_id = s.id) as attendance_count
                 FROM sessions s
                 JOIN locations l ON s.location_id = l.id
@@ -185,7 +241,7 @@ router.get('/history', authenticate, isFacultyOrAdmin, async (req, res) => {
 
         if (req.user.role === 'admin') {
             result = await db.query(`
-                SELECT s.*, l.name as location_name, u.name as faculty_name,
+                SELECT s.*, s.expected_students, l.name as location_name, u.name as faculty_name,
                     (SELECT COUNT(*) FROM attendance_logs WHERE session_id = s.id) as attendance_count
                 FROM sessions s
                 JOIN locations l ON s.location_id = l.id
@@ -196,7 +252,7 @@ router.get('/history', authenticate, isFacultyOrAdmin, async (req, res) => {
             `);
         } else {
             result = await db.query(`
-                SELECT s.*, l.name as location_name,
+                SELECT s.*, s.expected_students, l.name as location_name,
                     (SELECT COUNT(*) FROM attendance_logs WHERE session_id = s.id) as attendance_count
                 FROM sessions s
                 JOIN locations l ON s.location_id = l.id

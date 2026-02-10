@@ -100,7 +100,7 @@ app.use(errorMiddleware);
 async function start() {
     try {
         await initDB();
-        initializeDatabase();
+        await initializeDatabase();
 
         // Initialize Redis (optional - falls back to in-memory)
         await initRedis();

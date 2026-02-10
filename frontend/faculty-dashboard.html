@@ -593,8 +593,8 @@
                             <label class="form-label">Duration</label>
                             <div style="display:flex; gap:10px;">
                                 <input type="number" class="form-input" id="sessionDuration"
-                                    placeholder="Hours (e.g. 1)" min="1" step="1" required>
-                                <span style="align-self:center;">Hours</span>
+                                    placeholder="Minutes (e.g. 60)" min="1" step="5" required>
+                                <span style="align-self:center;">Minutes</span>
                             </div>
                         </div>
                         <div class="form-group">
@@ -940,21 +940,37 @@
 
             setInterval(async () => {
                 if (FacultyState.activeSessions.size > 0) {
-                    // Update active session data
                     for (const [sessionId, data] of FacultyState.activeSessions) {
-                        const details = await FacultyAPI.getSessionDetails(sessionId);
-                        if (details) {
-                            FacultyState.activeSessions.set(sessionId, {
-                                ...data,
-                                studentCount: details.summary.present + details.summary.late,
-                                students: details.attendance, // Store for radar
-                                expectedStudents: data.expectedStudents || details.expected_students || details.expectedStudents || 60
-                            });
+                        try {
+                            const details = await FacultyAPI.getSessionDetails(sessionId);
+                            if (details && details.session) {
+                                // Detect auto-ended sessions
+                                if (!details.session.isActive) {
+                                    FacultyState.activeSessions.delete(sessionId);
+                                    AdminCore.toast('Session has ended automatically', 'info');
+                                    updateLiveIndicator();
+                                    loadDashboardData();
+                                    continue;
+                                }
+                                // Update live counts
+                                const presentCount = details.summary ? details.summary.present : 0;
+                                const lateCount = details.summary ? details.summary.late : 0;
+                                FacultyState.activeSessions.set(sessionId, {
+                                    ...data,
+                                    studentCount: presentCount + lateCount,
+                                    presentCount,
+                                    lateCount,
+                                    students: details.attendance,
+                                    expectedStudents: details.session.expectedStudents || data.expectedStudents || data.expected_students || 60
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Live update error:', e);
                         }
                     }
                     updateLiveIndicator();
                 }
-            }, 5000);
+            }, 3000);
         }
 
         // ========================================
@@ -970,28 +986,71 @@
             const liveCounterSection = document.getElementById('liveCounterSection');
             if (liveCounterSection) liveCounterSection.style.display = hasActive ? 'block' : 'none';
 
+            // Update live status bar
+            const liveStatusBar = document.getElementById('liveStatusBar');
+
             if (hasActive) {
-                // Get the first active session data
                 const sessionEntry = FacultyState.activeSessions.entries().next().value;
                 const [sessionId, activeData] = sessionEntry || [null, null];
 
                 if (activeData) {
-                    const studentCount = activeData.studentCount || 0;
-                    const totalStudents = activeData.expectedStudents || 60; // Use stored value or default
-                    const percentage = Math.round((studentCount / totalStudents) * 100);
+                    const now = new Date();
+                    const sessionStart = new Date(activeData.startedAt || activeData.start_time);
+                    const isUpcoming = sessionStart > now;
 
-                    // Update live student count from actual session data
-                    document.getElementById('liveStudentCount').textContent = studentCount;
-                    // Update expected student count dynamically from session data
-                    document.getElementById('totalExpectedStudents').textContent = totalStudents;
-                    document.getElementById('attendanceCompletionBar').style.width = percentage + '%';
+                    // Show/hide status bar
+                    if (liveStatusBar) liveStatusBar.style.display = 'flex';
 
-                    if (activeData.startedAt) {
-                        const elapsed = Date.now() - new Date(activeData.startedAt).getTime();
-                        const mins = Math.floor(elapsed / 60000);
-                        document.getElementById('liveElapsedTime').textContent = `${mins}m`;
+                    // Update live text
+                    const liveTextEl = document.querySelector('.live-text');
+                    const endBtn = document.querySelector('.live-end-btn');
+
+                    if (isUpcoming) {
+                        // Upcoming session — show countdown
+                        const diffMs = sessionStart - now;
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const diffSecs = Math.floor((diffMs % 60000) / 1000);
+
+                        if (liveTextEl) liveTextEl.textContent = `⏳ UPCOMING — starts in ${diffMins}m ${diffSecs}s`;
+                        if (endBtn) endBtn.style.display = 'none';
+
+                        const timeEl = document.getElementById('liveElapsedTime');
+                        if (timeEl) timeEl.textContent = `in ${diffMins}m`;
+                    } else {
+                        // Live session
+                        if (liveTextEl) liveTextEl.textContent = 'ATTENDANCE ACTIVE';
+                        if (endBtn) endBtn.style.display = '';
+
+                        if (activeData.startedAt) {
+                            const elapsed = Date.now() - sessionStart.getTime();
+                            const mins = Math.floor(elapsed / 60000);
+                            const timeEl = document.getElementById('liveElapsedTime');
+                            if (timeEl) timeEl.textContent = `${mins}m`;
+                        }
                     }
+
+                    const studentCount = activeData.studentCount || 0;
+                    const totalStudents = activeData.expectedStudents || activeData.expected_students || 60;
+                    const percentage = Math.min(100, Math.round((studentCount / totalStudents) * 100));
+
+                    const countEl = document.getElementById('liveStudentCount');
+                    if (countEl) countEl.textContent = studentCount;
+
+                    const totalEl = document.getElementById('totalExpectedStudents');
+                    if (totalEl) totalEl.textContent = totalStudents;
+
+                    const barEl = document.getElementById('attendanceCompletionBar');
+                    if (barEl) barEl.style.width = percentage + '%';
+
+                    // Update status bar elements
+                    const presentEl = document.getElementById('livePresentCount');
+                    if (presentEl) presentEl.textContent = studentCount;
+
+                    const engagementEl = document.getElementById('liveEngagement');
+                    if (engagementEl) engagementEl.textContent = percentage + '%';
                 }
+            } else {
+                if (liveStatusBar) liveStatusBar.style.display = 'none';
             }
         }
 
@@ -1035,13 +1094,33 @@
             }
 
             tbody.innerHTML = sessions.map(s => {
-                const isActive = FacultyState.activeSessions.has(s.id);
+                // Check active status from backend data OR from local state
+                const isActive = s.isActive || s.is_active || FacultyState.activeSessions.has(s.id);
                 // Use backend fields (snake_case) or fallback
                 const startTime = s.start_time || s.startTime;
+                const endTimeStr = s.end_time || s.endTime;
                 const locationName = s.location_name || s.location || 'Unknown';
                 const attCount = s.attendance_count || s.attendanceCount || 0;
-                // Handle null/undefined startTime
-                const timeDisplay = startTime ? new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--';
+                // IST timezone display
+                const timeDisplay = startTime ? new Date(startTime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) : '--';
+
+                // Determine session status: Upcoming / Live / Completed
+                const now = new Date();
+                const sessionStart = startTime ? new Date(startTime) : null;
+                const sessionEnd = endTimeStr ? new Date(endTimeStr) : null;
+                let statusLabel = 'Completed';
+                let statusClass = 'secondary';
+                let actionBtn = `<button class="btn btn-sm btn-secondary" onclick="viewReport('${s.id}')">Report</button>`;
+
+                if (isActive && sessionStart && sessionStart > now) {
+                    statusLabel = '⏳ Upcoming';
+                    statusClass = 'warning';
+                    actionBtn = `<button class="btn btn-sm btn-secondary" disabled>Waiting</button>`;
+                } else if (isActive) {
+                    statusLabel = '🟢 Live';
+                    statusClass = 'success';
+                    actionBtn = `<button class="btn btn-sm btn-danger" onclick="endActiveSession()">End</button>`;
+                }
 
                 return `
                     <tr>
@@ -1049,12 +1128,9 @@
                         <td>${locationName}</td>
                         <td>${timeDisplay}</td>
                         <td>${attCount}</td>
-                        <td><span class="status-badge ${isActive ? 'success' : 'secondary'}">${isActive ? 'Live' : 'Completed'}</span></td>
+                        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
                         <td>
-                            ${isActive ?
-                        `<button class="btn btn-sm btn-danger" onclick="endActiveSession()">End</button>` :
-                        `<button class="btn btn-sm btn-secondary" onclick="viewReport('${s.id}')">Report</button>`
-                    }
+                            ${actionBtn}
                         </td>
                     </tr>
                 `;
@@ -1073,17 +1149,37 @@
             tbody.innerHTML = sessions.map(s => {
                 // Use backend fields (snake_case) or fallback
                 const startTime = s.start_time || s.startTime;
+                const endTimeStr = s.end_time || s.endTime;
                 const locationName = s.location_name || s.location || 'Unknown';
                 const attCount = s.attendance_count || s.attendanceCount || 0;
+                const isActive = s.isActive || s.is_active || false;
+
+                // IST timezone display
+                const dateDisplay = startTime ? new Date(startTime).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '--';
+                const timeDisplay = startTime ? new Date(startTime).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) : '--';
+
+                // Determine status: Upcoming / Live / Done
+                const now = new Date();
+                const sessionStart = startTime ? new Date(startTime) : null;
+                let statusLabel = 'Done';
+                let statusClass = 'secondary';
+
+                if (isActive && sessionStart && sessionStart > now) {
+                    statusLabel = '⏳ Upcoming';
+                    statusClass = 'warning';
+                } else if (isActive) {
+                    statusLabel = '🟢 Live';
+                    statusClass = 'success';
+                }
 
                 return `
                 <tr>
                     <td><strong>${s.subject}</strong></td>
                     <td>${locationName}</td>
-                    <td>${new Date(startTime).toLocaleDateString()}</td>
-                    <td>${new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${dateDisplay}</td>
+                    <td>${timeDisplay}</td>
                     <td>${attCount}</td>
-                    <td><span class="status-badge ${s.isActive ? 'success' : 'secondary'}">${s.isActive ? 'Live' : 'Done'}</span></td>
+                    <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
                     <td><button class="btn btn-sm btn-secondary" onclick="viewReport('${s.id}')">View</button></td>
                 </tr>
             `}).join('');
@@ -1272,31 +1368,39 @@
                 return;
             }
 
-            const durationMinutes = parseInt(durationHours) * 60;
+            const durationMinutes = parseInt(durationHours);
 
             try {
-                // Call API
+                // Call API — send the exact start_time the faculty chose
                 const result = await FacultyAPI.createSession({
                     subject,
                     location_id: parseInt(locationId),
-                    duration_minutes: parseInt(durationMinutes),
-                    expected_students: parseInt(expectedStudents) || 60
+                    duration_minutes: durationMinutes,
+                    expected_students: parseInt(expectedStudents) || 60,
+                    start_time: sessionDateTime.toISOString()
                 });
 
                 if (result.success) {
-                    AdminCore.toast('Session started! Students can now mark attendance.', 'success');
+                    const isUpcoming = sessionDateTime > new Date();
+                    AdminCore.toast(
+                        isUpcoming
+                            ? `Session scheduled for ${sessionDateTime.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })} IST`
+                            : 'Session started! Students can now mark attendance.',
+                        'success'
+                    );
                     AdminCore.closeModal('createSessionModal');
 
-                    // Add to local state with actual start time from form
+                    // Add to local state
                     FacultyState.activeSessions.set(result.session.id, {
                         ...result.session,
                         studentCount: 0,
                         expectedStudents: parseInt(expectedStudents) || 60,
-                        startedAt: sessionDateTime.toISOString()
+                        startedAt: sessionDateTime.toISOString(),
+                        endTime: new Date(sessionDateTime.getTime() + durationMinutes * 60000).toISOString()
                     });
 
                     updateLiveIndicator();
-                    loadDashboardData(); // Refresh full data
+                    loadDashboardData();
                 }
             } catch (e) {
                 AdminCore.toast(e.response?.data?.error || 'Failed to start session', 'error');
@@ -1342,6 +1446,9 @@
         }
 
 
+        // Store last report data for use by defaulters/absentees functions
+        let lastReportData = null;
+
         async function generateReport() {
             const sessionId = document.getElementById('reportSessionSelect').value;
             const dateFrom = document.getElementById('reportDateFrom').value;
@@ -1360,7 +1467,10 @@
                     return;
                 }
 
+                lastReportData = report.report;
                 const sessions = report.report.sessions || [];
+                const students = report.report.students || [];
+                const defaulters = report.report.defaulters || [];
 
                 let present = 0, late = 0, total = 0;
                 sessions.forEach(s => {
@@ -1370,7 +1480,6 @@
                 });
 
                 const onTimeRate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
-                const absent = total - (present + late); // Not quite accurate without enrollment, but okay for summary
 
                 // Show preview with updated stats and table
                 const previewEl = document.getElementById('reportPreview');
@@ -1399,7 +1508,7 @@
                                 ${sessions.map(s => `
                                     <tr>
                                         <td>${s.subject}</td>
-                                        <td>${new Date(s.start_time).toLocaleDateString()}</td>
+                                        <td>${new Date(s.start_time).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
                                         <td>${s.attendance.present}</td>
                                         <td>${s.attendance.late}</td>
                                         <td>${s.attendance.total}</td>
@@ -1423,14 +1532,28 @@
                                 <div class="report-stat-value">${late}</div>
                                 <div class="report-stat-label">Late</div>
                             </div>
-                             <div class="report-stat rate">
+                            <div class="report-stat rate">
                                 <div class="report-stat-value">${onTimeRate}%</div>
                                 <div class="report-stat-label">Attendance Rate</div>
                             </div>
+                            <div class="report-stat" style="background: var(--surface-elevated); border-radius: var(--radius-lg); padding: var(--space-4); text-align:center;">
+                                <div class="report-stat-value">${defaulters.length}</div>
+                                <div class="report-stat-label">Defaulters</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: var(--space-3); margin-top: var(--space-4); flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="downloadAbsentees()">
+                                📥 Download Absentees CSV
+                            </button>
+                            <button class="btn btn-danger" onclick="showDefaulters()">
+                                ⚠️ Show Defaulters (${defaulters.length})
+                            </button>
                         </div>
                         ${sessionsTableHtml}
                     </div>
                 `;
+
+                AdminCore.toast(`Report generated: ${sessions.length} sessions, ${students.length} students`, 'success');
             } catch (e) {
                 console.error(e);
                 AdminCore.toast('Failed to generate report', 'error');
@@ -1443,7 +1566,7 @@
 
             doc.text("Faculty Summary Report", 14, 20);
             doc.setFontSize(10);
-            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+            doc.text(`Generated on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST`, 14, 28);
 
             // Stats
             const present = document.querySelector('.report-stat.present .report-stat-value')?.innerText || '0';
@@ -1471,6 +1594,153 @@
             }
 
             doc.save("faculty-summary-report.pdf");
+        }
+
+        // ========================================
+        // Defaulters & Absentees
+        // ========================================
+
+        function showDefaulters() {
+            if (!lastReportData || !lastReportData.defaulters) {
+                AdminCore.toast('Generate a report first', 'warning');
+                return;
+            }
+
+            const defaulters = lastReportData.defaulters;
+            const sessions = lastReportData.sessions || [];
+
+            // Populate subject filter
+            const filterEl = document.getElementById('defaulterSubjectFilter');
+            if (filterEl) {
+                const subjects = [...new Set(sessions.map(s => s.subject))];
+                filterEl.innerHTML = '<option value="all">All Subjects</option>' +
+                    subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+            }
+
+            // Populate defaulters table
+            renderDefaultersTable(defaulters);
+
+            // Show summary
+            const summaryEl = document.getElementById('defaultersSummary');
+            if (summaryEl) {
+                summaryEl.innerHTML = `
+                    <div style="margin-top: var(--space-4); padding: var(--space-4); background: var(--surface-elevated); border-radius: var(--radius-lg);">
+                        <strong>${defaulters.length}</strong> students below 75% attendance across <strong>${sessions.length}</strong> sessions
+                    </div>
+                `;
+            }
+
+            // Open modal
+            AdminCore.openModal('defaultersModal');
+        }
+
+        function renderDefaultersTable(defaulters) {
+            const tbody = document.getElementById('defaultersTableBody');
+            if (!tbody) return;
+
+            if (defaulters.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No defaulters found 🎉</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = defaulters.map(d => {
+                let statusClass = 'danger';
+                let statusText = 'Critical';
+                if (d.attendancePercentage >= 60) {
+                    statusClass = 'warning';
+                    statusText = 'Warning';
+                } else if (d.attendancePercentage >= 40) {
+                    statusClass = 'warning';
+                    statusText = 'Low';
+                }
+
+                return `
+                    <tr>
+                        <td>${d.studentCode || '--'}</td>
+                        <td>${d.name}</td>
+                        <td><strong>${d.attendancePercentage}%</strong> (${d.sessionsAttended} sessions)</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterDefaulters() {
+            if (!lastReportData) return;
+            const subject = document.getElementById('defaulterSubjectFilter').value;
+
+            if (subject === 'all') {
+                renderDefaultersTable(lastReportData.defaulters);
+            } else {
+                // Filter by finding students who attended sessions of this subject
+                const sessionIds = lastReportData.sessions
+                    .filter(s => s.subject === subject)
+                    .map(s => s.id);
+
+                // Re-filter defaulters (simplified — shows all defaulters since
+                // student data is aggregated; a full filter would need per-session data)
+                const filtered = lastReportData.defaulters.filter(d =>
+                    d.attendancePercentage < 75
+                );
+                renderDefaultersTable(filtered);
+            }
+        }
+
+        function exportDefaultersCSV() {
+            if (!lastReportData || !lastReportData.defaulters) {
+                AdminCore.toast('No defaulters data', 'warning');
+                return;
+            }
+
+            const defaulters = lastReportData.defaulters;
+            let csv = 'Student ID,Name,Email,Sessions Attended,Attendance %,Status\n';
+            defaulters.forEach(d => {
+                const status = d.attendancePercentage < 40 ? 'Critical' : d.attendancePercentage < 60 ? 'Low' : 'Warning';
+                csv += `"${d.studentCode || ''}","${d.name}","${d.email || ''}",${d.sessionsAttended},${d.attendancePercentage}%,${status}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `defaulters_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            AdminCore.toast('Defaulters CSV downloaded', 'success');
+        }
+
+        function downloadAbsentees() {
+            if (!lastReportData) {
+                AdminCore.toast('Generate a report first', 'warning');
+                return;
+            }
+
+            const students = lastReportData.students || [];
+            const sessions = lastReportData.sessions || [];
+            const totalSessions = sessions.length;
+
+            // Students who missed at least one session
+            const absentees = students.filter(s => s.sessionsAttended < totalSessions);
+
+            if (absentees.length === 0) {
+                AdminCore.toast('No absentees found — all students attended every session!', 'success');
+                return;
+            }
+
+            let csv = 'Student ID,Name,Email,Sessions Attended,Sessions Missed,Attendance %\n';
+            absentees.forEach(s => {
+                const missed = totalSessions - s.sessionsAttended;
+                csv += `"${s.studentCode || ''}","${s.name}","${s.email || ''}",${s.sessionsAttended},${missed},${s.attendancePercentage}%\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `absentees_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            AdminCore.toast(`Absentees CSV downloaded (${absentees.length} students)`, 'success');
         }
 
 
@@ -1691,15 +1961,15 @@
         // Clock Update
         function updateClock() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+            const timeString = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric' });
 
             const clockEl = document.getElementById('dashboardClock');
             if (clockEl) {
                 clockEl.innerHTML = `
                     <div style="text-align:right; line-height:1.2;">
                         <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);">${timeString}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted);">${dateString}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">${dateString} IST</div>
                     </div>
                 `;
             }

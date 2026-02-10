@@ -42,13 +42,23 @@ setInterval(() => cleanupOldNonces(1), 60 * 60 * 1000);
  */
 router.get('/', authenticate, isAdmin, async (req, res) => {
     try {
-        const result = await db.query(`
+        const { status } = req.query;
+        let query = `
             SELECT d.id, d.device_code, d.device_name, d.location_id, d.is_active, d.last_active,
                    l.name as location_name
             FROM devices d
             LEFT JOIN locations l ON d.location_id = l.id
-            ORDER BY d.device_code
-        `);
+        `;
+        const params = [];
+
+        if (status && status !== 'all') {
+            query += ` WHERE d.is_active = $1`;
+            params.push(status === 'active');
+        }
+
+        query += ` ORDER BY d.device_code`;
+
+        const result = await db.query(query, params);
 
         res.json({
             success: true,
@@ -85,6 +95,19 @@ router.post('/register', authenticate, isAdmin, [
     const { device_code, device_name, password, location_id } = req.body;
 
     try {
+        // Check for duplicates
+        const duplicateCheck = await db.query(
+            'SELECT id FROM devices WHERE LOWER(device_code) = LOWER($1) OR LOWER(device_name) = LOWER($2)',
+            [device_code.trim(), (device_name || '').trim()]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Device code or name already exists. Please choose different values.'
+            });
+        }
+
         // Hash password
         const passwordHash = bcrypt.hashSync(password, 12);
 

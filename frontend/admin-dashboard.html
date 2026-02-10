@@ -13,6 +13,11 @@
 
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .toast-container {
+            z-index: 9999 !important;
+        }
+    </style>
     <script>
         (function () {
             var theme = localStorage.getItem('geoqr-theme');
@@ -345,13 +350,20 @@
                 <div class="table-container">
                     <div class="table-header">
                         <h3 class="table-title">Location Management</h3>
-                        <button class="action-btn primary" onclick="editLocation(null)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                            Add Location
-                        </button>
+                        <div class="table-actions">
+                            <select class="filter-select" id="locationStatusFilter">
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                            <button class="action-btn primary" onclick="editLocation(null)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Add Location
+                            </button>
+                        </div>
                     </div>
                     <table class="data-table">
                         <thead>
@@ -376,13 +388,20 @@
                 <div class="table-container">
                     <div class="table-header">
                         <h3 class="table-title">Device Management</h3>
-                        <button class="action-btn primary" onclick="editDevice(null)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                            Add Device
-                        </button>
+                        <div class="table-actions">
+                            <select class="filter-select" id="deviceStatusFilter">
+                                <option value="all">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                            <button class="action-btn primary" onclick="editDevice(null)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Add Device
+                            </button>
+                        </div>
                     </div>
                     <table class="data-table">
                         <thead>
@@ -416,7 +435,7 @@
                                 <input type="text" id="studentSearch" placeholder="Search students...">
                             </div>
                             <select class="filter-select" id="studentStatusFilter">
-                                <option value="">All Status</option>
+                                <option value="all">All Status</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
@@ -696,313 +715,312 @@
             </div>
         </nav>
 
-        <!-- Toast Container -->
-        <div id="toastContainer" class="toast-container"></div>
-    </div>
+        <!-- Toast Container Moved to Body end -->
 
-    <!-- ============= MODALS ============= -->
+        <!-- ============= MODALS ============= -->
 
-    <!-- Location Modal -->
-    <div class="modal" id="locationModal">
-        <div class="modal-backdrop" onclick="AdminCore.closeModal('locationModal')"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add/Edit Location</h3>
-                <button class="modal-close" onclick="AdminCore.closeModal('locationModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="locationForm" onsubmit="event.preventDefault(); saveLocation();">
-                    <div class="form-group">
-                        <label class="form-label">Location Name</label>
-                        <input type="text" class="form-input" id="locationName" required
-                            placeholder="e.g. Science Block">
-                    </div>
-                    <div class="form-row">
+        <!-- Location Modal -->
+        <div class="modal" id="locationModal">
+            <div class="modal-backdrop" onclick="AdminCore.closeModal('locationModal')"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add/Edit Location</h3>
+                    <button class="modal-close" onclick="AdminCore.closeModal('locationModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="locationForm" onsubmit="event.preventDefault(); saveLocation();">
                         <div class="form-group">
-                            <label class="form-label">Latitude</label>
-                            <input type="number" step="any" class="form-input" id="locationLat" required>
+                            <label class="form-label">Location Name</label>
+                            <input type="text" class="form-input" id="locationName" required
+                                placeholder="e.g. Science Block">
                         </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Latitude</label>
+                                <input type="number" step="any" class="form-input" id="locationLat" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Longitude</label>
+                                <input type="number" step="any" class="form-input" id="locationLng" required>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-secondary" style="margin-top:10px;"
+                            onclick="fetchCurrentLocation()">
+                            📍 Use Current Location
+                        </button>
+
+                        <p id="gpsStatus" style="font-size:0.85em;margin-top:6px;color:var(--text-muted);">
+                        </p>
+
                         <div class="form-group">
-                            <label class="form-label">Longitude</label>
-                            <input type="number" step="any" class="form-input" id="locationLng" required>
+                            <label class="form-label">Radius (meters)</label>
+                            <input type="number" class="form-input" id="locationRadius" value="50" required>
                         </div>
-                    </div>
-
-                    <button type="button" class="btn btn-secondary" style="margin-top:10px;"
-                        onclick="fetchCurrentLocation()">
-                        📍 Use Current Location
-                    </button>
-
-                    <p id="gpsStatus" style="font-size:0.85em;margin-top:6px;color:var(--text-muted);">
-                    </p>
-
-                    <div class="form-group">
-                        <label class="form-label">Radius (meters)</label>
-                        <input type="number" class="form-input" id="locationRadius" value="50" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="AdminCore.closeModal('locationModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveLocation()">Save Location</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Device Modal -->
-    <div class="modal" id="deviceModal">
-        <div class="modal-backdrop" onclick="AdminCore.closeModal('deviceModal')"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add/Edit Device</h3>
-                <button class="modal-close" onclick="AdminCore.closeModal('deviceModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="deviceForm" onsubmit="event.preventDefault(); saveDevice();">
-                    <div class="form-group">
-                        <label class="form-label">Device Name</label>
-                        <input type="text" class="form-input" id="deviceName" placeholder="e.g. Science Lab Tab 1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Location</label>
-                        <select class="form-select" id="deviceLocation" required>
-                            <!-- Populated by JS -->
-                        </select>
-                    </div>
-                    <div class="alert info" style="margin-top:10px; font-size:0.9em;">
-                        For new devices, you will be prompted to set a Device Code and Password.
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="AdminCore.closeModal('deviceModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Confirm Modal -->
-    <div class="modal" id="confirmModal">
-        <div class="modal-backdrop" onclick="AdminCore.closeModal('confirmModal')"></div>
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-body">
-                <div class="confirm-dialog">
-                    <div class="confirm-icon warning">⚠️</div>
-                    <h3 class="confirm-title">Are you sure?</h3>
-                    <p class="confirm-message">This action cannot be undone.</p>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="AdminCore.closeModal('locationModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveLocation()">Save Location</button>
                 </div>
             </div>
-            <div class="modal-footer" style="justify-content: center;">
-                <button class="btn btn-secondary btn-cancel">Cancel</button>
-                <button class="btn btn-danger btn-confirm">Confirm</button>
+        </div>
+
+        <!-- Device Modal -->
+        <div class="modal" id="deviceModal">
+            <div class="modal-backdrop" onclick="AdminCore.closeModal('deviceModal')"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add/Edit Device</h3>
+                    <button class="modal-close" onclick="AdminCore.closeModal('deviceModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="deviceForm" onsubmit="event.preventDefault(); saveDevice();">
+                        <div class="form-group">
+                            <label class="form-label">Device Name</label>
+                            <input type="text" class="form-input" id="deviceName" placeholder="e.g. Science Lab Tab 1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Location</label>
+                            <select class="form-select" id="deviceLocation" required>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div class="alert info" style="margin-top:10px; font-size:0.9em;">
+                            For new devices, you will be prompted to set a Device Code and Password.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="AdminCore.closeModal('deviceModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/admin-core.js"></script>
-    <script src="js/admin-api.js"></script>
-    <script>
-        // ========================================
-        // State
-        // ========================================
-        let editingLocationId = null;
-        let editingDeviceId = null;
-        let currentAttendancePage = 1;
-        let currentActivityFilter = 'all';
+        <!-- Confirm Modal -->
+        <div class="modal" id="confirmModal">
+            <div class="modal-backdrop" onclick="AdminCore.closeModal('confirmModal')"></div>
+            <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-body">
+                    <div class="confirm-dialog">
+                        <div class="confirm-icon warning">⚠️</div>
+                        <h3 class="confirm-title">Are you sure?</h3>
+                        <p class="confirm-message">This action cannot be undone.</p>
+                    </div>
+                </div>
+                <div class="modal-footer" style="justify-content: center;">
+                    <button class="btn btn-secondary btn-cancel">Cancel</button>
+                    <button class="btn btn-danger btn-confirm">Confirm</button>
+                </div>
+            </div>
+        </div>
 
-        // ========================================
-        // Initialize
-        // ========================================
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check authentication and role
-            const user = Session.getUser();
-            if (!user) {
-                window.location.href = 'login.html';
-                return;
-            }
+        <!-- Scripts -->
+        <script src="js/config.js"></script>
+        <script src="js/auth.js"></script>
+        <script src="js/admin-core.js"></script>
+        <script src="js/admin-api.js"></script>
+        <script>
+            // ========================================
+            // State
+            // ========================================
+            let editingLocationId = null;
+            let editingDeviceId = null;
+            let currentAttendancePage = 1;
+            let currentActivityFilter = 'all';
 
-            if (user.role !== 'admin' && user.role !== 'faculty') {
-                const dashboards = {
-                    'student': 'dashboard.html',
-                    'device': 'device/'
-                };
-                window.location.href = dashboards[user.role] || 'login.html';
-                return;
-            }
-
-            // Update UI
-            document.getElementById('userName').textContent = user.name || 'Admin';
-            document.getElementById('userAvatar').textContent = (user.name?.charAt(0) || 'A').toUpperCase();
-
+            // ========================================
             // Initialize
-            AdminCore.initModalListeners();
-            setupEventListeners(); // Initialize UI immediately
-            loadSettings();
+            // ========================================
+            document.addEventListener('DOMContentLoaded', async () => {
+                // Check authentication and role
+                const user = Session.getUser();
+                if (!user) {
+                    window.location.href = 'login.html';
+                    return;
+                }
 
-            // Activity Filter Listeners
-            document.querySelectorAll('.filter-chip').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    AdminState.currentActivityFilter = e.target.dataset.filter;
-                    renderActivityTimeline();
+                if (user.role !== 'admin' && user.role !== 'faculty') {
+                    const dashboards = {
+                        'student': 'dashboard.html',
+                        'device': 'device/'
+                    };
+                    window.location.href = dashboards[user.role] || 'login.html';
+                    return;
+                }
+
+                // Update UI
+                document.getElementById('userName').textContent = user.name || 'Admin';
+                document.getElementById('userAvatar').textContent = (user.name?.charAt(0) || 'A').toUpperCase();
+
+                // Initialize
+                AdminCore.initModalListeners();
+                setupEventListeners(); // Initialize UI immediately
+                loadSettings();
+
+                // Activity Filter Listeners
+                document.querySelectorAll('.filter-chip').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        AdminState.currentActivityFilter = e.target.dataset.filter;
+                        renderActivityTimeline();
+                    });
                 });
+
+                try {
+                    await loadDashboardData();
+                } catch (e) { console.error('Dashboard load failed', e); }
+
+                // Start live updates (callbacks optional)
+                if (AdminCore.startLiveUpdates) {
+                    AdminCore.startLiveUpdates({
+                        updateStats: updateStats,
+                        addActivity: function (item) {
+                            // Stub: Live activity updates will refresh timeline
+                            renderActivityTimeline();
+                        }
+                    });
+                }
             });
 
-            try {
-                await loadDashboardData();
-            } catch (e) { console.error('Dashboard load failed', e); }
+            // ========================================
+            // Load Data
+            // ========================================
+            const AdminState = {
+                isLockdown: false,
+                suspiciousCount: 0,
+                previousValues: {}
+            };
 
-            // Start live updates (callbacks optional)
-            if (AdminCore.startLiveUpdates) {
-                AdminCore.startLiveUpdates({
-                    updateStats: updateStats,
-                    addActivity: function (item) {
-                        // Stub: Live activity updates will refresh timeline
-                        renderActivityTimeline();
-                    }
-                });
-            }
-        });
-
-        // ========================================
-        // Load Data
-        // ========================================
-        const AdminState = {
-            isLockdown: false,
-            suspiciousCount: 0,
-            previousValues: {}
-        };
-
-        async function loadDashboardData() {
-            try {
-                const dashboard = await AdminAPI.getDashboard();
-                if (dashboard) {
-                    // Map backend metrics to frontend state
-                    AdminState.dashboardStats = {
-                        ...dashboard.metrics,
-                        totalStudents: dashboard.metrics.students,
-                        activeLocations: dashboard.metrics.locations
-                    };
-                    AdminState.dashboardAlerts = dashboard.alerts || {};
-                }
-            } catch (e) {
-                console.error("Failed to load dashboard stats", e);
-            }
-
-            updateStats();
-            updateControlPanel();
-            updateHealthIndex();
-            renderLocationsTable();
-            renderDevicesTable();
-            renderStudentsTable();
-            renderAttendanceTable();
-            renderActivityTimeline();
-            populateFilters();
-
-            // Start 5-second live updates for control panel
-            setInterval(async () => {
-                // Refresh stats occasionally too
+            async function loadDashboardData() {
                 try {
                     const dashboard = await AdminAPI.getDashboard();
-                    if (dashboard && dashboard.metrics) {
+                    if (dashboard) {
+                        // Map backend metrics to frontend state
                         AdminState.dashboardStats = {
                             ...dashboard.metrics,
                             totalStudents: dashboard.metrics.students,
                             activeLocations: dashboard.metrics.locations
                         };
                         AdminState.dashboardAlerts = dashboard.alerts || {};
-                        updateStats();
                     }
-                } catch (e) { }
+                } catch (e) {
+                    console.error("Failed to load dashboard stats", e);
+                }
 
+                updateStats();
                 updateControlPanel();
                 updateHealthIndex();
-            }, 5000);
-        }
+                renderLocationsTable();
+                renderDevicesTable();
+                renderStudentsTable();
+                renderAttendanceTable();
+                renderActivityTimeline();
+                populateFilters();
 
-        function updateStats() {
-            const stats = AdminState.dashboardStats || {
-                totalStudents: 0,
-                activeDevices: 0,
-                todayAttendance: 0,
-                activeLocations: 0
-            };
+                // Start 5-second live updates for control panel
+                setInterval(async () => {
+                    // Refresh stats occasionally too
+                    try {
+                        const dashboard = await AdminAPI.getDashboard();
+                        if (dashboard && dashboard.metrics) {
+                            AdminState.dashboardStats = {
+                                ...dashboard.metrics,
+                                totalStudents: dashboard.metrics.students,
+                                activeLocations: dashboard.metrics.locations
+                            };
+                            AdminState.dashboardAlerts = dashboard.alerts || {};
+                            updateStats();
+                        }
+                    } catch (e) { }
 
-            // Only animate if value changed
-            const updateIfChanged = (id, value) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                const current = parseInt(el.textContent.replace(/,/g, '')) || 0;
-                if (current !== value) AdminCore.animateCounter(el, value);
-            };
-
-            updateIfChanged('totalStudents', stats.totalStudents);
-            updateIfChanged('activeDevices', stats.activeDevices);
-
-            // Calculate percentage for display
-            const pct = stats.totalStudents > 0 ? Math.round((stats.todayAttendance / stats.totalStudents) * 100) : 0;
-            document.getElementById('todayAttendance').textContent = pct + '%';
-
-            updateIfChanged('activeLocations', stats.activeLocations);
-        }
-
-        function updateControlPanel() {
-            const stats = AdminState.dashboardStats || {};
-            const alerts = AdminState.dashboardAlerts || {};
-
-            const elSession = document.getElementById('liveActiveSessions');
-            if (elSession) elSession.textContent = stats.activeSessions || 0;
-
-            const elDevice = document.getElementById('liveOnlineDevices');
-            if (elDevice) elDevice.textContent = stats.activeDevices || 0;
-
-            const elSuspicious = document.getElementById('liveSuspicious');
-            if (elSuspicious) elSuspicious.textContent = alerts.suspiciousActivity || 0;
-
-            // liveScanning requires realtime data, stub for now
-            const elScanning = document.getElementById('liveScanning');
-            if (elScanning) elScanning.textContent = 0;
-        }
-
-        function updateHealthIndex() {
-            const stats = AdminState.dashboardStats || {};
-            const attendancePct = stats.totalStudents > 0 ? ((stats.todayAttendance || 0) / stats.totalStudents) * 100 : 0;
-
-            const elVal = document.getElementById('healthValue');
-            if (elVal) elVal.textContent = Math.round(attendancePct);
-
-            const elStatus = document.getElementById('healthStatus');
-            if (elStatus) elStatus.textContent = attendancePct > 80 ? 'Excellent' : attendancePct > 50 ? 'Good' : 'Needs Attention';
-
-            // Gauge fill
-            const dashArray = 283; // 2 * pi * 45
-            const dashOffset = dashArray - (dashArray * attendancePct) / 100;
-            const gauge = document.getElementById('gaugeFill');
-            if (gauge) {
-                gauge.style.strokeDasharray = dashArray;
-                gauge.style.strokeDashoffset = dashOffset;
-            }
-        }
-
-        // ========================================
-        // Render Functions
-        // ========================================
-
-        async function renderLocationsTable() {
-            const locations = await AdminAPI.getLocations();
-            AdminState.locations = locations; // Store for editing
-            const tbody = document.getElementById('locationsTableBody');
-
-            if (locations.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No locations found</td></tr>`;
-                return;
+                    updateControlPanel();
+                    updateHealthIndex();
+                }, 5000);
             }
 
-            tbody.innerHTML = locations.map(loc => `
+            function updateStats() {
+                const stats = AdminState.dashboardStats || {
+                    totalStudents: 0,
+                    activeDevices: 0,
+                    todayAttendance: 0,
+                    activeLocations: 0
+                };
+
+                // Only animate if value changed
+                const updateIfChanged = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const current = parseInt(el.textContent.replace(/,/g, '')) || 0;
+                    if (current !== value) AdminCore.animateCounter(el, value);
+                };
+
+                updateIfChanged('totalStudents', stats.totalStudents);
+                updateIfChanged('activeDevices', stats.activeDevices);
+
+                // Calculate percentage for display
+                const pct = stats.totalStudents > 0 ? Math.round((stats.todayAttendance / stats.totalStudents) * 100) : 0;
+                document.getElementById('todayAttendance').textContent = pct + '%';
+
+                updateIfChanged('activeLocations', stats.activeLocations);
+            }
+
+            function updateControlPanel() {
+                const stats = AdminState.dashboardStats || {};
+                const alerts = AdminState.dashboardAlerts || {};
+
+                const elSession = document.getElementById('liveActiveSessions');
+                if (elSession) elSession.textContent = stats.activeSessions || 0;
+
+                const elDevice = document.getElementById('liveOnlineDevices');
+                if (elDevice) elDevice.textContent = stats.activeDevices || 0;
+
+                const elSuspicious = document.getElementById('liveSuspicious');
+                if (elSuspicious) elSuspicious.textContent = alerts.suspiciousActivity || 0;
+
+                // liveScanning requires realtime data, stub for now
+                const elScanning = document.getElementById('liveScanning');
+                if (elScanning) elScanning.textContent = 0;
+            }
+
+            function updateHealthIndex() {
+                const stats = AdminState.dashboardStats || {};
+                const attendancePct = stats.totalStudents > 0 ? ((stats.todayAttendance || 0) / stats.totalStudents) * 100 : 0;
+
+                const elVal = document.getElementById('healthValue');
+                if (elVal) elVal.textContent = Math.round(attendancePct);
+
+                const elStatus = document.getElementById('healthStatus');
+                if (elStatus) elStatus.textContent = attendancePct > 80 ? 'Excellent' : attendancePct > 50 ? 'Good' : 'Needs Attention';
+
+                // Gauge fill
+                const dashArray = 283; // 2 * pi * 45
+                const dashOffset = dashArray - (dashArray * attendancePct) / 100;
+                const gauge = document.getElementById('gaugeFill');
+                if (gauge) {
+                    gauge.style.strokeDasharray = dashArray;
+                    gauge.style.strokeDashoffset = dashOffset;
+                }
+            }
+
+            // ========================================
+            // Render Functions
+            // ========================================
+
+            async function renderLocationsTable() {
+                const status = document.getElementById('locationStatusFilter')?.value || 'all';
+                const locations = await AdminAPI.getLocations(status);
+                AdminState.locations = locations; // Store for editing
+                const tbody = document.getElementById('locationsTableBody');
+
+                if (locations.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No locations found</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = locations.map(loc => `
                 <tr>
                     <td><strong>${loc.name}</strong></td>
                     <td><code>${parseFloat(loc.latitude).toFixed(4)}, ${parseFloat(loc.longitude).toFixed(4)}</code></td>
@@ -1013,27 +1031,28 @@
                         <div style="display:flex;gap:8px;">
                             <button class="btn btn-sm btn-secondary" onclick="editLocation(${loc.id})">Edit</button>
                             ${loc.is_active ?
-                    `<button class="btn btn-sm btn-warning" onclick="toggleLocation(${loc.id}, false)">Disable</button>` :
-                    `<button class="btn btn-sm btn-primary" onclick="toggleLocation(${loc.id}, true)">Enable</button>`
-                }
+                        `<button class="btn btn-sm btn-warning" onclick="toggleLocation(${loc.id}, false)">Disable</button>` :
+                        `<button class="btn btn-sm btn-primary" onclick="toggleLocation(${loc.id}, true)">Enable</button>`
+                    }
                             <button class="btn btn-sm btn-danger" onclick="deleteLocation(${loc.id})">Delete</button>
                         </div>
                     </td>
                 </tr>
             `).join('');
-        }
-
-        async function renderDevicesTable() {
-            const devices = await AdminAPI.getDevices();
-            AdminState.devices = devices; // Store for editing
-            const tbody = document.getElementById('devicesTableBody');
-
-            if (devices.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No devices found</td></tr>`;
-                return;
             }
 
-            tbody.innerHTML = devices.map(dev => `
+            async function renderDevicesTable() {
+                const status = document.getElementById('deviceStatusFilter')?.value || 'all';
+                const devices = await AdminAPI.getDevices(status);
+                AdminState.devices = devices; // Store for editing
+                const tbody = document.getElementById('devicesTableBody');
+
+                if (devices.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No devices found</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = devices.map(dev => `
                 <tr>
                     <td><code>${dev.device_code}</code></td>
                     <td>${dev.device_name}</td>
@@ -1045,26 +1064,36 @@
                         <div style="display:flex;gap:8px;">
                             <button class="btn btn-sm btn-secondary" onclick="editDevice(${dev.id})">Edit</button>
                             ${dev.is_active ?
-                    `<button class="btn btn-sm btn-warning" onclick="toggleDevice(${dev.id}, false)">Disable</button>` :
-                    `<button class="btn btn-sm btn-primary" onclick="toggleDevice(${dev.id}, true)">Enable</button>`
-                }
+                        `<button class="btn btn-sm btn-warning" onclick="toggleDevice(${dev.id}, false)">Disable</button>` :
+                        `<button class="btn btn-sm btn-primary" onclick="toggleDevice(${dev.id}, true)">Enable</button>`
+                    }
                             <button class="btn btn-sm btn-danger" onclick="deleteDevice(${dev.id})">Delete</button>
                         </div>
                     </td>
                 </tr>
             `).join('');
-        }
-
-        async function renderStudentsTable(filters = {}) {
-            const users = await AdminAPI.getUsers({ role: 'student', ...filters });
-            const tbody = document.getElementById('studentsTableBody');
-
-            if (users.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No students found</td></tr>`;
-                return;
             }
 
-            tbody.innerHTML = users.map(s => `
+            async function renderStudentsTable(filters = {}) {
+                // Merge passed filters with UI filter
+                // Merge passed filters with UI filter
+                const statusFilter = document.getElementById('studentStatusFilter')?.value;
+                // Map UI filter to API param
+                if (statusFilter && statusFilter !== 'all' && statusFilter !== '') {
+                    filters.status = statusFilter; // 'active' or 'inactive'
+                } else {
+                    delete filters.status;
+                }
+
+                const users = await AdminAPI.getUsers({ role: 'student', ...filters });
+                const tbody = document.getElementById('studentsTableBody');
+
+                if (users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No students found</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = users.map(s => `
                 <tr>
                     <td><code>${s.student_id || '--'}</code></td>
                     <td>${s.name}</td>
@@ -1074,31 +1103,31 @@
                     <td>
                         <div style="display:flex;gap:8px;">
                             ${s.is_active ?
-                    `<button class="btn btn-sm btn-danger" onclick="toggleStudent(${s.id}, false)">Disable</button>` :
-                    `<button class="btn btn-sm btn-primary" onclick="toggleStudent(${s.id}, true)">Enable</button>`
-                }
+                        `<button class="btn btn-sm btn-danger" onclick="toggleStudent(${s.id}, false)">Disable</button>` :
+                        `<button class="btn btn-sm btn-primary" onclick="toggleStudent(${s.id}, true)">Enable</button>`
+                    }
                         </div>
                     </td>
                 </tr>
             `).join('');
-        }
+            }
 
-        async function renderAttendanceTable(page = 1) {
-            const filters = {
-                date: document.getElementById('dateFilter').value,
-                locationId: document.getElementById('locationFilter').value,
-                studentId: document.getElementById('studentFilter').value,
-                limit: 10,
-                offset: (page - 1) * 10
-            };
+            async function renderAttendanceTable(page = 1) {
+                const filters = {
+                    date: document.getElementById('dateFilter').value,
+                    locationId: document.getElementById('locationFilter').value,
+                    studentId: document.getElementById('studentFilter').value,
+                    limit: 10,
+                    offset: (page - 1) * 10
+                };
 
-            const data = await AdminAPI.getAttendance(filters);
-            const tbody = document.getElementById('attendanceTableBody');
+                const data = await AdminAPI.getAttendance(filters);
+                const tbody = document.getElementById('attendanceTableBody');
 
-            if (!data || !data.records || data.records.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No records found</td></tr>`;
-            } else {
-                tbody.innerHTML = data.records.map(a => `
+                if (!data || !data.records || data.records.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No records found</td></tr>`;
+                } else {
+                    tbody.innerHTML = data.records.map(a => `
                 <tr>
                     <td>${new Date(a.markedAt).toLocaleDateString()}</td>
                     <td>${a.student?.name || 'Unknown'}</td>
@@ -1108,518 +1137,688 @@
                     <td><span class="status-badge ${a.status === 'present' ? 'success' : 'danger'}">${a.status}</span></td>
                 </tr>
             `).join('');
+                }
+
+                // Render Pagination
+                if (data && data.pagination) {
+                    const totalPages = Math.ceil(data.pagination.total / data.pagination.limit);
+                    AdminCore.renderPagination(
+                        document.getElementById('attendancePagination'),
+                        page,
+                        totalPages > 0 ? totalPages : 1,
+                        (newPage) => renderAttendanceTable(newPage)
+                    );
+                }
             }
 
-            // Render Pagination
-            if (data && data.pagination) {
-                const totalPages = Math.ceil(data.pagination.total / data.pagination.limit);
-                AdminCore.renderPagination(
-                    document.getElementById('attendancePagination'),
-                    page,
-                    totalPages > 0 ? totalPages : 1,
-                    (newPage) => renderAttendanceTable(newPage)
-                );
-            }
-        }
+            async function renderActivityTimeline() {
+                const activity = await AdminAPI.getActivity(AdminState.currentActivityFilter);
+                const container = document.getElementById('activityTimeline');
 
-        async function renderActivityTimeline() {
-            const activity = await AdminAPI.getActivity(AdminState.currentActivityFilter);
-            const container = document.getElementById('activityTimeline');
+                // Combine logs and attendance for timeline
+                const items = [
+                    ...activity.deviceLogs.map(l => ({ ...l, type: 'device' })),
+                    ...activity.recentAttendance.map(a => ({ ...a, type: 'attendance' }))
+                ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
 
-            // Combine logs and attendance for timeline
-            const items = [
-                ...activity.deviceLogs.map(l => ({ ...l, type: 'device' })),
-                ...activity.recentAttendance.map(a => ({ ...a, type: 'attendance' }))
-            ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
-
-            container.innerHTML = items.map(item => `
+                container.innerHTML = items.map(item => `
                 <div class="activity-item">
                     <div class="activity-icon ${item.type === 'device' ? 'info' : 'success'}">
                         ${item.type === 'device' ? '📱' : '👤'}
                     </div>
                     <div class="activity-content">
-                        <strong>${item.type === 'device' ? item.deviceName : item.studentName}</strong>
-                        <p>${item.type === 'device' ? `${item.action}: ${JSON.stringify(item.details)}` : `Marked ${item.status} at ${item.location}`}</p>
+                        <strong>${item.type === 'device' ? formatActivityTitle(item) : item.studentName}</strong>
+                        <p>${item.type === 'device' ? formatActivityDetails(item) : `Marked ${item.status} at ${item.location}`}</p>
                         <span class="activity-time">${new Date(item.timestamp).toLocaleString()}</span>
                     </div>
                 </div>
             `).join('');
-        }
-        // ========================================
-        // Fetch Location
-        // ========================================
-        function fetchCurrentLocation() {
-            const status = document.getElementById('gpsStatus');
-            status.textContent = 'Requesting location permission...';
-
-            if (!navigator.geolocation) {
-                status.textContent = 'Geolocation is not supported by this browser.';
-                return;
             }
+            // ========================================
+            // Fetch Location
+            // ========================================
+            function fetchCurrentLocation() {
+                const status = document.getElementById('gpsStatus');
+                status.textContent = 'Requesting location permission...';
 
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-
-                    document.getElementById('locationLat').value = lat;
-                    document.getElementById('locationLng').value = lng;
-
-                    status.textContent = 'Location fetched successfully ✅';
-                },
-                (error) => {
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            status.textContent = 'Permission denied. Please allow location access.';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            status.textContent = 'Location information unavailable.';
-                            break;
-                        case error.TIMEOUT:
-                            status.textContent = 'Location request timed out.';
-                            break;
-                        default:
-                            status.textContent = 'Failed to fetch location.';
-                    }
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-        }
-
-
-        // ========================================
-        // Actions & CRUD
-        // ========================================
-
-        // Locations
-        function editLocation(id) {
-            AdminState.editingLocationId = id;
-            if (id) {
-                const loc = AdminState.locations.find(l => l.id === id);
-                if (loc) {
-                    document.getElementById('locationName').value = loc.name;
-                    document.getElementById('locationLat').value = loc.latitude;
-                    document.getElementById('locationLng').value = loc.longitude;
-                    document.getElementById('locationRadius').value = loc.radius;
-                }
-                AdminCore.openModal('locationModal');
-            } else {
-                document.getElementById('locationForm').reset();
-                AdminCore.openModal('locationModal');
-            }
-        }
-
-        async function saveLocation() {
-            const data = {
-                name: document.getElementById('locationName').value,
-                latitude: document.getElementById('locationLat').value,
-                longitude: document.getElementById('locationLng').value,
-                radius: document.getElementById('locationRadius').value
-            };
-
-            try {
-                if (AdminState.editingLocationId) {
-                    await AdminAPI.updateLocation(AdminState.editingLocationId, data);
-                    AdminCore.toast('Location updated', 'success');
-                } else {
-                    await AdminAPI.createLocation(data);
-                    AdminCore.toast('Location created', 'success');
-                }
-                AdminCore.closeModal('locationModal');
-                renderLocationsTable();
-            } catch (err) {
-                AdminCore.toast('Failed to save location', 'error');
-            }
-        }
-
-        async function toggleLocation(id, isActive) {
-            try {
-                await AdminAPI.updateLocation(id, { is_active: isActive });
-                renderLocationsTable();
-                AdminCore.toast(`Location ${isActive ? 'enabled' : 'disabled'}`, 'success');
-            } catch (err) {
-                AdminCore.toast('Action failed', 'error');
-            }
-        }
-
-        async function deleteLocation(id) {
-            const confirmed = await AdminCore.confirm({
-                title: 'Delete Location?',
-                message: 'This will permanently remove the location and ALL associated attendance records. This cannot be undone.',
-                confirmText: 'Delete Permanently',
-                type: 'danger'
-            });
-
-            if (!confirmed) return;
-
-            try {
-                await AdminAPI.deleteLocation(id);
-                AdminCore.toast('Location deleted permanently', 'success');
-                renderLocationsTable();
-            } catch (err) {
-                AdminCore.toast('Failed to delete location', 'error');
-            }
-        }
-
-        // Devices
-        function editDevice(id) {
-            AdminState.editingDeviceId = id;
-            if (id) {
-                const dev = AdminState.devices.find(d => d.id === id);
-                if (dev) {
-                    document.getElementById('deviceName').value = dev.device_name;
-                    document.getElementById('deviceLocation').value = dev.location_id;
-                    // Code and password usually not editable or hidden
-                }
-                AdminCore.openModal('deviceModal');
-            } else {
-                document.getElementById('deviceForm').reset();
-                AdminCore.openModal('deviceModal');
-            }
-        }
-
-        async function saveDevice() {
-            const data = {
-                device_name: document.getElementById('deviceName').value,
-                location_id: document.getElementById('deviceLocation').value,
-                device_code: document.getElementById('deviceCode')?.value || undefined, // Only for new
-                password: document.getElementById('devicePassword')?.value || undefined
-            };
-
-            try {
-                if (AdminState.editingDeviceId) {
-                    await AdminAPI.updateDevice(AdminState.editingDeviceId, data);
-                    AdminCore.toast('Device updated', 'success');
-                } else {
-                    // Need code and password for new device
-                    data.device_code = prompt("Enter Device Code (e.g. DEV-001):");
-                    data.password = prompt("Enter Device Password:");
-                    await AdminAPI.createDevice(data);
-                    AdminCore.toast('Device created', 'success');
-                }
-                AdminCore.closeModal('deviceModal');
-                renderDevicesTable();
-            } catch (err) {
-                AdminCore.toast('Failed to save device', 'error');
-            }
-        }
-
-        async function toggleDevice(id, isActive) {
-            try {
-                if (isActive) {
-                    await AdminAPI.updateDevice(id, { is_active: true });
-                } else {
-                    // This was soft delete before, now we have a separate hard delete
-                    await AdminAPI.updateDevice(id, { is_active: false });
-                }
-                renderDevicesTable();
-                AdminCore.toast(`Device ${isActive ? 'enabled' : 'disabled'}`, 'success');
-            } catch (err) {
-                AdminCore.toast('Action failed', 'error');
-            }
-        }
-
-        async function deleteDevice(id) {
-            const confirmed = await AdminCore.confirm({
-                title: 'Delete Device?',
-                message: 'This will permanently remove the device and ALL its activity logs. This cannot be undone.',
-                confirmText: 'Delete Permanently',
-                type: 'danger'
-            });
-
-            if (!confirmed) return;
-
-            try {
-                await AdminAPI.deleteDevice(id);
-                AdminCore.toast('Device deleted permanently', 'success');
-                renderDevicesTable();
-            } catch (err) {
-                AdminCore.toast('Failed to delete device', 'error');
-            }
-        }
-
-        // Students
-        async function toggleStudent(id, isActive) {
-            try {
-                await AdminAPI.updateUser(id, { is_active: isActive });
-                renderStudentsTable();
-                AdminCore.toast(`Student ${isActive ? 'enabled' : 'disabled'}`, 'success');
-            } catch (err) {
-                AdminCore.toast('Action failed', 'error');
-            }
-        }
-
-        // Settings
-        function loadSettings() {
-            const settings = SettingsManager.load();
-
-            // GPS
-            const gpsInput = document.getElementById('gpsRadius');
-            if (gpsInput) {
-                gpsInput.value = settings.gpsRadius || 50;
-                const valDisplay = document.getElementById('gpsRadiusValue');
-                if (valDisplay) valDisplay.textContent = (settings.gpsRadius || 50) + 'm';
-            }
-
-            const gpsToggle = document.getElementById('enableGpsValidation');
-            if (gpsToggle) gpsToggle.checked = settings.enableGpsValidation !== false;
-
-            // QR
-            const qrSelect = document.getElementById('qrExpiry');
-            if (qrSelect) qrSelect.value = settings.qrExpiry || 15;
-
-            // System Name
-            const sysNameEl = document.getElementById('systemName');
-            if (sysNameEl) sysNameEl.value = settings.systemName || 'GeoQR Attendance';
-        }
-
-        async function saveSettings() {
-            const settings = {
-                max_distance: document.getElementById('gpsRadius')?.value || 50,
-                qr_expiry: document.getElementById('qrExpiry')?.value || 15,
-                system_name: document.getElementById('systemName')?.value || 'GeoQR Attendance'
-            };
-
-            try {
-                await AdminAPI.updateSettings(settings);
-                AdminCore.toast('Settings saved', 'success');
-            } catch (err) {
-                AdminCore.toast('Failed to save settings', 'error');
-            }
-        }
-
-        // ========================================
-        // Emergency Lockdown
-        // ========================================
-        async function activateLockdown() {
-            const confirmed = await AdminCore.confirm({
-                title: '🚨 Emergency Lockdown',
-                message: 'This will immediately end ALL active sessions and disable ALL devices. This action cannot be undone. Are you sure you want to proceed?',
-                confirmText: 'Activate Lockdown',
-                confirmClass: 'btn-danger',
-                cancelText: 'Cancel'
-            });
-
-            if (!confirmed) return;
-
-            try {
-                AdminCore.toast('Activating emergency lockdown...', 'warning');
-
-                // End all active sessions
-                const sessions = await AdminAPI.getSessions({ status: 'active' });
-                if (sessions && sessions.length > 0) {
-                    for (const session of sessions) {
-                        await AdminAPI.endSession(session.id);
-                    }
-                }
-
-                // Disable all devices
-                const devices = await AdminAPI.getDevices();
-                if (devices && devices.length > 0) {
-                    for (const device of devices) {
-                        if (device.is_active) {
-                            await AdminAPI.updateDevice(device.id, { is_active: false });
-                        }
-                    }
-                }
-
-                AdminCore.toast('🔒 Emergency lockdown activated - all sessions ended and devices disabled', 'success');
-
-                // Refresh the dashboard
-                await loadDashboardData();
-            } catch (error) {
-                console.error('Lockdown error:', error);
-                AdminCore.toast('Lockdown failed: ' + (error.message || 'Unknown error'), 'error');
-            }
-        }
-
-        // ========================================
-        // Setup
-        // ========================================
-
-        function setupEventListeners() {
-            // Tab switching
-            document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showTab(item.dataset.tab);
-                });
-            });
-
-            // Filters
-            ['studentStatusFilter'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('change', () => renderStudentsTable());
-            });
-
-            ['dateFilter', 'locationFilter', 'studentFilter'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('change', () => renderAttendanceTable(1));
-            });
-
-            // Settings sliders
-            // Settings sliders
-            const gpsSlider = document.getElementById('gpsRadius');
-            if (gpsSlider) {
-                gpsSlider.addEventListener('input', (e) => {
-                    document.getElementById('gpsRadiusValue').textContent = e.target.value + 'm';
-                });
-            }
-
-            // Activity Filters
-            document.querySelectorAll('.filter-chip').forEach(chip => {
-                chip.addEventListener('click', () => {
-                    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-                    chip.classList.add('active');
-                    AdminState.currentActivityFilter = chip.dataset.filter;
-                    renderActivityTimeline();
-                });
-            });
-
-            // Mobile Menu Toggle
-            const mobileBtn = document.getElementById('mobileMenuBtn');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-
-            if (mobileBtn && sidebar && overlay) {
-                mobileBtn.addEventListener('click', () => {
-                    sidebar.classList.toggle('active');
-                    overlay.classList.toggle('active');
-                });
-
-                overlay.addEventListener('click', () => {
-                    sidebar.classList.remove('active');
-                    overlay.classList.remove('active');
-                });
-
-                // Close sidebar on nav click (mobile)
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        if (window.innerWidth <= 768) {
-                            sidebar.classList.remove('active');
-                            overlay.classList.remove('active');
-                        }
-                    });
-                });
-            }
-
-            // Logout
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                Session.clear();
-                window.location.href = 'login.html';
-            });
-        }
-
-        async function populateFilters() {
-            const locations = await AdminAPI.getLocations();
-            const locSelect = document.getElementById('locationFilter');
-            if (locSelect) {
-                locSelect.innerHTML = '<option value="">All Locations</option>' +
-                    locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-            }
-
-            const deviceLocSelect = document.getElementById('deviceLocation');
-            if (deviceLocSelect) {
-                deviceLocSelect.innerHTML = '<option value="">Select Location</option>' +
-                    locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-            }
-        }
-
-
-        async function downloadAdminReportPDF() {
-            try {
-                AdminCore.toast('Generating Report... Please wait', 'info');
-
-                // Fetch full attendance logs
-                const date = document.getElementById('dateFilter').value;
-                const locationId = document.getElementById('locationFilter').value;
-
-                // Using existing API wrapper but with higher limit
-                const response = await AdminAPI.getAttendance({
-                    limit: 1000,
-                    date: date,
-                    locationId: locationId
-                });
-
-                if (!response || !response.records || response.records.length === 0) {
-                    AdminCore.toast('No data available to export', 'warning');
+                if (!navigator.geolocation) {
+                    status.textContent = 'Geolocation is not supported by this browser.';
                     return;
                 }
 
-                const headers = ["Date", "Student", "Location", "Session", "Time", "Status"];
-                const data = response.records.map(r => [
-                    new Date(r.markedAt).toLocaleDateString(),
-                    r.student?.name || 'Unknown',
-                    r.location?.name || '--',
-                    r.session?.subject || '-',
-                    new Date(r.markedAt).toLocaleTimeString(),
-                    r.status
-                ]);
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
 
-                AdminCore.generatePDF({
-                    title: 'Admin Attendance Report',
-                    subtitle: date ? `Filtered by Date: ${date}` : 'All Recent Records',
-                    filename: `admin_attendance_report.pdf`,
-                    headers: headers,
-                    data: data
+                        document.getElementById('locationLat').value = lat;
+                        document.getElementById('locationLng').value = lng;
+
+                        status.textContent = 'Location fetched successfully ✅';
+                    },
+                    (error) => {
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                status.textContent = 'Permission denied. Please allow location access.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                status.textContent = 'Location information unavailable.';
+                                break;
+                            case error.TIMEOUT:
+                                status.textContent = 'Location request timed out.';
+                                break;
+                            default:
+                                status.textContent = 'Failed to fetch location.';
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            }
+
+
+            // ========================================
+            // Actions & CRUD
+            // ========================================
+
+            // Locations
+            function editLocation(id) {
+                AdminState.editingLocationId = id;
+                if (id) {
+                    const loc = AdminState.locations.find(l => l.id === id);
+                    if (loc) {
+                        document.getElementById('locationName').value = loc.name;
+                        document.getElementById('locationLat').value = loc.latitude;
+                        document.getElementById('locationLng').value = loc.longitude;
+                        document.getElementById('locationRadius').value = loc.radius;
+                    }
+                    AdminCore.openModal('locationModal');
+                } else {
+                    document.getElementById('locationForm').reset();
+                    AdminCore.openModal('locationModal');
+                }
+            }
+
+            async function saveLocation() {
+                const data = {
+                    name: document.getElementById('locationName').value,
+                    latitude: document.getElementById('locationLat').value,
+                    longitude: document.getElementById('locationLng').value,
+                    radius: document.getElementById('locationRadius').value
+                };
+
+                try {
+                    if (AdminState.editingLocationId) {
+                        await AdminAPI.updateLocation(AdminState.editingLocationId, data);
+                        AdminCore.toast('Location updated', 'success');
+                    } else {
+                        await AdminAPI.createLocation(data);
+                        AdminCore.toast('Location created', 'success');
+                    }
+                    AdminCore.closeModal('locationModal');
+                    renderLocationsTable();
+                } catch (err) {
+                    AdminCore.toast('Failed to save location', 'error');
+                }
+            }
+
+            async function toggleLocation(id, isActive) {
+                try {
+                    await AdminAPI.updateLocation(id, { is_active: isActive });
+                    renderLocationsTable();
+                    AdminCore.toast(`Location ${isActive ? 'enabled' : 'disabled'}`, 'success');
+                } catch (err) {
+                    AdminCore.toast('Action failed', 'error');
+                }
+            }
+
+            async function deleteLocation(id) {
+                const confirmed = await AdminCore.confirm({
+                    title: 'Delete Location?',
+                    message: 'This will permanently remove the location and ALL associated attendance records. This cannot be undone.',
+                    confirmText: 'Delete Permanently',
+                    type: 'danger'
                 });
 
-                AdminCore.toast('Report downloaded successfully', 'success');
-            } catch (err) {
-                console.error(err);
-                AdminCore.toast('Failed to generate PDF', 'error');
+                if (!confirmed) return;
+
+                try {
+                    await AdminAPI.deleteLocation(id);
+                    AdminCore.toast('Location deleted permanently', 'success');
+                    renderLocationsTable();
+                } catch (err) {
+                    AdminCore.toast('Failed to delete location', 'error');
+                }
             }
-        }
 
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.nav-item[data-tab]').forEach(item => item.classList.remove('active'));
+            // Devices
+            function editDevice(id) {
+                AdminState.editingDeviceId = id;
+                if (id) {
+                    const dev = AdminState.devices.find(d => d.id === id);
+                    if (dev) {
+                        document.getElementById('deviceName').value = dev.device_name;
+                        document.getElementById('deviceLocation').value = dev.location_id;
+                        // Code and password usually not editable or hidden
+                    }
+                    AdminCore.openModal('deviceModal');
+                } else {
+                    document.getElementById('deviceForm').reset();
+                    AdminCore.openModal('deviceModal');
+                }
+            }
 
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => item.classList.add('active'));
+            async function saveDevice() {
+                const data = {
+                    device_name: document.getElementById('deviceName').value,
+                    location_id: document.getElementById('deviceLocation').value,
+                    device_code: document.getElementById('deviceCode')?.value || undefined, // Only for new
+                    password: document.getElementById('devicePassword')?.value || undefined
+                };
 
-            // Load tab specific data
-            if (tabName === 'locations') renderLocationsTable();
-            if (tabName === 'devices') renderDevicesTable();
-            if (tabName === 'students') renderStudentsTable();
-            if (tabName === 'attendance') renderAttendanceTable();
-            if (tabName === 'settings') loadSettings();
-        }
+                try {
+                    if (AdminState.editingDeviceId) {
+                        await AdminAPI.updateDevice(AdminState.editingDeviceId, data);
+                        AdminCore.toast('Device updated', 'success');
+                    } else {
+                        // Need code and password for new device
+                        data.device_code = prompt("Enter Device Code (e.g. DEV-001):");
+                        data.password = prompt("Enter Device Password:");
+                        await AdminAPI.createDevice(data);
+                        AdminCore.toast('Device created', 'success');
+                    }
+                    AdminCore.closeModal('deviceModal');
+                    renderDevicesTable();
+                } catch (err) {
+                    AdminCore.toast('Failed to save device', 'error');
+                }
+            }
+
+            async function toggleDevice(id, isActive) {
+                try {
+                    if (isActive) {
+                        await AdminAPI.updateDevice(id, { is_active: true });
+                    } else {
+                        // This was soft delete before, now we have a separate hard delete
+                        await AdminAPI.updateDevice(id, { is_active: false });
+                    }
+                    renderDevicesTable();
+                    AdminCore.toast(`Device ${isActive ? 'enabled' : 'disabled'}`, 'success');
+                } catch (err) {
+                    AdminCore.toast('Action failed', 'error');
+                }
+            }
+
+            async function deleteDevice(id) {
+                const confirmed = await AdminCore.confirm({
+                    title: 'Delete Device?',
+                    message: 'This will permanently remove the device and ALL its activity logs. This cannot be undone.',
+                    confirmText: 'Delete Permanently',
+                    type: 'danger'
+                });
+
+                if (!confirmed) return;
+
+                try {
+                    await AdminAPI.deleteDevice(id);
+                    AdminCore.toast('Device deleted permanently', 'success');
+                    renderDevicesTable();
+                } catch (err) {
+                    AdminCore.toast('Failed to delete device', 'error');
+                }
+            }
+
+            // Students
+            async function toggleStudent(id, isActive) {
+                try {
+                    await AdminAPI.updateUser(id, { is_active: isActive });
+                    renderStudentsTable();
+                    AdminCore.toast(`Student ${isActive ? 'enabled' : 'disabled'}`, 'success');
+                } catch (err) {
+                    AdminCore.toast('Action failed', 'error');
+                }
+            }
+
+            // Settings
+            async function loadSettings() {
+                try {
+                    const settings = await AdminAPI.getSettings();
+
+                    // Fallback to defaults if API returns empty
+                    if (!settings) return;
+
+                    // Save to local for offline backup
+                    SettingsManager.save(settings);
+
+                    // GPS
+                    const gpsInput = document.getElementById('gpsRadius');
+                    if (gpsInput) {
+                        gpsInput.value = settings.gpsRadius || 50;
+                        const valDisplay = document.getElementById('gpsRadiusValue');
+                        if (valDisplay) valDisplay.textContent = (settings.gpsRadius || 50) + 'm';
+                    }
+
+                    const gpsToggle = document.getElementById('enableGpsValidation');
+                    if (gpsToggle) gpsToggle.checked = settings.enableGpsValidation !== false;
+
+                    // QR
+                    const qrSelect = document.getElementById('qrExpiry');
+                    if (qrSelect) qrSelect.value = settings.qrExpiry || 15;
+
+                    // System Name
+                    const sysNameEl = document.getElementById('systemName');
+                    if (sysNameEl) sysNameEl.value = settings.systemName || 'GeoQR Attendance';
+                } catch (err) {
+                    console.error('Failed to load settings:', err);
+                }
+            }
+
+            async function saveSettings() {
+                const settings = {
+                    max_distance: document.getElementById('gpsRadius')?.value || 50,
+                    qr_expiry: document.getElementById('qrExpiry')?.value || 15,
+                    system_name: document.getElementById('systemName')?.value || 'GeoQR Attendance'
+                };
+
+                try {
+                    await AdminAPI.updateSettings(settings);
+                    AdminCore.toast('Settings saved', 'success');
+                } catch (err) {
+                    AdminCore.toast('Failed to save settings', 'error');
+                }
+            }
+
+            // ========================================
+            // Emergency Lockdown
+            // ========================================
+            async function activateLockdown() {
+                const confirmed = await AdminCore.confirm({
+                    title: '🚨 Emergency Lockdown',
+                    message: 'This will immediately end ALL active sessions and disable ALL devices. This action cannot be undone. Are you sure you want to proceed?',
+                    confirmText: 'Activate Lockdown',
+                    confirmClass: 'btn-danger',
+                    cancelText: 'Cancel'
+                });
+
+                if (!confirmed) return;
+
+                try {
+                    AdminCore.toast('Activating emergency lockdown...', 'warning');
+
+                    // End all active sessions
+                    const sessions = await AdminAPI.getSessions({ status: 'active' });
+                    if (sessions && sessions.length > 0) {
+                        for (const session of sessions) {
+                            await AdminAPI.endSession(session.id);
+                        }
+                    }
+
+                    // Disable all devices
+                    const devices = await AdminAPI.getDevices();
+                    if (devices && devices.length > 0) {
+                        for (const device of devices) {
+                            if (device.is_active) {
+                                await AdminAPI.updateDevice(device.id, { is_active: false });
+                            }
+                        }
+                    }
+
+                    AdminCore.toast('🔒 Emergency lockdown activated - all sessions ended and devices disabled', 'success');
+
+                    // Refresh the dashboard
+                    await loadDashboardData();
+                } catch (error) {
+                    console.error('Lockdown error:', error);
+                    AdminCore.toast('Lockdown failed: ' + (error.message || 'Unknown error'), 'error');
+                }
+            }
+
+            // ========================================
+            // Setup
+            // ========================================
+
+            function setupEventListeners() {
+                // Tab switching
+                document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showTab(item.dataset.tab);
+                    });
+                });
+
+                // Filters
+                ['studentStatusFilter'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('change', () => renderStudentsTable());
+                });
+
+                ['locationStatusFilter'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('change', () => renderLocationsTable());
+                });
+
+                ['deviceStatusFilter'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('change', () => renderDevicesTable());
+                });
+
+                ['dateFilter', 'locationFilter', 'studentFilter'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('change', () => renderAttendanceTable(1));
+                });
+
+                // Settings sliders
+                // Settings sliders
+                const gpsSlider = document.getElementById('gpsRadius');
+                if (gpsSlider) {
+                    gpsSlider.addEventListener('input', (e) => {
+                        document.getElementById('gpsRadiusValue').textContent = e.target.value + 'm';
+                    });
+                }
+
+                // Activity Filters
+                document.querySelectorAll('.filter-chip').forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+                        chip.classList.add('active');
+                        AdminState.currentActivityFilter = chip.dataset.filter;
+                        renderActivityTimeline();
+                    });
+                });
+
+                // Student Search & Filter
+                const studentSearch = document.getElementById('studentSearch');
+                if (studentSearch) {
+                    studentSearch.addEventListener('input', (e) => {
+                        renderStudentsTable({ search: e.target.value });
+                    });
+                }
+
+                const studentStatusFilter = document.getElementById('studentStatusFilter');
+                if (studentStatusFilter) {
+                    studentStatusFilter.addEventListener('change', () => {
+                        renderStudentsTable();
+                    });
+                }
+
+                // Mobile Menu Toggle
+                const mobileBtn = document.getElementById('mobileMenuBtn');
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+
+                if (mobileBtn && sidebar && overlay) {
+                    mobileBtn.addEventListener('click', () => {
+                        sidebar.classList.toggle('active');
+                        overlay.classList.toggle('active');
+                    });
+
+                    overlay.addEventListener('click', () => {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    });
+
+                    // Close sidebar on nav click (mobile)
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            if (window.innerWidth <= 768) {
+                                sidebar.classList.remove('active');
+                                overlay.classList.remove('active');
+                            }
+                        });
+                    });
+                }
+
+                // Logout
+                document.getElementById('logoutBtn').addEventListener('click', () => {
+                    Session.clear();
+                    window.location.href = 'login.html';
+                });
+            }
+
+            async function populateFilters() {
+                const locations = await AdminAPI.getLocations();
+                const locSelect = document.getElementById('locationFilter');
+                if (locSelect) {
+                    locSelect.innerHTML = '<option value="">All Locations</option>' +
+                        locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                }
+
+                const deviceLocSelect = document.getElementById('deviceLocation');
+                if (deviceLocSelect) {
+                    deviceLocSelect.innerHTML = '<option value="">Select Location</option>' +
+                        locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                }
+            }
 
 
-        // Clock Update
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+            async function downloadAdminReportPDF() {
+                try {
+                    AdminCore.toast('Generating PDF...', 'info');
 
-            const clockEl = document.getElementById('dashboardClock');
-            if (clockEl) {
-                clockEl.innerHTML = `
+                    const date = document.getElementById('dateFilter').value;
+                    const locationId = document.getElementById('locationFilter').value;
+                    const studentId = document.getElementById('studentFilter').value;
+
+                    // Build query params
+                    const params = new URLSearchParams();
+                    if (date) params.append('date', date);
+                    if (locationId) params.append('locationId', locationId);
+                    if (studentId) params.append('studentId', studentId);
+
+                    // Add auth token to query or handle via cookie?
+                    // Providing token via URL is risky but standard for basic file downloads without blobs.
+                    // Better approach: fetch blob and download.
+
+                    const token = Session.getToken();
+                    const url = `${AdminAPI.getApiUrl()}/api/admin/reports/pdf?${params.toString()}`;
+
+                    // Using axios to download blob to support auth header
+                    const response = await axios.get(url, {
+                        responseType: 'blob',
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+
+                    // Create link to download
+                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                    const link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = `attendance_report_${date || 'all'}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    AdminCore.toast('Report downloaded successfully', 'success');
+                } catch (err) {
+                    console.error(err);
+                    AdminCore.toast('Failed to generate PDF', 'error');
+                }
+            }
+
+            function showTab(tabName) {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.nav-item[data-tab]').forEach(item => item.classList.remove('active'));
+
+                document.getElementById(`tab-${tabName}`).classList.add('active');
+                document.querySelectorAll(`[data-tab="${tabName}"]`).forEach(item => item.classList.add('active'));
+
+                // Load tab specific data
+                if (tabName === 'locations') renderLocationsTable();
+                if (tabName === 'devices') renderDevicesTable();
+                if (tabName === 'students') renderStudentsTable();
+                if (tabName === 'attendance') renderAttendanceTable();
+                if (tabName === 'settings') loadSettings();
+            }
+
+
+            // Real-time Updates
+            function initRealtime() {
+                const token = Session.getToken();
+                if (!token) return;
+
+                // Close existing connection
+                if (window.adminEventSource) {
+                    window.adminEventSource.close();
+                }
+
+                const url = `${AdminAPI.getApiUrl()}/api/realtime/admin?token=${token}`;
+                const evtSource = new EventSource(url);
+                window.adminEventSource = evtSource;
+
+                evtSource.onopen = () => {
+                    console.log('📡 Connected to Admin Live Feed');
+                    document.getElementById('connectionStatus')?.classList.add('online');
+                };
+
+                evtSource.onmessage = (event) => {
+                    // Keep alive ping
+                    // console.log('Ping:', event.data);
+                };
+
+                evtSource.addEventListener('activity', (event) => {
+                    const data = JSON.parse(event.data);
+                    console.log('🔔 Activity:', data);
+
+                    // Show toast
+                    const actionText = data.action.replace(/_/g, ' ').toUpperCase();
+                    // AdminCore.toast(`New Activity: ${actionText}`, 'info');
+
+                    // Add to timeline
+                    const timeline = document.getElementById('activityTimeline');
+                    if (timeline) {
+                        const item = document.createElement('div');
+                        item.className = 'activity-item new-item';
+                        item.innerHTML = `
+                        <div class="activity-icon ${getActivityIconClass(data.action)}">
+                            ${getActivityIcon(data.action)}
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="activity-title">${formatActivityTitle(data)}</span>
+                                <span class="activity-time">Just now</span>
+                            </div>
+                            <div class="activity-details">${formatActivityDetails(data)}</div>
+                        </div>
+                    `;
+                        timeline.insertBefore(item, timeline.firstChild);
+
+                        // Limit items
+                        if (timeline.children.length > 50) {
+                            timeline.removeChild(timeline.lastChild);
+                        }
+                    }
+                });
+
+                evtSource.onerror = (err) => {
+                    console.error('SSE Error:', err);
+                    evtSource.close();
+                    // Retry in 5s
+                    setTimeout(initRealtime, 5000);
+                };
+            }
+
+            // Helpers for activity log
+            function getActivityIconClass(action) {
+                if (action.includes('scan')) return 'icon-scan';
+                if (action.includes('auth') || action.includes('login')) return 'icon-auth';
+                if (action.includes('create') || action.includes('update')) return 'icon-manage';
+                if (action.includes('suspicious') || action.includes('failed')) return 'icon-alert';
+                return 'icon-info';
+            }
+
+            function getActivityIcon(action) {
+                // Return SVG based on action
+                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+            }
+
+            function formatActivityTitle(data) {
+                const actionMap = {
+                    'user_created': 'User Created',
+                    'user_updated': 'User Updated',
+                    'location_created': 'Location Created',
+                    'location_updated': 'Location Updated',
+                    'location_deleted': 'Location Deleted',
+                    'device_registered': 'Device Registered',
+                    'device_updated': 'Device Updated',
+                    'device_deleted': 'Device Deleted',
+                    'session_started': 'Session Started',
+                    'session_ended': 'Session Ended',
+                    'auth_success': 'Device Authenticaton',
+                    'auth_failed': 'Authentication Failed',
+                    'scan_success': 'Attendance Marked',
+                    'scan_rejected': 'Scan Rejected',
+                    'settings_updated': 'System Settings Updated'
+                };
+                return actionMap[data.action] || data.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            }
+
+            function formatActivityDetails(data) {
+                if (!data.details) return '';
+
+                try {
+                    const details = typeof data.details === 'string' ? JSON.parse(data.details) : data.details;
+                    const parts = [];
+
+                    // Common fields to show
+                    if (details.name) parts.push(`Name: <strong>${details.name}</strong>`);
+                    if (details.email) parts.push(`Email: ${details.email}`);
+                    if (details.device_name) parts.push(`Device: <strong>${details.device_name}</strong>`);
+                    if (details.subject) parts.push(`Subject: ${details.subject}`);
+                    if (details.reason) parts.push(`Reason: <span class="text-danger">${details.reason}</span>`);
+                    if (details.updates) {
+                        const changes = Object.keys(details.updates).join(', ');
+                        parts.push(`Changed: ${changes}`);
+                    }
+
+                    // Fallback if no specific fields found but not empty
+                    if (parts.length === 0 && Object.keys(details).length > 0) {
+                        // Filter out internal IDs if possible, or just show reasonable keys
+                        return Object.entries(details)
+                            .filter(([k]) => !k.includes('_id') && k !== 'by' && k !== 'id')
+                            .map(([k, v]) => `${k}: ${v}`).join(', ');
+                    }
+
+                    return parts.join(' • ');
+                } catch (e) {
+                    return typeof data.details === 'string' ? data.details : JSON.stringify(data.details);
+                }
+            }
+
+            // Initialize Realtime
+            initRealtime();
+
+            // Clock Update
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateString = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+                const clockEl = document.getElementById('dashboardClock');
+                if (clockEl) {
+                    clockEl.innerHTML = `
                     <div style="text-align:right; line-height:1.2;">
                         <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary);">${timeString}</div>
                         <div style="font-size:0.8rem; color:var(--text-muted);">${dateString}</div>
                     </div>
                 `;
+                }
             }
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-    </script>
-    <style>
-        .tab-content {
-            display: none;
-        }
+            setInterval(updateClock, 1000);
+            updateClock();
+        </script>
+        <style>
+            .tab-content {
+                display: none;
+            }
 
-        .tab-content.active {
-            display: block;
-        }
-    </style>
-    <script src="js/theme-engine.js"></script>
+            .tab-content.active {
+                display: block;
+            }
+        </style>
+        <div id="toastContainer" class="toast-container"></div>
+        <script src="js/theme-engine.js"></script>
 </body>
 
 </html>

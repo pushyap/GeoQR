@@ -6,13 +6,50 @@ const express = require('express');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { authenticateDevice } = require('../middleware/deviceAuth');
-const { isFacultyOrAdmin } = require('../middleware/roleCheck');
+const { isFacultyOrAdmin, isAdmin } = require('../middleware/roleCheck');
 
 const router = express.Router();
 
 // Store active SSE connections
 const sessionConnections = new Map(); // sessionId -> Set of response objects
 const deviceConnections = new Map();  // deviceId -> Set of response objects
+
+const adminConnections = new Set(); // Set of response objects for admin dashboard
+
+// Helper to broadcast to admins
+const broadcastToAdmin = (event, data) => {
+    adminConnections.forEach(res => {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    });
+};
+
+// Export broadcast function for use in other files
+module.exports.broadcastToAdmin = broadcastToAdmin;
+
+/**
+ * GET /api/realtime/admin
+ * SSE endpoint for admin dashboard live updates
+ */
+router.get('/admin', authenticate, isAdmin, (req, res) => {
+    // SST Setup
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    // Add to pool
+    adminConnections.add(res);
+
+    // Initial connection message
+    res.write('event: connected\n');
+    res.write(`data: ${JSON.stringify({ message: 'Connected to Admin Live Feed' })}\n\n`);
+
+    // Remove on close
+    req.on('close', () => {
+        adminConnections.delete(res);
+    });
+});
 
 /**
  * GET /api/realtime/session/:id
@@ -222,5 +259,6 @@ module.exports = {
     broadcastToSession,
     broadcastToDevice,
     notifyAttendance,
-    notifyDeviceScan
+    notifyDeviceScan,
+    broadcastToAdmin
 };

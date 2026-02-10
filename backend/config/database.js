@@ -103,8 +103,14 @@ async function initializeDatabase() {
                 subject VARCHAR(100),
                 start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 end_time TIMESTAMP,
-                is_active BOOLEAN DEFAULT true
+                is_active BOOLEAN DEFAULT true,
+                expected_students INTEGER DEFAULT 60
             )
+        `);
+
+        // Migration: add expected_students if missing (for existing databases)
+        await db.query(`
+            ALTER TABLE sessions ADD COLUMN IF NOT EXISTS expected_students INTEGER DEFAULT 60
         `);
 
         // 5. QR Tokens table (references devices, locations, sessions)

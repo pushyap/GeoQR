@@ -55,7 +55,7 @@ router.get('/dashboard', authenticate, isFaculty, async (req, res) => {
         // 4. Active session details (if any)
         const activeSessionResult = await db.query(`
             SELECT 
-                s.id, s.subject, s.start_time,
+                s.id, s.subject, s.start_time, s.expected_students,
                 l.name as location_name,
                 (SELECT COUNT(*) FROM attendance_logs WHERE session_id = s.id) as attendance_count
             FROM sessions s
@@ -68,7 +68,7 @@ router.get('/dashboard', authenticate, isFaculty, async (req, res) => {
         // 5. Recent sessions
         const recentSessions = await db.query(`
             SELECT 
-                s.id, s.subject, s.start_time, s.end_time, s.is_active,
+                s.id, s.subject, s.start_time, s.end_time, s.is_active, s.expected_students,
                 l.name as location_name,
                 (SELECT COUNT(*) FROM attendance_logs WHERE session_id = s.id) as attendance_count
             FROM sessions s
@@ -116,6 +116,7 @@ router.get('/dashboard', authenticate, isFaculty, async (req, res) => {
                     startTime: s.start_time,
                     endTime: s.end_time,
                     isActive: s.is_active,
+                    expectedStudents: s.expected_students || 60,
                     attendanceCount: parseInt(s.attendance_count)
                 })),
                 locations: locationsResult.rows
@@ -295,7 +296,8 @@ router.get('/attendance/session/:id', authenticate, isFacultyOrAdmin, async (req
                 faculty: session.faculty_name,
                 startTime: session.start_time,
                 endTime: session.end_time,
-                isActive: session.is_active
+                isActive: session.is_active,
+                expectedStudents: session.expected_students || 60
             },
             summary: {
                 total,
@@ -527,6 +529,180 @@ router.get('/students', authenticate, isFaculty, async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch students'
+        });
+    }
+});
+
+/**
+ * GET /api/faculty/suspicious
+ * Suspicious activity logs for faculty's sessions
+ */
+router.get('/suspicious', authenticate, isFaculty, async (req, res) => {
+    const facultyId = req.user.id;
+    const { limit = 20 } = req.query;
+
+    try {
+        const result = await db.query(`
+            SELECT 
+                sl.id, sl.event_type, sl.description, sl.risk_score, sl.created_at,
+                u.name as student_name, u.student_id,
+                s.subject, s.id as session_id
+            FROM suspicious_logs sl
+            JOIN users u ON sl.student_id = u.id
+            JOIN sessions s ON sl.session_id = s.id
+            WHERE s.faculty_id = $1
+            ORDER BY sl.created_at DESC
+            LIMIT $2
+        `, [facultyId, limit]);
+
+        res.json({
+            success: true,
+            logs: result.rows
+        });
+    } catch (error) {
+        console.error('Faculty suspicious logs error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch suspicious logs'
+        });
+    }
+});
+
+// =========================================
+// FACULTY REPORTS
+// =========================================
+
+/**
+ * GET /api/faculty/reports
+ * Generate attendance report with session details and student-level data
+ */
+router.get('/reports', authenticate, isFaculty, async (req, res) => {
+    const facultyId = req.user.id;
+    const { sessionId, startDate, endDate } = req.query;
+
+    try {
+        // Build session query with optional filters
+        let sessionQuery = `
+            SELECT 
+                s.id, s.subject, s.start_time, s.end_time, s.is_active, s.expected_students,
+                l.name as location_name,
+                COUNT(al.id) as total_attendance,
+                COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
+                COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count
+            FROM sessions s
+            LEFT JOIN locations l ON s.location_id = l.id
+            LEFT JOIN attendance_logs al ON al.session_id = s.id
+            WHERE s.faculty_id = $1
+        `;
+        const params = [facultyId];
+        let paramIdx = 2;
+
+        if (sessionId) {
+            sessionQuery += ` AND s.id = $${paramIdx}`;
+            params.push(sessionId);
+            paramIdx++;
+        }
+        if (startDate) {
+            sessionQuery += ` AND s.start_time >= $${paramIdx}`;
+            params.push(startDate);
+            paramIdx++;
+        }
+        if (endDate) {
+            sessionQuery += ` AND s.start_time <= $${paramIdx}`;
+            params.push(endDate + 'T23:59:59');
+            paramIdx++;
+        }
+
+        sessionQuery += ` GROUP BY s.id, l.name ORDER BY s.start_time DESC`;
+
+        const sessionsResult = await db.query(sessionQuery, params);
+
+        // Get per-student attendance across all matching sessions
+        let studentQuery = `
+            SELECT 
+                u.id as student_id, u.name as student_name, u.student_id as student_code, u.email,
+                COUNT(al.id) as sessions_attended,
+                COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
+                COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count
+            FROM attendance_logs al
+            JOIN users u ON al.student_id = u.id
+            JOIN sessions s ON al.session_id = s.id
+            WHERE s.faculty_id = $1
+        `;
+        const studentParams = [facultyId];
+        let studentParamIdx = 2;
+
+        if (sessionId) {
+            studentQuery += ` AND s.id = $${studentParamIdx}`;
+            studentParams.push(sessionId);
+            studentParamIdx++;
+        }
+        if (startDate) {
+            studentQuery += ` AND s.start_time >= $${studentParamIdx}`;
+            studentParams.push(startDate);
+            studentParamIdx++;
+        }
+        if (endDate) {
+            studentQuery += ` AND s.start_time <= $${studentParamIdx}`;
+            studentParams.push(endDate + 'T23:59:59');
+            studentParamIdx++;
+        }
+
+        studentQuery += ` GROUP BY u.id, u.name, u.student_id, u.email ORDER BY u.name`;
+
+        const studentsResult = await db.query(studentQuery, studentParams);
+
+        const totalSessions = sessionsResult.rows.length;
+
+        // Compute defaulters (students with < 75% attendance)
+        const students = studentsResult.rows.map(s => ({
+            studentId: s.student_id,
+            studentCode: s.student_code,
+            name: s.student_name,
+            email: s.email,
+            sessionsAttended: parseInt(s.sessions_attended),
+            presentCount: parseInt(s.present_count),
+            lateCount: parseInt(s.late_count),
+            attendancePercentage: totalSessions > 0
+                ? Math.round((parseInt(s.sessions_attended) / totalSessions) * 100)
+                : 0
+        }));
+
+        const defaulters = students.filter(s => s.attendancePercentage < 75);
+
+        res.json({
+            success: true,
+            report: {
+                sessions: sessionsResult.rows.map(s => ({
+                    id: s.id,
+                    subject: s.subject,
+                    start_time: s.start_time,
+                    end_time: s.end_time,
+                    location: s.location_name,
+                    expected_students: s.expected_students || 60,
+                    attendance: {
+                        present: parseInt(s.present_count),
+                        late: parseInt(s.late_count),
+                        total: parseInt(s.total_attendance)
+                    }
+                })),
+                totalSessions,
+                students,
+                defaulters,
+                summary: {
+                    totalPresent: students.reduce((acc, s) => acc + s.presentCount, 0),
+                    totalLate: students.reduce((acc, s) => acc + s.lateCount, 0),
+                    uniqueStudents: students.length,
+                    defaulterCount: defaulters.length
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Faculty reports error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate report'
         });
     }
 });
