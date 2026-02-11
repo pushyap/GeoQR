@@ -324,7 +324,6 @@ html.theme-transitioning *::after {
 .feature-card,
 .role-card,
 .step-content,
-.tech-item,
 .cta-card {
     background: var(--glass-bg);
     backdrop-filter: var(--glass-blur);
@@ -339,8 +338,7 @@ html.theme-transitioning *::after {
 .card:hover,
 .stat-card:hover,
 .feature-card:hover,
-.role-card:hover,
-.tech-item:hover {
+.role-card:hover {
     transform: translateY(-4px) scale(1.02);
     box-shadow: var(--card-shadow-hover);
 }
@@ -402,8 +400,7 @@ html.theme-transitioning *::after {
     .card:hover,
     .stat-card:hover,
     .feature-card:hover,
-    .role-card:hover,
-    .tech-item:hover {
+    .role-card:hover {
         transform: none;
     }
 
@@ -492,7 +489,6 @@ html.theme-transitioning *::after {
 [data-theme="soft-light-pro"] .feature-card,
 [data-theme="soft-light-pro"] .role-card,
 [data-theme="soft-light-pro"] .step-content,
-[data-theme="soft-light-pro"] .tech-item,
 [data-theme="soft-light-pro"] .cta-card,
 [data-theme="soft-light-pro"] .session-card {
     background: #ffffff !important;
@@ -504,8 +500,7 @@ html.theme-transitioning *::after {
 [data-theme="soft-light-pro"] .card:hover,
 [data-theme="soft-light-pro"] .stat-card:hover,
 [data-theme="soft-light-pro"] .feature-card:hover,
-[data-theme="soft-light-pro"] .role-card:hover,
-[data-theme="soft-light-pro"] .tech-item:hover {
+[data-theme="soft-light-pro"] .role-card:hover {
     box-shadow: 0 12px 36px rgba(79, 70, 229, 0.18) !important;
 }
 

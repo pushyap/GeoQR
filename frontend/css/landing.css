@@ -358,17 +358,17 @@
    Features Section
    ======================================== */
 .features-section {
-    padding: var(--space-16) 0;
+    padding: 6rem 0;
 }
 
 .features-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-6);
+    gap: var(--space-8);
 }
 
 .feature-card {
-    padding: var(--space-8);
+    padding: var(--space-10);
     text-align: center;
     transition: all var(--transition-normal);
     opacity: 0;
@@ -387,9 +387,9 @@
 }
 
 .feature-icon {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto var(--space-5);
+    width: 72px;
+    height: 72px;
+    margin: 0 auto var(--space-6);
     background: var(--gradient-primary);
     border-radius: var(--radius-xl);
     display: flex;
@@ -398,28 +398,28 @@
 }
 
 .feature-icon svg {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     color: white;
 }
 
 .feature-card h3 {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 600;
     margin-bottom: var(--space-3);
 }
 
 .feature-card p {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
-    line-height: 1.6;
+    line-height: 1.7;
 }
 
 /* ========================================
    How It Works Section
    ======================================== */
 .how-it-works-section {
-    padding: var(--space-16) 0;
+    padding: 6rem 0;
     background: linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.03) 50%, transparent 100%);
 }
 
@@ -428,11 +428,13 @@
     align-items: flex-start;
     justify-content: center;
     gap: var(--space-4);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .step-card {
-    flex: 0 0 220px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 240px;
     text-align: center;
     opacity: 0;
     transform: translateY(30px);
@@ -444,8 +446,8 @@
 }
 
 .step-number {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     margin: 0 auto var(--space-4);
     background: var(--gradient-primary);
     border-radius: 50%;
@@ -453,7 +455,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: white;
 }
 
@@ -462,16 +464,16 @@
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
-    padding: var(--space-6);
-    min-height: 180px;
+    padding: var(--space-8);
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
 .step-icon {
-    width: 50px;
-    height: 50px;
+    width: 56px;
+    height: 56px;
     margin: 0 auto var(--space-4);
     background: rgba(99, 102, 241, 0.1);
     border-radius: var(--radius-lg);
@@ -482,21 +484,21 @@
 }
 
 .step-icon svg {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     color: var(--primary-400);
 }
 
 .step-content h3 {
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-3);
 }
 
 .step-content p {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--text-muted);
-    line-height: 1.5;
+    line-height: 1.6;
     flex-grow: 1;
 }
 
@@ -517,18 +519,18 @@
    Roles Section
    ======================================== */
 .roles-section {
-    padding: var(--space-16) 0;
+    padding: 6rem 0;
 }
 
 .roles-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-6);
+    gap: var(--space-8);
     align-items: start;
 }
 
 .role-card {
-    padding: var(--space-8);
+    padding: var(--space-10);
     text-align: center;
     position: relative;
     transition: all var(--transition-normal);
@@ -566,9 +568,9 @@
 }
 
 .role-icon {
-    width: 70px;
-    height: 70px;
-    margin: 0 auto var(--space-5);
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--space-6);
     border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
@@ -588,22 +590,22 @@
 }
 
 .role-icon svg {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     color: white;
 }
 
 .role-card h3 {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 600;
-    margin-bottom: var(--space-3);
+    margin-bottom: var(--space-4);
 }
 
 .role-card>p {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--text-muted);
-    line-height: 1.6;
-    margin-bottom: var(--space-5);
+    line-height: 1.7;
+    margin-bottom: var(--space-6);
 }
 
 .role-features {
@@ -614,8 +616,8 @@
 .role-features li {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    font-size: 0.85rem;
+    gap: var(--space-3);
+    font-size: 0.9rem;
     color: var(--text-secondary);
     padding: var(--space-2) 0;
 }
@@ -628,71 +630,14 @@
 }
 
 /* ========================================
-   Tech Section
-   ======================================== */
-.tech-section {
-    padding: var(--space-16) 0;
-    background: linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.03) 50%, transparent 100%);
-}
-
-.tech-grid {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: var(--space-6);
-}
-
-.tech-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-6);
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-xl);
-    min-width: 120px;
-    transition: all var(--transition-normal);
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-.tech-item.animate-in {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.tech-item:hover {
-    transform: translateY(-3px);
-    border-color: var(--primary-500);
-}
-
-.tech-icon {
-    width: 40px;
-    height: 40px;
-    color: var(--primary-400);
-}
-
-.tech-icon svg {
-    width: 100%;
-    height: 100%;
-}
-
-.tech-item span {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-/* ========================================
    CTA Section
    ======================================== */
 .cta-section {
-    padding: var(--space-16) 0;
+    padding: 6rem 0;
 }
 
 .cta-card {
-    padding: var(--space-12);
+    padding: var(--space-16);
     text-align: center;
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
     border: 1px solid rgba(99, 102, 241, 0.2);
@@ -879,15 +824,6 @@
     .cta-actions .btn {
         width: 100%;
         max-width: 280px;
-    }
-
-    .tech-grid {
-        gap: var(--space-4);
-    }
-
-    .tech-item {
-        min-width: 100px;
-        padding: var(--space-4);
     }
 }
 

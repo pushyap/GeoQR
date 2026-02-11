@@ -330,164 +330,67 @@ router.get('/attendance/session/:id', authenticate, isFacultyOrAdmin, async (req
 });
 
 // =========================================
-// FACULTY REPORTS
+// FACULTY SESSIONS LIST
 // =========================================
 
 /**
- * GET /api/faculty/reports
- * Generate reports for faculty sessions
+ * GET /api/faculty/sessions
+ * All sessions for logged-in faculty (for reports dropdown)
  */
-router.get('/reports', authenticate, isFaculty, async (req, res) => {
+router.get('/sessions', authenticate, isFaculty, async (req, res) => {
     const facultyId = req.user.id;
-    const { type = 'summary', startDate, endDate, sessionId } = req.query;
 
     try {
-        let result;
+        const result = await db.query(`
+            SELECT 
+                s.id as session_id, s.subject, s.start_time, s.end_time,
+                s.is_active, s.expected_students,
+                l.name as location_name
+            FROM sessions s
+            JOIN locations l ON s.location_id = l.id
+            WHERE s.faculty_id = $1
+            ORDER BY s.start_time DESC
+        `, [facultyId]);
 
-        switch (type) {
-            case 'summary':
-                // Overall summary for date range
-                let summaryQuery = `
-                    SELECT 
-                        s.id as session_id, s.subject, s.start_time, s.end_time,
-                        l.name as location_name,
-                        COUNT(al.id) as total_attendance,
-                        COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present,
-                        COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late,
-                        ROUND(AVG(al.distance_from_device), 1) as avg_distance
-                    FROM sessions s
-                    LEFT JOIN attendance_logs al ON s.id = al.session_id
-                    LEFT JOIN locations l ON s.location_id = l.id
-                    WHERE s.faculty_id = $1
-                `;
-                const summaryParams = [facultyId];
+        const now = new Date();
+        const sessions = result.rows.map(s => {
+            const startTime = new Date(s.start_time);
+            const endTime = s.end_time ? new Date(s.end_time) : null;
 
-                if (sessionId) {
-                    summaryQuery += ` AND s.id = $${summaryParams.length + 1}`;
-                    summaryParams.push(sessionId);
-                }
-                if (startDate) {
-                    summaryQuery += ` AND s.start_time >= $${summaryParams.length + 1}`;
-                    summaryParams.push(startDate);
-                }
-                if (endDate) {
-                    summaryQuery += ` AND s.start_time <= $${summaryParams.length + 1}`;
-                    summaryParams.push(endDate);
-                }
+            let status = 'completed';
+            if (s.is_active) {
+                status = startTime > now ? 'upcoming' : 'live';
+            } else if (!endTime || endTime > now) {
+                if (startTime > now) status = 'upcoming';
+            }
 
-                summaryQuery += ` GROUP BY s.id, s.subject, s.start_time, s.end_time, l.name ORDER BY s.start_time DESC`;
+            return {
+                session_id: s.session_id,
+                subject: s.subject,
+                date: s.start_time,
+                start_time: s.start_time,
+                end_time: s.end_time,
+                location_name: s.location_name,
+                expected_students: s.expected_students || 60,
+                status
+            };
+        });
 
-                result = await db.query(summaryQuery, summaryParams);
-
-                return res.json({
-                    success: true,
-                    report: {
-                        type: 'summary',
-                        generatedAt: new Date().toISOString(),
-                        sessions: result.rows.map(r => ({
-                            sessionId: r.session_id,
-                            subject: r.subject,
-                            location: r.location_name,
-                            startTime: r.start_time,
-                            endTime: r.end_time,
-                            attendance: {
-                                total: parseInt(r.total_attendance),
-                                present: parseInt(r.present),
-                                late: parseInt(r.late),
-                                avgDistance: parseFloat(r.avg_distance) || 0
-                            }
-                        }))
-                    }
-                });
-
-            case 'student':
-                // Per-student attendance summary
-                result = await db.query(`
-                    SELECT 
-                        u.id, u.name, u.student_id, u.email,
-                        COUNT(al.id) as total_sessions,
-                        COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present,
-                        COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late,
-                        ROUND(
-                            COUNT(CASE WHEN al.status IN ('present', 'late') THEN 1 END) * 100.0 / 
-                            NULLIF(COUNT(al.id), 0), 
-                            1
-                        ) as percentage
-                    FROM attendance_logs al
-                    JOIN users u ON al.student_id = u.id
-                    JOIN sessions s ON al.session_id = s.id
-                    WHERE s.faculty_id = $1
-                    GROUP BY u.id, u.name, u.student_id, u.email
-                    ORDER BY percentage DESC NULLS LAST
-                `, [facultyId]);
-
-                return res.json({
-                    success: true,
-                    report: {
-                        type: 'student',
-                        generatedAt: new Date().toISOString(),
-                        students: result.rows.map(r => ({
-                            id: r.id,
-                            name: r.name,
-                            studentId: r.student_id,
-                            email: r.email,
-                            sessions: parseInt(r.total_sessions),
-                            present: parseInt(r.present),
-                            late: parseInt(r.late),
-                            percentage: parseFloat(r.percentage) || 0
-                        }))
-                    }
-                });
-
-            case 'daily':
-                // Daily breakdown
-                result = await db.query(`
-                    SELECT 
-                        DATE(al.marked_at) as date,
-                        COUNT(DISTINCT s.id) as sessions,
-                        COUNT(al.id) as total_attendance,
-                        COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present,
-                        COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late
-                    FROM attendance_logs al
-                    JOIN sessions s ON al.session_id = s.id
-                    WHERE s.faculty_id = $1
-                    GROUP BY DATE(al.marked_at)
-                    ORDER BY date DESC
-                    LIMIT 30
-                `, [facultyId]);
-
-                return res.json({
-                    success: true,
-                    report: {
-                        type: 'daily',
-                        generatedAt: new Date().toISOString(),
-                        days: result.rows.map(r => ({
-                            date: r.date,
-                            sessions: parseInt(r.sessions),
-                            attendance: {
-                                total: parseInt(r.total_attendance),
-                                present: parseInt(r.present),
-                                late: parseInt(r.late)
-                            }
-                        }))
-                    }
-                });
-
-            default:
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid report type. Use: summary, student, or daily'
-                });
-        }
+        res.json({ success: true, sessions });
 
     } catch (error) {
-        console.error('Faculty reports error:', error);
+        console.error('Faculty sessions list error:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to generate report'
+            message: 'Failed to fetch sessions',
+            code: 'DB_ERROR'
         });
     }
 });
+
+// =========================================
+// FACULTY STUDENTS
+// =========================================
 
 /**
  * GET /api/faculty/students
@@ -529,180 +432,6 @@ router.get('/students', authenticate, isFaculty, async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch students'
-        });
-    }
-});
-
-/**
- * GET /api/faculty/suspicious
- * Suspicious activity logs for faculty's sessions
- */
-router.get('/suspicious', authenticate, isFaculty, async (req, res) => {
-    const facultyId = req.user.id;
-    const { limit = 20 } = req.query;
-
-    try {
-        const result = await db.query(`
-            SELECT 
-                sl.id, sl.event_type, sl.description, sl.risk_score, sl.created_at,
-                u.name as student_name, u.student_id,
-                s.subject, s.id as session_id
-            FROM suspicious_logs sl
-            JOIN users u ON sl.student_id = u.id
-            JOIN sessions s ON sl.session_id = s.id
-            WHERE s.faculty_id = $1
-            ORDER BY sl.created_at DESC
-            LIMIT $2
-        `, [facultyId, limit]);
-
-        res.json({
-            success: true,
-            logs: result.rows
-        });
-    } catch (error) {
-        console.error('Faculty suspicious logs error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch suspicious logs'
-        });
-    }
-});
-
-// =========================================
-// FACULTY REPORTS
-// =========================================
-
-/**
- * GET /api/faculty/reports
- * Generate attendance report with session details and student-level data
- */
-router.get('/reports', authenticate, isFaculty, async (req, res) => {
-    const facultyId = req.user.id;
-    const { sessionId, startDate, endDate } = req.query;
-
-    try {
-        // Build session query with optional filters
-        let sessionQuery = `
-            SELECT 
-                s.id, s.subject, s.start_time, s.end_time, s.is_active, s.expected_students,
-                l.name as location_name,
-                COUNT(al.id) as total_attendance,
-                COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
-                COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count
-            FROM sessions s
-            LEFT JOIN locations l ON s.location_id = l.id
-            LEFT JOIN attendance_logs al ON al.session_id = s.id
-            WHERE s.faculty_id = $1
-        `;
-        const params = [facultyId];
-        let paramIdx = 2;
-
-        if (sessionId) {
-            sessionQuery += ` AND s.id = $${paramIdx}`;
-            params.push(sessionId);
-            paramIdx++;
-        }
-        if (startDate) {
-            sessionQuery += ` AND s.start_time >= $${paramIdx}`;
-            params.push(startDate);
-            paramIdx++;
-        }
-        if (endDate) {
-            sessionQuery += ` AND s.start_time <= $${paramIdx}`;
-            params.push(endDate + 'T23:59:59');
-            paramIdx++;
-        }
-
-        sessionQuery += ` GROUP BY s.id, l.name ORDER BY s.start_time DESC`;
-
-        const sessionsResult = await db.query(sessionQuery, params);
-
-        // Get per-student attendance across all matching sessions
-        let studentQuery = `
-            SELECT 
-                u.id as student_id, u.name as student_name, u.student_id as student_code, u.email,
-                COUNT(al.id) as sessions_attended,
-                COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
-                COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count
-            FROM attendance_logs al
-            JOIN users u ON al.student_id = u.id
-            JOIN sessions s ON al.session_id = s.id
-            WHERE s.faculty_id = $1
-        `;
-        const studentParams = [facultyId];
-        let studentParamIdx = 2;
-
-        if (sessionId) {
-            studentQuery += ` AND s.id = $${studentParamIdx}`;
-            studentParams.push(sessionId);
-            studentParamIdx++;
-        }
-        if (startDate) {
-            studentQuery += ` AND s.start_time >= $${studentParamIdx}`;
-            studentParams.push(startDate);
-            studentParamIdx++;
-        }
-        if (endDate) {
-            studentQuery += ` AND s.start_time <= $${studentParamIdx}`;
-            studentParams.push(endDate + 'T23:59:59');
-            studentParamIdx++;
-        }
-
-        studentQuery += ` GROUP BY u.id, u.name, u.student_id, u.email ORDER BY u.name`;
-
-        const studentsResult = await db.query(studentQuery, studentParams);
-
-        const totalSessions = sessionsResult.rows.length;
-
-        // Compute defaulters (students with < 75% attendance)
-        const students = studentsResult.rows.map(s => ({
-            studentId: s.student_id,
-            studentCode: s.student_code,
-            name: s.student_name,
-            email: s.email,
-            sessionsAttended: parseInt(s.sessions_attended),
-            presentCount: parseInt(s.present_count),
-            lateCount: parseInt(s.late_count),
-            attendancePercentage: totalSessions > 0
-                ? Math.round((parseInt(s.sessions_attended) / totalSessions) * 100)
-                : 0
-        }));
-
-        const defaulters = students.filter(s => s.attendancePercentage < 75);
-
-        res.json({
-            success: true,
-            report: {
-                sessions: sessionsResult.rows.map(s => ({
-                    id: s.id,
-                    subject: s.subject,
-                    start_time: s.start_time,
-                    end_time: s.end_time,
-                    location: s.location_name,
-                    expected_students: s.expected_students || 60,
-                    attendance: {
-                        present: parseInt(s.present_count),
-                        late: parseInt(s.late_count),
-                        total: parseInt(s.total_attendance)
-                    }
-                })),
-                totalSessions,
-                students,
-                defaulters,
-                summary: {
-                    totalPresent: students.reduce((acc, s) => acc + s.presentCount, 0),
-                    totalLate: students.reduce((acc, s) => acc + s.lateCount, 0),
-                    uniqueStudents: students.length,
-                    defaulterCount: defaulters.length
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error('Faculty reports error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to generate report'
         });
     }
 });

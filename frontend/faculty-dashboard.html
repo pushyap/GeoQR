@@ -460,60 +460,146 @@
 
             <!-- ============= REPORTS TAB ============= -->
             <div class="tab-content" id="tab-reports">
-                <div class="table-container" style="padding: var(--space-6);">
-                    <h3 class="table-title" style="margin-bottom: var(--space-5);">📊 Generate Attendance Report</h3>
+                <div style="max-width: 900px; margin: 0 auto; padding: var(--space-4) var(--space-4);">
 
-                    <div
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-6);">
-                        <!-- Report Form -->
-                        <div>
-                            <div class="form-group" style="margin-bottom: var(--space-4);">
-                                <label class="form-label">Select Session</label>
-                                <select class="form-select" id="reportSessionSelect" style="width:100%;">
-                                    <option value="">All Sessions</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom: var(--space-4);">
-                                <label class="form-label">Date Range</label>
-                                <div style="display: flex; gap: var(--space-2);">
-                                    <input type="date" class="form-input" id="reportDateFrom" style="flex:1;">
-                                    <input type="date" class="form-input" id="reportDateTo" style="flex:1;">
+                    <!-- Title -->
+                    <h3
+                        style="margin-bottom: var(--space-5); font-size: 1.35rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2);">
+                        📊 Generate Session Report
+                    </h3>
+
+                    <!-- Session Select -->
+                    <div class="table-container" style="padding: var(--space-5); margin-bottom: var(--space-4);">
+                        <label class="form-label"
+                            style="margin-bottom: var(--space-2); display: block; font-weight: 600;">
+                            Select Session
+                        </label>
+                        <select class="form-select" id="reportSessionSelect"
+                            style="width: 100%; padding: 12px 14px; font-size: 0.95rem;"
+                            onchange="onReportSessionSelected()">
+                            <option value="">— Choose a session —</option>
+                        </select>
+                    </div>
+
+                    <!-- Session Preview Panel -->
+                    <div id="sessionPreviewPanel" style="display: none;" class="table-container"
+                        data-style="margin-bottom: var(--space-4);">
+                        <div style="padding: var(--space-5);">
+                            <h4
+                                style="margin-bottom: var(--space-3); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2);">
+                                📋 Session Details
+                                <span id="sessionStatusBadge" class="status-badge" style="margin-left: auto;"></span>
+                            </h4>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3);">
+                                <div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px;">
+                                        Subject</div>
+                                    <div id="previewSubject" style="font-weight: 600; color: var(--text-primary);">—
+                                    </div>
                                 </div>
-                            </div>
-                            <button class="btn btn-primary" onclick="generateReport()" style="width:100%;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    style="width:18px;height:18px;">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                Generate Summary
-                            </button>
-                        </div>
-
-                        <!-- Report Preview -->
-                        <div id="reportPreview" style="display:none;">
-                            <div class="settings-section">
-                                <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
-                                    <div class="report-stat present">
-                                        <div class="report-stat-value" id="reportPresent">0</div>
-                                        <div class="report-stat-label">Present</div>
+                                <div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px;">Date
                                     </div>
-                                    <div class="report-stat absent">
-                                        <div class="report-stat-value" id="reportAbsent">0</div>
-                                        <div class="report-stat-label">Absent</div>
+                                    <div id="previewDate" style="font-weight: 600; color: var(--text-primary);">—</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px;">Time
                                     </div>
-                                    <div class="report-stat rate">
-                                        <div class="report-stat-value" id="reportPercentage">0%</div>
-                                        <div class="report-stat-label">Attendance Rate</div>
+                                    <div id="previewTime" style="font-weight: 600; color: var(--text-primary);">—</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px;">
+                                        Location</div>
+                                    <div id="previewLocation" style="font-weight: 600; color: var(--text-primary);">—
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px;">
+                                        Expected Students</div>
+                                    <div id="previewExpected" style="font-weight: 600; color: var(--text-primary);">—
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Generate Button -->
+                    <button class="btn btn-primary" id="generateReportBtn" onclick="generateSessionReport()" disabled
+                        style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; margin-bottom: var(--space-5); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; gap: var(--space-2);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            style="width: 20px; height: 20px;" id="generateReportIcon">
+                            <path
+                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span id="generateReportText">Generate Report</span>
+                    </button>
+
+                    <!-- Report Output Section (hidden initially) -->
+                    <div id="reportOutputSection" style="display: none;">
+
+                        <!-- Summary Cards -->
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5);">
+                            <div class="stat-card" style="text-align: center; padding: var(--space-4);">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: var(--primary);"
+                                    id="rptTotalStudents">0</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Total
+                                    Students</div>
+                            </div>
+                            <div class="stat-card" style="text-align: center; padding: var(--space-4);">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: #22c55e;" id="rptPresent">0
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Present
+                                </div>
+                            </div>
+                            <div class="stat-card" style="text-align: center; padding: var(--space-4);">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: #f59e0b;" id="rptLate">0</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Late</div>
+                            </div>
+                            <div class="stat-card" style="text-align: center; padding: var(--space-4);">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: #ef4444;" id="rptAbsent">0</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Absent</div>
+                            </div>
+                            <div class="stat-card" style="text-align: center; padding: var(--space-4);">
+                                <div style="font-size: 1.8rem; font-weight: 700; color: var(--primary);" id="rptRate">0%
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Attendance %
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="table-container" style="padding: var(--space-4);">
+                            <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; justify-content: center;">
+                                <button class="btn btn-primary" onclick="downloadReportPDF()" style="min-width: 160px;">
+                                    📄 Download PDF
+                                </button>
+                                <button class="btn btn-primary" onclick="downloadReportCSV()"
+                                    style="min-width: 160px; background: #22c55e; border-color: #22c55e;">
+                                    📊 Download CSV
+                                </button>
+                                <button class="btn" onclick="viewFullAttendanceTable()"
+                                    style="min-width: 160px; background: var(--surface-elevated); color: var(--text-primary); border: 1px solid var(--border-color);">
+                                    📋 View Full Table
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State (shown when session has no records) -->
+                    <div id="reportEmptyState"
+                        style="display: none; text-align: center; padding: var(--space-8) var(--space-4);">
+                        <div style="font-size: 3rem; margin-bottom: var(--space-3);">📭</div>
+                        <h4 style="color: var(--text-primary); margin-bottom: var(--space-2);">No Attendance Records
+                        </h4>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">No attendance records found for this
+                            session yet. Records will appear once students mark attendance.</p>
+                    </div>
+
                 </div>
             </div>
+
         </main>
 
         <!-- Bottom Navigation (Mobile) -->
@@ -747,7 +833,8 @@
         const FacultyState = {
             activeSessions: new Map(), // sessionId -> { interval, studentCount, students, startedAt }
             currentFacultyId: 101, // Mock faculty ID
-            liveUpdateInterval: null
+            liveUpdateInterval: null,
+            cachedTodaySessions: [] // Cached for auto-refresh of status badges
         };
 
         // ========================================
@@ -970,6 +1057,8 @@
                     }
                     updateLiveIndicator();
                 }
+                // Always re-render today's sessions so status badges auto-update (Upcoming → Live)
+                refreshTodaySessionStatuses();
             }, 3000);
         }
 
@@ -980,11 +1069,26 @@
         function updateLiveIndicator() {
             const hasActive = FacultyState.activeSessions.size > 0;
             const indicator = document.getElementById('liveIndicator');
-            if (indicator) indicator.style.display = hasActive ? 'inline' : 'none';
 
-            // Update live counter section
+            // Determine if any session is truly live (started, not upcoming)
+            let hasLiveSession = false;
+            if (hasActive) {
+                const now = new Date();
+                for (const [, data] of FacultyState.activeSessions) {
+                    const sessionStart = new Date(data.startedAt || data.start_time);
+                    if (sessionStart <= now) {
+                        hasLiveSession = true;
+                        break;
+                    }
+                }
+            }
+
+            // Only show live indicator and counter when session is truly live (not upcoming)
+            if (indicator) indicator.style.display = hasLiveSession ? 'inline' : 'none';
+
+            // Update live counter section — only show for truly live sessions
             const liveCounterSection = document.getElementById('liveCounterSection');
-            if (liveCounterSection) liveCounterSection.style.display = hasActive ? 'block' : 'none';
+            if (liveCounterSection) liveCounterSection.style.display = hasLiveSession ? 'block' : 'none';
 
             // Update live status bar
             const liveStatusBar = document.getElementById('liveStatusBar');
@@ -1085,6 +1189,8 @@
         // ========================================
 
         function renderTodaySessions(sessions = []) {
+            // Cache for auto-refresh
+            FacultyState.cachedTodaySessions = sessions;
             const tbody = document.getElementById('todaySessionsTable');
             if (!tbody) return;
 
@@ -1135,6 +1241,13 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        // Re-render today's sessions to auto-update status badges (Upcoming → Live)
+        function refreshTodaySessionStatuses() {
+            if (FacultyState.cachedTodaySessions.length > 0) {
+                renderTodaySessions(FacultyState.cachedTodaySessions);
+            }
         }
 
         function renderSessionsTable(sessions = []) {
@@ -1433,316 +1546,241 @@
         }
 
         // ========================================
-        // Reports
+        // Reports — New Session-Scoped Logic
         // ========================================
-        function viewReport(sessionId) {
+        let reportSessionsCache = [];
+        let currentReportData = null;
+
+        async function loadReportSessions() {
             const select = document.getElementById('reportSessionSelect');
-            if (select) {
-                select.value = sessionId;
-                // If the option doesn't exist (e.g. historical session not in list), this might fail to select.
-                // We populated filters with all sessions, so it should be fine.
-            }
-            showTab('reports');
-        }
-
-
-        // Store last report data for use by defaulters/absentees functions
-        let lastReportData = null;
-
-        async function generateReport() {
-            const sessionId = document.getElementById('reportSessionSelect').value;
-            const dateFrom = document.getElementById('reportDateFrom').value;
-            const dateTo = document.getElementById('reportDateTo').value;
+            if (!select) return;
 
             try {
-                const report = await FacultyAPI.getReports({
-                    type: 'summary',
-                    sessionId: sessionId || undefined,
-                    startDate: dateFrom || undefined,
-                    endDate: dateTo || undefined
+                const response = await axios.get(`${API_BASE}/api/faculty/sessions`, {
+                    headers: { Authorization: `Bearer ${Session.getToken()}` }
                 });
 
-                if (!report || !report.report) {
-                    AdminCore.toast('No data for report', 'warning');
-                    return;
-                }
+                const sessions = response.data.sessions || [];
+                reportSessionsCache = sessions;
 
-                lastReportData = report.report;
-                const sessions = report.report.sessions || [];
-                const students = report.report.students || [];
-                const defaulters = report.report.defaulters || [];
-
-                let present = 0, late = 0, total = 0;
+                select.innerHTML = '<option value="">— Choose a session —</option>';
                 sessions.forEach(s => {
-                    present += s.attendance.present;
-                    late += s.attendance.late;
-                    total += s.attendance.total;
+                    const date = new Date(s.start_time).toLocaleDateString('en-IN', {
+                        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
+                    });
+                    const time = new Date(s.start_time).toLocaleTimeString('en-IN', {
+                        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
+                    });
+                    const statusIcon = s.status === 'live' ? '🟢' : s.status === 'upcoming' ? '🕐' : '✅';
+                    const label = `${s.subject} • ${date} • ${time} • ${s.location_name} ${statusIcon}`;
+                    const opt = document.createElement('option');
+                    opt.value = s.session_id;
+                    opt.textContent = label;
+                    select.appendChild(opt);
                 });
-
-                const onTimeRate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
-
-                // Show preview with updated stats and table
-                const previewEl = document.getElementById('reportPreview');
-                previewEl.style.display = 'block';
-
-                let sessionsTableHtml = '';
-                if (sessions.length > 0) {
-                    sessionsTableHtml = `
-                    <div style="margin-top: var(--space-6);">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
-                            <h4>Detailed Session Report</h4>
-                            <button class="btn btn-sm btn-primary" onclick="downloadSummaryPDF()">Download PDF</button>
-                        </div>
-                        <table class="data-table" id="reportSessionsTable">
-                            <thead>
-                                <tr>
-                                    <th>Subject</th>
-                                    <th>Date</th>
-                                    <th>Present</th>
-                                    <th>Late</th>
-                                    <th>Total</th>
-                                    <th>Rate</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${sessions.map(s => `
-                                    <tr>
-                                        <td>${s.subject}</td>
-                                        <td>${new Date(s.start_time).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
-                                        <td>${s.attendance.present}</td>
-                                        <td>${s.attendance.late}</td>
-                                        <td>${s.attendance.total}</td>
-                                        <td>${s.attendance.total > 0 ? Math.round(((s.attendance.present + s.attendance.late) / s.attendance.total) * 100) : 0}%</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>`;
-                }
-
-                previewEl.innerHTML = `
-                    <div class="settings-section">
-                        <h4 style="margin-bottom: var(--space-4);">📋 Report Summary</h4>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);">
-                            <div class="report-stat present">
-                                <div class="report-stat-value">${present}</div>
-                                <div class="report-stat-label">Present</div>
-                            </div>
-                            <div class="report-stat late">
-                                <div class="report-stat-value">${late}</div>
-                                <div class="report-stat-label">Late</div>
-                            </div>
-                            <div class="report-stat rate">
-                                <div class="report-stat-value">${onTimeRate}%</div>
-                                <div class="report-stat-label">Attendance Rate</div>
-                            </div>
-                            <div class="report-stat" style="background: var(--surface-elevated); border-radius: var(--radius-lg); padding: var(--space-4); text-align:center;">
-                                <div class="report-stat-value">${defaulters.length}</div>
-                                <div class="report-stat-label">Defaulters</div>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: var(--space-3); margin-top: var(--space-4); flex-wrap: wrap;">
-                            <button class="btn btn-primary" onclick="downloadAbsentees()">
-                                📥 Download Absentees CSV
-                            </button>
-                            <button class="btn btn-danger" onclick="showDefaulters()">
-                                ⚠️ Show Defaulters (${defaulters.length})
-                            </button>
-                        </div>
-                        ${sessionsTableHtml}
-                    </div>
-                `;
-
-                AdminCore.toast(`Report generated: ${sessions.length} sessions, ${students.length} students`, 'success');
             } catch (e) {
-                console.error(e);
-                AdminCore.toast('Failed to generate report', 'error');
+                console.error('Failed to load sessions for reports:', e);
+                AdminCore.toast('Failed to load sessions', 'error');
             }
         }
 
-        function downloadSummaryPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        function onReportSessionSelected() {
+            const select = document.getElementById('reportSessionSelect');
+            const sessionId = select.value;
+            const preview = document.getElementById('sessionPreviewPanel');
+            const btn = document.getElementById('generateReportBtn');
+            const output = document.getElementById('reportOutputSection');
+            const empty = document.getElementById('reportEmptyState');
 
-            doc.text("Faculty Summary Report", 14, 20);
-            doc.setFontSize(10);
-            doc.text(`Generated on: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST`, 14, 28);
+            // Reset output
+            if (output) output.style.display = 'none';
+            if (empty) empty.style.display = 'none';
+            currentReportData = null;
 
-            // Stats
-            const present = document.querySelector('.report-stat.present .report-stat-value')?.innerText || '0';
-            const late = document.querySelector('.report-stat.late .report-stat-value')?.innerText || '0';
-            const rate = document.querySelector('.report-stat.rate .report-stat-value')?.innerText || '0%';
+            if (!sessionId) {
+                preview.style.display = 'none';
+                btn.disabled = true;
+                return;
+            }
 
-            doc.text(`Total Present: ${present}  |  Total Late: ${late}  |  Avg Rate: ${rate}`, 14, 35);
+            const session = reportSessionsCache.find(s => String(s.session_id) === String(sessionId));
+            if (!session) {
+                preview.style.display = 'none';
+                btn.disabled = true;
+                return;
+            }
 
-            const rows = [];
-            document.querySelectorAll("#reportSessionsTable tbody tr").forEach(tr => {
-                const rowData = [];
-                tr.querySelectorAll("td").forEach(td => rowData.push(td.innerText));
-                rows.push(rowData);
+            // Show preview
+            preview.style.display = 'block';
+            preview.style.marginBottom = 'var(--space-4)';
+
+            const dateStr = new Date(session.start_time).toLocaleDateString('en-IN', {
+                weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
             });
+            const startTime = new Date(session.start_time).toLocaleTimeString('en-IN', {
+                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
+            });
+            const endTime = session.end_time ? new Date(session.end_time).toLocaleTimeString('en-IN', {
+                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
+            }) : 'N/A';
 
-            if (rows.length > 0) {
-                doc.autoTable({
-                    head: [['Subject', 'Date', 'Present', 'Late', 'Total', 'Rate']],
-                    body: rows,
-                    startY: 40,
-                    theme: 'grid'
+            document.getElementById('previewSubject').textContent = session.subject;
+            document.getElementById('previewDate').textContent = dateStr;
+            document.getElementById('previewTime').textContent = `${startTime} – ${endTime}`;
+            document.getElementById('previewLocation').textContent = session.location_name;
+            document.getElementById('previewExpected').textContent = session.expected_students;
+
+            // Status badge
+            const badge = document.getElementById('sessionStatusBadge');
+            const statusMap = {
+                'live': { text: '🟢 Live', cls: 'success' },
+                'upcoming': { text: '🕐 Upcoming', cls: 'warning' },
+                'completed': { text: '✅ Completed', cls: '' }
+            };
+            const st = statusMap[session.status] || statusMap['completed'];
+            badge.textContent = st.text;
+            badge.className = `status-badge ${st.cls}`;
+
+            btn.disabled = false;
+        }
+
+        async function generateSessionReport() {
+            const sessionId = document.getElementById('reportSessionSelect').value;
+            if (!sessionId) {
+                AdminCore.toast('Please select a session first', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('generateReportBtn');
+            const textEl = document.getElementById('generateReportText');
+            const iconEl = document.getElementById('generateReportIcon');
+            const output = document.getElementById('reportOutputSection');
+            const empty = document.getElementById('reportEmptyState');
+
+            // Loading state
+            btn.disabled = true;
+            textEl.textContent = 'Generating…';
+            iconEl.style.display = 'none';
+
+            try {
+                const response = await axios.get(`${API_BASE}/api/reports/session/${sessionId}`, {
+                    headers: { Authorization: `Bearer ${Session.getToken()}` }
                 });
-            } else {
-                doc.text("No session details available.", 14, 45);
-            }
 
-            doc.save("faculty-summary-report.pdf");
-        }
+                const data = response.data;
+                currentReportData = data;
 
-        // ========================================
-        // Defaulters & Absentees
-        // ========================================
+                if (!data.records || data.records.length === 0) {
+                    output.style.display = 'none';
+                    empty.style.display = 'block';
+                    AdminCore.toast('No attendance records for this session', 'info');
+                } else {
+                    empty.style.display = 'none';
+                    output.style.display = 'block';
 
-        function showDefaulters() {
-            if (!lastReportData || !lastReportData.defaulters) {
-                AdminCore.toast('Generate a report first', 'warning');
-                return;
-            }
+                    document.getElementById('rptTotalStudents').textContent = data.summary.total_students;
+                    document.getElementById('rptPresent').textContent = data.summary.present;
+                    document.getElementById('rptLate').textContent = data.summary.late;
+                    document.getElementById('rptAbsent').textContent = data.summary.absent;
+                    document.getElementById('rptRate').textContent = data.summary.attendance_rate + '%';
 
-            const defaulters = lastReportData.defaulters;
-            const sessions = lastReportData.sessions || [];
-
-            // Populate subject filter
-            const filterEl = document.getElementById('defaulterSubjectFilter');
-            if (filterEl) {
-                const subjects = [...new Set(sessions.map(s => s.subject))];
-                filterEl.innerHTML = '<option value="all">All Subjects</option>' +
-                    subjects.map(s => `<option value="${s}">${s}</option>`).join('');
-            }
-
-            // Populate defaulters table
-            renderDefaultersTable(defaulters);
-
-            // Show summary
-            const summaryEl = document.getElementById('defaultersSummary');
-            if (summaryEl) {
-                summaryEl.innerHTML = `
-                    <div style="margin-top: var(--space-4); padding: var(--space-4); background: var(--surface-elevated); border-radius: var(--radius-lg);">
-                        <strong>${defaulters.length}</strong> students below 75% attendance across <strong>${sessions.length}</strong> sessions
-                    </div>
-                `;
-            }
-
-            // Open modal
-            AdminCore.openModal('defaultersModal');
-        }
-
-        function renderDefaultersTable(defaulters) {
-            const tbody = document.getElementById('defaultersTableBody');
-            if (!tbody) return;
-
-            if (defaulters.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No defaulters found 🎉</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = defaulters.map(d => {
-                let statusClass = 'danger';
-                let statusText = 'Critical';
-                if (d.attendancePercentage >= 60) {
-                    statusClass = 'warning';
-                    statusText = 'Warning';
-                } else if (d.attendancePercentage >= 40) {
-                    statusClass = 'warning';
-                    statusText = 'Low';
+                    AdminCore.toast(`Report generated: ${data.records.length} records`, 'success');
                 }
-
-                return `
-                    <tr>
-                        <td>${d.studentCode || '--'}</td>
-                        <td>${d.name}</td>
-                        <td><strong>${d.attendancePercentage}%</strong> (${d.sessionsAttended} sessions)</td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function filterDefaulters() {
-            if (!lastReportData) return;
-            const subject = document.getElementById('defaulterSubjectFilter').value;
-
-            if (subject === 'all') {
-                renderDefaultersTable(lastReportData.defaulters);
-            } else {
-                // Filter by finding students who attended sessions of this subject
-                const sessionIds = lastReportData.sessions
-                    .filter(s => s.subject === subject)
-                    .map(s => s.id);
-
-                // Re-filter defaulters (simplified — shows all defaulters since
-                // student data is aggregated; a full filter would need per-session data)
-                const filtered = lastReportData.defaulters.filter(d =>
-                    d.attendancePercentage < 75
-                );
-                renderDefaultersTable(filtered);
+            } catch (e) {
+                console.error('Report generation error:', e);
+                const msg = e.response?.data?.message || 'Failed to generate report';
+                AdminCore.toast(msg, 'error');
+                output.style.display = 'none';
+                empty.style.display = 'none';
+            } finally {
+                textEl.textContent = 'Generate Report';
+                iconEl.style.display = '';
+                btn.disabled = false;
             }
         }
 
-        function exportDefaultersCSV() {
-            if (!lastReportData || !lastReportData.defaulters) {
-                AdminCore.toast('No defaulters data', 'warning');
-                return;
-            }
-
-            const defaulters = lastReportData.defaulters;
-            let csv = 'Student ID,Name,Email,Sessions Attended,Attendance %,Status\n';
-            defaulters.forEach(d => {
-                const status = d.attendancePercentage < 40 ? 'Critical' : d.attendancePercentage < 60 ? 'Low' : 'Warning';
-                csv += `"${d.studentCode || ''}","${d.name}","${d.email || ''}",${d.sessionsAttended},${d.attendancePercentage}%,${status}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `defaulters_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-            AdminCore.toast('Defaulters CSV downloaded', 'success');
+        function downloadReportPDF() {
+            const sessionId = document.getElementById('reportSessionSelect').value;
+            if (!sessionId) { AdminCore.toast('No session selected', 'warning'); return; }
+            AdminCore.toast('Generating PDF…', 'info');
+            fetch(`${API_BASE}/api/reports/session/${sessionId}/pdf`, {
+                headers: { Authorization: `Bearer ${Session.getToken()}` }
+            }).then(res => {
+                if (!res.ok) throw new Error('PDF download failed');
+                return res.blob();
+            }).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `attendance_report_${sessionId}.pdf`;
+                a.click(); URL.revokeObjectURL(url);
+                AdminCore.toast('PDF downloaded', 'success');
+            }).catch(e => { console.error(e); AdminCore.toast('Failed to download PDF', 'error'); });
         }
 
-        function downloadAbsentees() {
-            if (!lastReportData) {
+        function downloadReportCSV() {
+            const sessionId = document.getElementById('reportSessionSelect').value;
+            if (!sessionId) { AdminCore.toast('No session selected', 'warning'); return; }
+            AdminCore.toast('Generating CSV…', 'info');
+            fetch(`${API_BASE}/api/reports/session/${sessionId}/csv`, {
+                headers: { Authorization: `Bearer ${Session.getToken()}` }
+            }).then(res => {
+                if (!res.ok) throw new Error('CSV download failed');
+                return res.blob();
+            }).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `attendance_report_${sessionId}.csv`;
+                a.click(); URL.revokeObjectURL(url);
+                AdminCore.toast('CSV downloaded', 'success');
+            }).catch(e => { console.error(e); AdminCore.toast('Failed to download CSV', 'error'); });
+        }
+
+        function viewFullAttendanceTable() {
+            if (!currentReportData || !currentReportData.records) {
                 AdminCore.toast('Generate a report first', 'warning');
                 return;
             }
-
-            const students = lastReportData.students || [];
-            const sessions = lastReportData.sessions || [];
-            const totalSessions = sessions.length;
-
-            // Students who missed at least one session
-            const absentees = students.filter(s => s.sessionsAttended < totalSessions);
-
-            if (absentees.length === 0) {
-                AdminCore.toast('No absentees found — all students attended every session!', 'success');
-                return;
-            }
-
-            let csv = 'Student ID,Name,Email,Sessions Attended,Sessions Missed,Attendance %\n';
-            absentees.forEach(s => {
-                const missed = totalSessions - s.sessionsAttended;
-                csv += `"${s.studentCode || ''}","${s.name}","${s.email || ''}",${s.sessionsAttended},${missed},${s.attendancePercentage}%\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `absentees_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-            AdminCore.toast(`Absentees CSV downloaded (${absentees.length} students)`, 'success');
+            const records = currentReportData.records;
+            const session = currentReportData.session;
+            const modalHtml = `
+                <div class="modal active" id="fullTableModal" onclick="if(event.target===this)this.remove()">
+                    <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow-y: auto;">
+                        <div class="modal-header">
+                            <h3>📋 ${session.subject} — Full Attendance</h3>
+                            <button class="modal-close" onclick="document.getElementById('fullTableModal').remove()">✕</button>
+                        </div>
+                        <div class="modal-body" style="padding: var(--space-4);">
+                            <table class="data-table" style="width: 100%;">
+                                <thead><tr><th>#</th><th>Student Name</th><th>Roll No</th><th>Status</th><th>Scan Time</th><th>Distance</th></tr></thead>
+                                <tbody>
+                                    ${records.map((r, i) => `
+                                        <tr>
+                                            <td>${i + 1}</td>
+                                            <td><strong>${r.name || 'Unknown'}</strong></td>
+                                            <td>${r.roll || '--'}</td>
+                                            <td><span class="status-badge ${r.status === 'present' ? 'success' : 'warning'}">${r.status}</span></td>
+                                            <td>${r.scanned_at ? new Date(r.scanned_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '--'}</td>
+                                            <td>${r.distance_m ? r.distance_m + 'm' : '--'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const existing = document.getElementById('fullTableModal');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
         }
 
+        function viewReport(sessionId) {
+            showTab('reports');
+            loadReportSessions().then(() => {
+                const select = document.getElementById('reportSessionSelect');
+                if (select) { select.value = sessionId; onReportSessionSelected(); }
+            });
+        }
 
 
         function toggleCustomDuration() {
@@ -1773,6 +1811,7 @@
                     renderSessionsTable(sessions);
                 });
             }
+            if (tabName === 'reports') loadReportSessions();
         }
 
         // ========================================
@@ -1889,13 +1928,46 @@
         // ========================================
         // Filters & Event Listeners
         // ========================================
+        // Cache all sessions for date-based filtering
+        let allFacultySessions = [];
+
         async function populateFilters() {
             const sessions = await FacultyAPI.getFacultySessions();
-            const sessionOptions = '<option value="">All Sessions</option>' +
-                sessions.map(s => `<option value="${s.id}">${s.subject} (${new Date(s.start_time).toLocaleDateString()})</option>`).join('');
+            allFacultySessions = sessions || [];
 
-            document.getElementById('attendanceSessionFilter').innerHTML = sessionOptions;
-            document.getElementById('reportSessionSelect').innerHTML = sessionOptions;
+            // Populate session dropdown with all sessions
+            updateSessionDropdown(allFacultySessions);
+            document.getElementById('reportSessionSelect').innerHTML =
+                '<option value="">All Sessions</option>' +
+                allFacultySessions.map(s => `<option value="${s.id}">${s.subject} (${new Date(s.start_time).toLocaleDateString()})</option>`).join('');
+        }
+
+        function updateSessionDropdown(sessions) {
+            const select = document.getElementById('attendanceSessionFilter');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">All Sessions</option>' +
+                sessions.map(s => `<option value="${s.id}">${s.subject} (${new Date(s.start_time).toLocaleDateString()})</option>`).join('');
+            // Restore previous selection if it still exists in filtered list
+            if (currentValue && sessions.some(s => String(s.id) === String(currentValue))) {
+                select.value = currentValue;
+            }
+        }
+
+        function onDateFilterChange() {
+            const selectedDate = document.getElementById('attendanceDateFilter').value;
+            if (!selectedDate) {
+                // No date selected — show all sessions
+                updateSessionDropdown(allFacultySessions);
+            } else {
+                // Filter sessions to only those matching the selected date
+                const filtered = allFacultySessions.filter(s => {
+                    const sessionDate = new Date(s.start_time).toLocaleDateString('en-CA'); // YYYY-MM-DD format
+                    return sessionDate === selectedDate;
+                });
+                updateSessionDropdown(filtered);
+            }
+            // Also refresh the attendance table
+            renderAttendanceTable();
         }
 
         function setupEventListeners() {
@@ -1946,7 +2018,7 @@
 
             // Filters
             document.getElementById('attendanceSessionFilter').addEventListener('change', renderAttendanceTable);
-            document.getElementById('attendanceDateFilter').addEventListener('change', renderAttendanceTable);
+            document.getElementById('attendanceDateFilter').addEventListener('change', onDateFilterChange);
         }
 
         // Cleanup on page leave
