@@ -490,6 +490,56 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Biometric Authentication Card -->
+                    <div class="settings-card" id="biometricCard">
+                        <div
+                            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+                            <div style="display:flex;align-items:center;gap:var(--space-3);">
+                                <div
+                                    style="width:44px;height:44px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(168,85,247,0.15));display:flex;align-items:center;justify-content:center;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                        style="width:24px;height:24px;color:#a855f7;">
+                                        <path d="M12 10V8a4 4 0 0 0-8 0v2" />
+                                        <rect x="2" y="10" width="12" height="10" rx="2" />
+                                        <path d="M8 15a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" />
+                                        <path d="M16 8a6 6 0 0 1 6 6v4" />
+                                        <path d="M18 8a4 4 0 0 1 4 4" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 style="margin:0;font-size:1rem;">Biometric Authentication</h3>
+                                    <span id="biometricStatus"
+                                        style="font-size:0.8rem;color:var(--text-muted);">Checking...</span>
+                                </div>
+                            </div>
+                            <span id="biometricBadge"
+                                style="padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;background:rgba(239,68,68,0.15);color:#ef4444;">Disabled</span>
+                        </div>
+
+                        <p
+                            style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:var(--space-4);line-height:1.5;">
+                            Use your fingerprint, Face ID, or Windows Hello to verify your identity when marking
+                            attendance. This prevents proxy attendance.
+                        </p>
+
+                        <button class="settings-btn" id="registerPasskeyBtn" onclick="registerPasskey()"
+                            style="width:100%;justify-content:center;background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(168,85,247,0.1));border:1px solid rgba(99,102,241,0.2);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                style="width:18px;height:18px;">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Register Passkey
+                        </button>
+
+                        <div id="passkeyList" style="margin-top:var(--space-4);display:none;">
+                            <div
+                                style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);margin-bottom:var(--space-2);">
+                                Registered Devices</div>
+                            <div id="passkeyListItems"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -614,6 +664,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://unpkg.com/@simplewebauthn/browser@11.0.0/dist/bundle/index.umd.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/student-api.js"></script>
@@ -1426,6 +1477,147 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // ========================================
+        // Passkey / Biometric Management
+        // ========================================
+        async function loadPasskeyStatus() {
+            try {
+                const resp = await axios.get(`${API_BASE_URL}/passkey/status`, {
+                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                });
+                if (resp.data.success) {
+                    const badge = document.getElementById('biometricBadge');
+                    const status = document.getElementById('biometricStatus');
+                    if (resp.data.hasPasskeys) {
+                        badge.textContent = 'Enabled';
+                        badge.style.background = 'rgba(16,185,129,0.15)';
+                        badge.style.color = '#10b981';
+                        status.textContent = `${resp.data.count} passkey(s) registered`;
+                    } else {
+                        badge.textContent = 'Disabled';
+                        badge.style.background = 'rgba(239,68,68,0.15)';
+                        badge.style.color = '#ef4444';
+                        status.textContent = 'No passkeys registered';
+                    }
+                    loadPasskeyList();
+                }
+            } catch (e) {
+                console.error('Passkey status error:', e);
+            }
+        }
+
+        async function loadPasskeyList() {
+            try {
+                const resp = await axios.get(`${API_BASE_URL}/passkey/list`, {
+                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                });
+                const container = document.getElementById('passkeyListItems');
+                const wrapper = document.getElementById('passkeyList');
+                if (resp.data.passkeys && resp.data.passkeys.length > 0) {
+                    wrapper.style.display = 'block';
+                    container.innerHTML = resp.data.passkeys.map(pk => `
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-3);background:rgba(15,23,42,0.3);border-radius:var(--radius-md);margin-bottom:var(--space-2);border:1px solid var(--border-color);">
+                            <div style="display:flex;align-items:center;gap:var(--space-3);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:#6366f1;">
+                                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                    <path d="M12 12h.01"/>
+                                </svg>
+                                <div>
+                                    <div style="font-size:0.85rem;font-weight:500;color:var(--text-primary);">${pk.device_name || 'My Device'}</div>
+                                    <div style="font-size:0.75rem;color:var(--text-muted);">${pk.last_used_at ? 'Last used: ' + new Date(pk.last_used_at).toLocaleDateString() : 'Never used'}</div>
+                                </div>
+                            </div>
+                            <button onclick="removePasskey('${pk.id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;padding:4px;" title="Remove">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    wrapper.style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Passkey list error:', e);
+            }
+        }
+
+        async function registerPasskey() {
+            const btn = document.getElementById('registerPasskeyBtn');
+            const origHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border:2px solid var(--text-muted);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></span> Registering...';
+
+            try {
+                // Check browser support
+                if (!window.SimpleWebAuthnBrowser) {
+                    showToast('Your browser does not support biometric authentication.', 'error');
+                    return;
+                }
+
+                // 1. Get registration options from server
+                const optResp = await axios.post(`${API_BASE_URL}/passkey/register/options`, {}, {
+                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                });
+
+                if (!optResp.data.success) {
+                    showToast(optResp.data.error || 'Failed to start registration', 'error');
+                    return;
+                }
+
+                // 2. Start WebAuthn registration (browser prompt)
+                const attResp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: optResp.data.options });
+
+                // 3. Send attestation to server for verification
+                const verifyResp = await axios.post(`${API_BASE_URL}/passkey/register/verify`, {
+                    attestation: attResp,
+                    deviceName: navigator.userAgent.includes('Android') ? 'Android' :
+                        navigator.userAgent.includes('iPhone') ? 'iPhone' :
+                            navigator.userAgent.includes('Windows') ? 'Windows' : 'Device'
+                }, {
+                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                });
+
+                if (verifyResp.data.success) {
+                    showToast('🎉 Passkey registered successfully!', 'success');
+                    loadPasskeyStatus();
+                } else {
+                    showToast(verifyResp.data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                if (error.name === 'NotAllowedError') {
+                    showToast('Registration cancelled.', 'warning');
+                } else if (error.name === 'InvalidStateError') {
+                    showToast('This device is already registered.', 'warning');
+                } else {
+                    console.error('Passkey registration error:', error);
+                    showToast('Failed to register passkey. ' + (error.response?.data?.error || error.message || ''), 'error');
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origHTML;
+            }
+        }
+
+        async function removePasskey(id) {
+            if (!confirm('Remove this passkey? You will need to re-register if you want to use biometric auth.')) return;
+            try {
+                const resp = await axios.delete(`${API_BASE_URL}/passkey/remove/${id}`, {
+                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                });
+                if (resp.data.success) {
+                    showToast('Passkey removed.', 'success');
+                    loadPasskeyStatus();
+                }
+            } catch (e) {
+                showToast('Failed to remove passkey.', 'error');
+            }
+        }
+
+        // Load passkey status on profile tab
+        loadPasskeyStatus();
     </script>
     <script src="js/theme-engine.js"></script>
 </body>
