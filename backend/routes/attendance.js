@@ -308,62 +308,6 @@ router.post('/scan', authenticate, isStudent, scanRateLimit, [
             });
         }
 
-        // ==========================================
-        // Biometric / OTP Verification
-        // ==========================================
-        const { biometricToken, otpToken } = req.body;
-
-        // Check if student has registered passkeys
-        const passkeyCheck = await db.query(
-            'SELECT COUNT(*) as count FROM student_passkeys WHERE student_id = $1',
-            [studentId]
-        );
-        const hasPasskeys = parseInt(passkeyCheck.rows[0].count) > 0;
-
-        if (hasPasskeys) {
-            // Student has passkeys — require biometricToken OR otpToken
-            if (!biometricToken && !otpToken) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Biometric verification required',
-                    requireBiometric: true
-                });
-            }
-
-            let challengeType = '';
-            let tokenToVerify = '';
-
-            if (biometricToken) {
-                challengeType = 'biometric_token';
-                tokenToVerify = biometricToken;
-            } else {
-                challengeType = 'otp_verification';
-                tokenToVerify = otpToken;
-            }
-
-            // Validate token
-            const tokenCheck = await db.query(
-                `SELECT id FROM webauthn_challenges 
-                 WHERE user_id = $1 AND challenge = $2 AND type = $3 AND expires_at > NOW()`,
-                [studentId, tokenToVerify, challengeType]
-            );
-
-            if (tokenCheck.rows.length === 0) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Verification token expired or invalid. Please verify again.',
-                    requireBiometric: true
-                });
-            }
-
-            // Consume the token (single-use)
-            await db.query(
-                'DELETE FROM webauthn_challenges WHERE id = $1',
-                [tokenCheck.rows[0].id]
-            );
-        }
-        // If no passkeys registered: allow attendance without biometric (grace period)
-
         // Mark
         await db.query(`
             INSERT INTO attendance_logs 

@@ -188,32 +188,6 @@ async function initializeDatabase() {
             )
         `);
 
-        // 11. Student Passkeys table (WebAuthn credentials)
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS student_passkeys (
-                id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                credential_id TEXT UNIQUE NOT NULL,
-                public_key TEXT NOT NULL,
-                counter INTEGER DEFAULT 0,
-                device_name TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_used_at TIMESTAMP
-            )
-        `);
-
-        // 12. WebAuthn Challenges table (short-lived, 2-min expiry)
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS webauthn_challenges (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                challenge TEXT NOT NULL,
-                type VARCHAR(20) NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
         // Create indexes
         await db.query('CREATE INDEX IF NOT EXISTS idx_tokens_hash ON qr_tokens(token_hash)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_tokens_expires ON qr_tokens(expires_at)');
@@ -223,9 +197,6 @@ async function initializeDatabase() {
         await db.query('CREATE INDEX IF NOT EXISTS idx_device_sessions_device ON device_sessions(device_id)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_device_activity_device ON device_activity_logs(device_id)');
         await db.query('CREATE INDEX IF NOT EXISTS idx_nonces_nonce ON qr_nonces(nonce)');
-        await db.query('CREATE INDEX IF NOT EXISTS idx_passkeys_student ON student_passkeys(student_id)');
-        await db.query('CREATE INDEX IF NOT EXISTS idx_passkeys_credential ON student_passkeys(credential_id)');
-        await db.query('CREATE INDEX IF NOT EXISTS idx_challenges_user ON webauthn_challenges(user_id)');
 
         console.log('✅ Database schema initialized');
     } catch (error) {

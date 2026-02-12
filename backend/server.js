@@ -19,7 +19,6 @@ const studentRoutes = require('./routes/student');
 const facultyRoutes = require('./routes/faculty');
 const webhookRoutes = require('./routes/webhook');
 const reportRoutes = require('./routes/reports');
-const passkeyRoutes = require('./routes/passkey');
 const { router: realtimeRoutes } = require('./routes/realtime');
 
 // Import utilities
@@ -67,7 +66,6 @@ app.use('/api/faculty', facultyRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/realtime', realtimeRoutes);
-app.use('/api/passkey', passkeyRoutes);
 
 // Default route
 app.get('/', (req, res) => {
