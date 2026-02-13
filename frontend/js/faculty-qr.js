@@ -116,11 +116,30 @@ function renderQR(container, sessionId, token) {
             colorLight: "#ffffff",
             correctLevel: QRCode.CorrectLevel.H
         });
+
+        // Add debug token display
+        const debugDiv = document.createElement('div');
+        debugDiv.id = 'debugTokenDisplay';
+        debugDiv.style.marginTop = '10px';
+        debugDiv.style.fontSize = '12px';
+        debugDiv.style.color = '#666';
+        debugDiv.style.wordBreak = 'break-all';
+        debugDiv.textContent = `Token: ${token.substring(0, 10)}... (Session: ${sessionId})`;
+        container.appendChild(debugDiv);
+
     } else {
         // Update existing
         qrCodeInstance.clear();
         qrCodeInstance.makeCode(qrData);
+
+        // Update debug text
+        const debugDiv = document.getElementById('debugTokenDisplay');
+        if (debugDiv) {
+            debugDiv.textContent = `Token: ${token.substring(0, 10)}... (Session: ${sessionId})`;
+        }
     }
+
+    console.log("Rendered QR:", qrData);
 }
 
 async function stopLiveQR() {
