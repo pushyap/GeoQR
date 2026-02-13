@@ -57,15 +57,9 @@ const Toast = {
 // ========================================
 const API = {
     async post(endpoint, body) {
-        const headers = { 'Content-Type': 'application/json' };
-        const token = Session.getToken();
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
         const res = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
             method: 'POST',
-            headers: headers,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
 
@@ -76,20 +70,20 @@ const API = {
 };
 
 // ========================================
-// Session Manager (uses localStorage for persistence across reloads/tabs)
+// Session Manager (uses sessionStorage - clears on browser close)
 // ========================================
 const Session = {
     save(token, user) {
-        localStorage.setItem(CONFIG.TOKEN_KEY, token);
-        localStorage.setItem(CONFIG.DATA_KEY, JSON.stringify(user));
+        sessionStorage.setItem(CONFIG.TOKEN_KEY, token);
+        sessionStorage.setItem(CONFIG.DATA_KEY, JSON.stringify(user));
     },
 
     getToken() {
-        return localStorage.getItem(CONFIG.TOKEN_KEY);
+        return sessionStorage.getItem(CONFIG.TOKEN_KEY);
     },
 
     getUser() {
-        const d = localStorage.getItem(CONFIG.DATA_KEY);
+        const d = sessionStorage.getItem(CONFIG.DATA_KEY);
         return d ? JSON.parse(d) : null;
     },
 
@@ -102,11 +96,7 @@ const Session = {
     },
 
     clear() {
-        localStorage.removeItem(CONFIG.TOKEN_KEY);
-        localStorage.removeItem(CONFIG.DATA_KEY);
-        // Clear temp tokens too
-        localStorage.removeItem('login_temp_token');
-        localStorage.removeItem('login_email');
+        sessionStorage.clear();
     }
 };
 
@@ -158,8 +148,8 @@ const LoginPage = {
 
                 // 🔐 ALL ROLES → OTP REQUIRED
                 if (res.requiresOtp) {
-                    localStorage.setItem('login_temp_token', res.tempToken);
-                    localStorage.setItem('login_email', email);
+                    sessionStorage.setItem('login_temp_token', res.tempToken);
+                    sessionStorage.setItem('login_email', email);
 
                     Toast.success('OTP sent to your email');
                     window.location.href = 'otp.html';

@@ -36,7 +36,7 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
     const studentId = req.user.id;
     const latitude = req.body.latitude || req.body.lat;
     const longitude = req.body.longitude || req.body.lng;
-    const { token, qr_session_id, qr_token } = req.body;
+    const { qr_session_id, qr_token } = req.body;
     const ipAddress = getClientIp(req);
 
     try {
@@ -59,11 +59,17 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
 
                 // 2. Verify QR Token + Session Status
                 const tokenHash = hashToken(qr_token);
+
+                // Separate session check for better error
+                const sessionCheck = await client.query('SELECT is_active, location_id FROM sessions WHERE id = $1', [qr_session_id]);
+                if (sessionCheck.rows.length === 0 || !sessionCheck.rows[0].is_active) {
+                    throw new Error('INVALID_QR');
+                }
+                const session = sessionCheck.rows[0];
+
                 const qrCheck = await client.query(
-                    `SELECT q.*, s.is_active, s.location_id 
-                     FROM qr_tokens q
-                     JOIN sessions s ON q.session_id = s.id
-                     WHERE q.session_id = $1 AND q.token_hash = $2 AND q.expires_at > NOW() AND s.is_active = true`,
+                    `SELECT expires_at FROM qr_tokens 
+                     WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()`,
                     [qr_session_id, tokenHash]
                 );
 
@@ -86,12 +92,14 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
 
                 // 4. Location Check
                 const locationResult = await client.query(
-                    `SELECT l.*, s.subject FROM sessions s
-                     JOIN locations l ON s.location_id = l.id
-                     WHERE s.id = $1`,
-                    [qr_session_id]
+                    `SELECT * FROM locations WHERE id = $1`,
+                    [session.location_id]
                 );
                 const location = locationResult.rows[0];
+
+                // Get subject name for response
+                const subjectResult = await client.query('SELECT subject FROM sessions WHERE id = $1', [qr_session_id]);
+                const subject = subjectResult.rows[0].subject;
 
                 const gpsCheck = isWithinRadius(
                     latitude, longitude,
@@ -128,7 +136,7 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
                     success: true,
                     message: 'Attendance marked securely!',
                     attendance: {
-                        subject: location.subject,
+                        subject: subject,
                         markedAt: new Date().toISOString(),
                         distance: gpsCheck.distance
                     }
@@ -157,59 +165,7 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
             }
         }
 
-        // ==========================================
-        // PHASE 1: LEGACY QR FLOW (Keep for compatibility if needed, pass through)
-        // ==========================================
-        if (!token) {
-            return res.status(400).json({ error: 'Missing QR token' });
-        }
-
-        // ... Existing Legacy Logic Verification ...
-        const verification = verifyQRContent(token);
-        // ... (rest of legacy logic handled by falling through or I should just paste check here?)
-        // Since I'm REPLACING the whole block, I must keep legacy logic if I want to support it.
-        // Or I can just copy-paste the legacy logic block below.
-
-        if (!verification.valid) {
-            return res.status(400).json({ success: false, error: verification.error || 'Invalid QR code' });
-        }
-
-        // ... (truncated for brevity, I will include the full legacy logic in the replacement)
-        // Actually, to save context space and since user wants Phase 2, I will prioritize Phase 2.
-        // I will re-implement the legacy logic briefly or assume user is ONLY testing Phase 2.
-        // But user said "session is not created" error which comes from... where?
-        // Ah, likely the frontend.
-        // I will keep legacy logic logic structure.
-
-        const payload = verification.payload;
-
-        // ... (Timestamp, Nonce, Location, Session, Duplicate, GPS, Insert)
-        // ...
-
-        // For now, I'll just return error for legacy to force upgrade?
-        // No, "400 Bad Request" was the error. 
-        // I'll assume I should just implement Phase 2 logic primarily.
-        // If token is present, run legacy.
-
-        // [Legacy Logic - kept minimal for now or just fail it if user wants strict Phase 2?]
-        // The user said "ensure... passkey verification should be done".
-        // So maybe legacy flow SHOULD fail?
-        // But I'll keep it for now but maybe wrap it specific to `token`.
-
-        // ... (Legacy code follows) ...
-        // I'll reuse the existing logic I read in Step 914.
-
-        // STEP 2: Validate Timestamp
-        if (!validateTimestamp(payload.ts, 30000)) return res.status(400).json({ error: 'Expired QR' });
-
-        // STEP 3: Nonce
-        if (!(await validateAndConsumeNonce(payload.nonce, payload.did))) return res.status(400).json({ error: 'QR already used' });
-
-        // ... (rest of logic)
-
-        // To handle this cleanly with `replace_file_content`, I need to match existing code.
-        // Existing code: lines 26-209.
-        // I will replace the whole handler.
+        return res.status(400).json({ error: 'Missing QR session info' });
 
     } catch (error) {
         console.error('Mark attendance error:', error);

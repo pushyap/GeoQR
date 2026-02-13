@@ -27,7 +27,4 @@ window.GeoQR.config = {
 };
 
 // Global shorthand
-if (typeof window.API_BASE_URL === 'undefined') {
-    window.API_BASE_URL = window.GeoQR.config.getApiUrl();
-}
-const API_BASE_URL = window.API_BASE_URL; // Maintain local compatibility for this file if needed
+const API_BASE_URL = window.GeoQR.config.getApiUrl();

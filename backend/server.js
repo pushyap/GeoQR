@@ -35,8 +35,7 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({
-    origin: ['https://geo-qr.app', 'http://localhost:3000', 'http://localhost:5500', 'http://127.0.0.1:5500'],
-    credentials: true,
+    origin: '*', // Allow all origins in development
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -116,14 +115,16 @@ async function start() {
         await initRedis();
 
         // Start background task to clean up expired sessions
-        const { autoEndSessions } = require('./utils/sessionHelper');
-
-        // Initial cleanup on startup
-        await autoEndSessions();
-
-        // Regular maintenance
+        const { db } = require('./config/database');
         setInterval(async () => {
-            await autoEndSessions();
+            try {
+                const result = await db.query(
+                    "UPDATE sessions SET is_active = false WHERE is_active = true AND end_time < NOW()"
+                );
+                if (result.rowCount > 0) {
+                    console.log(`Auto-ended ${result.rowCount} expired sessions`);
+                }
+            } catch (e) { console.error('Auto-end session error:', e); }
         }, 60000); // Check every minute
 
         app.listen(PORT, () => {

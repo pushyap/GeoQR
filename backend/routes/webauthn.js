@@ -58,8 +58,8 @@ function getDynamicConfig(req) {
     }
 
     // Dynamic overrides for common dev environments
-    if (currentRPID === '127.0.0.1' || clientOrigin.includes('127.0.0.1')) {
-        currentRPID = 'localhost';
+    if (clientOrigin.includes('127.0.0.1')) {
+        currentRPID = '127.0.0.1';
     } else if (clientOrigin.includes('localhost')) {
         currentRPID = 'localhost';
     }
@@ -154,8 +154,8 @@ router.post('/register/verify', authenticate, async (req, res) => {
         });
 
         if (verification.verified && verification.registrationInfo) {
-            const { credential } = verification.registrationInfo;
-            const { id: credentialID, publicKey: credentialPublicKey, counter } = credential;
+            const { credential, credentialBackedUp } = verification.registrationInfo;
+            const { id: credentialID, publicKey: credentialPublicKey, counter, transports } = credential;
 
             // Save credential to DB
             await db.query(
@@ -163,10 +163,10 @@ router.post('/register/verify', authenticate, async (req, res) => {
                  VALUES ($1, $2, $3, $4, $5)`,
                 [
                     userId,
-                    credentialID, // Already a string/base64url from SimpleWebAuthn? No, it's usually a string in the verified response
+                    credentialID,
                     Buffer.from(credentialPublicKey).toString('base64'),
                     counter,
-                    JSON.stringify(body.response.transports || [])
+                    JSON.stringify(body.response.transports || []) // Save transports hint
                 ]
             );
 
@@ -187,8 +187,6 @@ router.post('/register/verify', authenticate, async (req, res) => {
     }
 });
 
-module.exports = router;
-
 // =========================================
 // POST /api/webauthn/auth/options
 // Generate authentication options (Student scans QR)
@@ -200,46 +198,59 @@ router.post('/auth/options', authenticate, async (req, res) => {
         const { rpID } = getDynamicConfig(req);
 
         if (!qr_session_id || !qr_token) {
-            return res.status(400).json({ success: false, error: 'Missing QR session info' });
+            console.error(`[AuthOptions] Missing info: sid=${qr_session_id}, token=${qr_token ? 'present' : 'missing'}`);
+            return res.status(400).json({ error: 'Missing QR session info' });
         }
 
         const sessionId = Number(qr_session_id);
+        if (isNaN(sessionId)) {
+            return res.status(400).json({ error: 'Invalid session ID format' });
+        }
+
+        // 1. Detailed QR Validation + Session Status
         const tokenHash = hashToken(qr_token);
 
-        // 1. Validate QR token and session status
+        // Check session separately for better logging
+        const sessionCheck = await db.query('SELECT is_active, subject FROM sessions WHERE id = $1', [sessionId]);
+        if (sessionCheck.rows.length === 0) {
+            console.error(`[AuthOptions] Session NOT FOUND. ID: ${sessionId}`);
+            return res.status(400).json({ success: false, code: 'SESSION_NOT_FOUND', message: 'Session does not exist' });
+        }
+        if (!sessionCheck.rows[0].is_active) {
+            console.error(`[AuthOptions] Session INACTIVE. ID: ${sessionId}, Subject: ${sessionCheck.rows[0].subject}`);
+            return res.status(400).json({ success: false, code: 'SESSION_INACTIVE', message: 'Session has ended' });
+        }
+
+        // Check token separately
         const tokenCheck = await db.query(
-            `SELECT q.expires_at, (q.expires_at > NOW()) as is_valid, s.is_active 
-             FROM qr_tokens q
-             JOIN sessions s ON q.session_id = s.id
-             WHERE q.session_id = $1 AND q.token_hash = $2`,
+            `SELECT expires_at, (expires_at > NOW()) as is_valid, token_hash 
+             FROM qr_tokens 
+             WHERE session_id = $1 AND token_hash = $2`,
             [sessionId, tokenHash]
         );
 
-        if (tokenCheck.rows.length === 0 || !tokenCheck.rows[0].is_active || !tokenCheck.rows[0].is_valid) {
-            console.error(`[AuthOptions] QR Validation Failed. Session: ${sessionId}`);
-            return res.status(400).json({
-                success: false,
-                code: 'INVALID_QR',
-                error: 'QR expired or session inactive'
-            });
+        if (tokenCheck.rows.length === 0) {
+            console.error(`[AuthOptions] Token HASH MISMATCH. Session: ${sessionId}, Provided Token: ${qr_token.substring(0, 5)}...`);
+            return res.status(400).json({ success: false, code: 'INVALID_TOKEN', message: 'Invalid QR token' });
+        }
+        if (!tokenCheck.rows[0].is_valid) {
+            console.error(`[AuthOptions] Token EXPIRED. Session: ${sessionId}, Expired at: ${tokenCheck.rows[0].expires_at}`);
+            return res.status(400).json({ success: false, code: 'TOKEN_EXPIRED', message: 'QR code has expired' });
         }
 
-        // 2. Fetch user's credentials
-        const creds = await db.query(
-            'SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = $1',
-            [userId]
-        );
+        console.log(`[AuthOptions] QR Validated Successfully. Session: ${sessionId}`);
 
-        if (creds.rows.length === 0) {
-            return res.status(400).json({
-                success: false,
-                code: "NO_PASSKEY",
-                error: "No passkey registered. Please setup passkey first."
-            });
+        // 2. Check if user has passkey
+        const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (!user.rows[0].passkey_enabled) {
+            return res.status(400).json({ error: 'Passkey not set up. Please register first.' });
         }
 
-        const allowCredentials = creds.rows.map(row => ({
-            id: Buffer.from(row.credential_id, 'base64url'), // Convert to Buffer
+        // 3. Get user's credentials
+        const credentials = await db.query('SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = $1', [userId]);
+
+        const allowCredentials = credentials.rows.map(row => ({
+            id: row.credential_id,
             type: 'public-key',
             transports: row.transports ? JSON.parse(row.transports) : undefined,
         }));
@@ -247,17 +258,17 @@ router.post('/auth/options', authenticate, async (req, res) => {
         const options = await generateAuthenticationOptions({
             rpID,
             allowCredentials,
-            userVerification: 'required', // Enforce biometric verification
+            userVerification: 'preferred',
         });
 
-        // Store active challenge per user+session
-        challengeStore.set(`${userId}:${sessionId}`, options.challenge);
+        // Store active challenge
+        challengeStore.set(userId, options.challenge);
 
-        res.json({ success: true, optionsJSON: options });
+        res.json(options);
 
     } catch (error) {
         console.error('Auth options error:', error);
-        res.status(500).json({ success: false, error: 'Failed to generate auth options' });
+        res.status(500).json({ error: 'Failed to generate auth options' });
     }
 });
 
@@ -271,98 +282,123 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         const { qr_session_id, qr_token, assertion } = req.body;
         const { rpID, origin } = getDynamicConfig(req);
 
-        const sessionId = Number(qr_session_id);
-        if (!sessionId || !qr_token || !assertion?.id) {
-            return res.status(400).json({ success: false, error: "Missing verification data" });
+        if (!qr_session_id || !qr_token) {
+            return res.status(400).json({ error: 'Missing QR info' });
         }
 
-        // 1. Re-validate QR token (Critical Security Layer)
+        const expectedChallenge = challengeStore.get(userId);
+        if (!expectedChallenge) {
+            return res.status(400).json({ error: 'Challenge not found or expired' });
+        }
+
+        // 1. Double check QR (security layer)
+        const sessionId = Number(qr_session_id);
+        if (isNaN(sessionId)) {
+            return res.status(400).json({ error: 'Invalid session ID format' });
+        }
         const tokenHash = hashToken(qr_token);
+
+        const sessionCheck = await db.query('SELECT is_active FROM sessions WHERE id = $1', [sessionId]);
+        if (sessionCheck.rows.length === 0) {
+            console.error(`[AuthVerify] Session NOT FOUND. ID: ${sessionId}`);
+            return res.status(400).json({ error: 'Session does not exist (Verify Phase)' });
+        }
+        if (!sessionCheck.rows[0].is_active) {
+            console.error(`[AuthVerify] Session INACTIVE. ID: ${sessionId}`);
+            return res.status(400).json({ error: 'Session has ended (Verify Phase)' });
+        }
+
         const tokenCheck = await db.query(
-            `SELECT q.expires_at, (q.expires_at > NOW()) as is_valid, s.is_active 
-             FROM qr_tokens q
-             JOIN sessions s ON q.session_id = s.id
-             WHERE q.session_id = $1 AND q.token_hash = $2`,
+            `SELECT expires_at, (expires_at > NOW()) as is_valid 
+             FROM qr_tokens 
+             WHERE session_id = $1 AND token_hash = $2`,
             [sessionId, tokenHash]
         );
 
-        if (tokenCheck.rows.length === 0 || !tokenCheck.rows[0].is_active || !tokenCheck.rows[0].is_valid) {
-            console.error(`[AuthVerify] QR Validation Failed. Session: ${sessionId}`);
-            return res.status(400).json({
-                success: false,
-                code: 'INVALID_QR',
-                error: 'QR expired or session inactive'
-            });
+        if (tokenCheck.rows.length === 0) {
+            console.error(`[AuthVerify] Token HASH MISMATCH. Session: ${sessionId}`);
+            return res.status(400).json({ error: 'Invalid QR token (Verify Phase)' });
+        }
+        if (!tokenCheck.rows[0].is_valid) {
+            console.error(`[AuthVerify] Token EXPIRED. Session: ${sessionId}, Expired at: ${tokenCheck.rows[0].expires_at}`);
+            return res.status(400).json({ error: 'QR code session timed out. Please scan again.' });
         }
 
-        // 2. Validate Challenge
-        const expectedChallenge = challengeStore.get(`${userId}:${sessionId}`);
-        if (!expectedChallenge) {
-            return res.status(400).json({ success: false, error: 'Challenge expired. Please rescan and try again.' });
-        }
+        console.log(`[AuthVerify] QR Validated. Proceeding with Biometric Verification for User: ${userId}`);
 
-        // 3. Fetch stored credential and validate its existence
+        // 1. Get credential from DB to verify signature
+        // The assertion contains the credential ID used.
+        const credentialId = assertion.id;
         const credentialResult = await db.query(
-            'SELECT id, credential_id, public_key, counter, transports FROM webauthn_credentials WHERE user_id = $1 AND credential_id = $2',
-            [userId, assertion.id]
+            'SELECT * FROM webauthn_credentials WHERE user_id = $1 AND credential_id = $2',
+            [userId, credentialId]
         );
 
-        const credential = credentialResult.rows[0];
-        if (!credential) {
-            console.error(`[AuthVerify] Credential NOT FOUND. User: ${userId}, ID: ${assertion.id}`);
-            return res.status(400).json({
-                success: false,
-                code: "CREDENTIAL_NOT_FOUND",
-                error: "Passkey not found for this account."
-            });
+        if (credentialResult.rows.length === 0) {
+            return res.status(400).json({ error: 'Credential not found' });
         }
 
-        // 4. Build authenticator object strictly as required by SimpleWebAuthn
-        const authenticator = {
-            credentialID: Buffer.from(credential.credential_id, 'base64url'),
-            credentialPublicKey: Buffer.from(credential.public_key, 'base64'),
-            counter: Number(credential.counter || 0),
-            transports: credential.transports ? JSON.parse(credential.transports) : undefined,
-        };
+        const credential = credentialResult.rows[0];
+        // credential.public_key is stored as base64 string
+        // verifyAuthenticationResponse expects Uint8Array for credentialPublicKey if passed?
+        // Actually it retrieves it from standard means? No, we must pass it?
+        // Docs say: `authenticator` object needed? Or just `credential.publicKey`?
+        // Wait, verifyAuthenticationResponse takes `credential` which includes `publicKey`.
+        // My DB stores `public_key` as base64 string.
+
+        // Convert base64 public key back to Uint8Array
+        const publicKey = new Uint8Array(Buffer.from(credential.public_key, 'base64'));
+
+        console.log(`Verify: Assertion from ${origin} (RPID: ${rpID})`);
 
         const verification = await verifyAuthenticationResponse({
             response: assertion,
             expectedChallenge,
-            expectedOrigin: origin,
+            expectedOrigin: origin, // Allow dynamic origin
             expectedRPID: rpID,
-            authenticator,
+            authenticator: {
+                credentialID: credential.credential_id,
+                credentialPublicKey: publicKey,
+                counter: credential.counter,
+                transports: credential.transports ? JSON.parse(credential.transports) : undefined,
+            },
         });
 
         if (verification.verified) {
             const { authenticationInfo } = verification;
             const newCounter = authenticationInfo.newCounter;
 
-            // Update counter for replay protection
+            // Update counter
             await db.query(
                 'UPDATE webauthn_credentials SET counter = $1 WHERE id = $2',
                 [newCounter, credential.id]
             );
 
-            // 5. Issue verification ticket (used by /attendance/mark)
+            // Clear challenge
+            challengeStore.delete(userId);
+
+            // ==========================================
+            // ISSUE VERIFICATION TICKET
+            // ==========================================
             const ticketToken = crypto.randomBytes(16).toString('hex');
-            const expiresAt = new Date(Date.now() + 10000); // 10s window
+            // Expires in 10 seconds (Strict verification window)
+            const expiresAt = new Date(Date.now() + 10000);
 
             await db.query(
-                `INSERT INTO verification_tickets (student_id, session_id, ticket_token, expires_at, is_used)
-                 VALUES ($1, $2, $3, $4, false)`,
-                [userId, sessionId, ticketToken, expiresAt]
+                `INSERT INTO verification_tickets (student_id, session_id, ticket_token, expires_at)
+                 VALUES ($1, $2, $3, $4)`,
+                [userId, qr_session_id, ticketToken, expiresAt]
             );
 
-            // Cleanup challenge
-            challengeStore.delete(`${userId}:${sessionId}`);
-
-            res.json({ success: true, ticket_token: ticketToken });
+            res.json({ success: true, message: 'Verified', ticket_token: ticketToken });
         } else {
-            res.status(400).json({ success: false, error: 'Biometric verification failed' });
+            res.status(400).json({ verified: false, error: 'Verification failed' });
         }
 
     } catch (error) {
         console.error('Auth verification error:', error);
-        res.status(400).json({ success: false, error: error.message });
+        res.status(500).json({ error: 'Failed to verify auth' });
     }
 });
+
+module.exports = router;

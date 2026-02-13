@@ -858,7 +858,6 @@
                     return response.data.dashboard;
                 } catch (error) {
                     console.error('API Error:', error);
-                    if (window.Toast) Toast.error('Failed to load dashboard data');
                     return null;
                 }
             },
@@ -876,7 +875,6 @@
                     return response.data.records;
                 } catch (error) {
                     console.error('API Error:', error);
-                    if (window.Toast) Toast.error('Failed to load attendance records');
                     return [];
                 }
             },
@@ -972,19 +970,16 @@
                 return;
             }
 
-            // Improved role check
             if (user.role !== 'faculty' && user.role !== 'admin') {
-                const dashboards = {
-                    'student': 'student-dashboard.html',
-                    'device': 'device/',
-                    'admin': 'admin-dashboard.html'
-                };
+                const dashboards = { 'student': 'dashboard.html', 'device': 'device/' };
                 window.location.href = dashboards[user.role] || 'login.html';
                 return;
             }
 
-            console.log('✅ Faculty Dashboard initialized for:', user.email, `(${user.role})`);
-            document.getElementById('welcomeName').textContent = user.name || 'Professor';
+            if (!user || user.role !== 'faculty') {
+                window.location.href = 'login.html';
+                return;
+            }
 
             // Load initial data
             await loadDashboardData();

@@ -1372,66 +1372,106 @@
                     showToast('Applying biometric security...', 'info');
 
                     try {
-                        // 1. Get Auth Options
-                        const optionsResp = await axios.post(`${API_URL}/webauthn/auth/options`, {
-                            qr_session_id: scannedData.sid,
-                            qr_token: scannedData.t
-                        }, { headers: { Authorization: `Bearer ${token}` } });
+                        // ===============================================
+                        // STEP 1: Get Authentication Options (Validates QR)
+                        // ===============================================
+                        const optionsResp = await fetch('/api/webauthn/auth/options', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({
+                                qr_session_id: scannedData.sessionId,
+                                qr_token: scannedData.token
+                            })
+                        });
 
-                        // Handle both old and new response formats
-                        const optionsJSON = optionsResp.data.optionsJSON || optionsResp.data;
-
-                        // 2. Start Authentication (SimpleWebAuthn Browser)
-                        if (typeof SimpleWebAuthnBrowser === 'undefined') {
-                            throw new Error('WebAuthn library not loaded. Please refresh the page.');
+                        if (!optionsResp.ok) {
+                            const err = await optionsResp.json();
+                            throw new Error(err.message || 'QR validation failed');
                         }
 
-                        let asseResp;
+                        const options = await optionsResp.json();
+
+                        // ===============================================
+                        // STEP 2: Biometric Prompt
+                        // ===============================================
+                        let assertion;
                         try {
-                            asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON });
-                        } catch (webauthnErr) {
-                            if (webauthnErr.name === 'NotAllowedError') {
-                                throw new Error('Biometric verification cancelled. Please try again.');
+                            assertion = await SimpleWebAuthnBrowser.startAuthentication(options);
+                        } catch (err) {
+                            if (err.name === 'NotAllowedError') {
+                                throw new Error('Biometric verification cancelled');
                             }
-                            throw webauthnErr;
+                            throw err;
                         }
 
-                        // 3. Verify Authentication
-                        const verifyResp = await axios.post(`${API_URL}/webauthn/auth/verify`, {
-                            qr_session_id: scannedData.sid,
-                            qr_token: scannedData.t,
-                            assertion: asseResp
-                        }, { headers: { Authorization: `Bearer ${token}` } });
+                        // ===============================================
+                        // STEP 3: Verify Assertion (Gets Ticket)
+                        // ===============================================
+                        const verifyResp = await fetch('/api/webauthn/auth/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({
+                                qr_session_id: scannedData.sessionId,
+                                qr_token: scannedData.token, // Must match for validation
+                                assertion
+                            })
+                        });
 
-                        if (!verifyResp.data.success) {
-                            throw new Error(verifyResp.data.error || 'Passkey verification failed');
+                        if (!verifyResp.ok) {
+                            const err = await verifyResp.json();
+                            throw new Error(err.message || 'Passkey verification failed');
                         }
 
-                        showToast('Secure Ticket Issued! Marking attendance...', 'success');
+                        // ===============================================
+                        // STEP 4: Mark Attendance (Consumes Ticket)
+                        // ===============================================
+                        const attendanceResp = await fetch('/api/attendance/mark', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({
+                                qr_session_id: scannedData.sessionId,
+                                qr_token: scannedData.token,
+                                latitude: lat,
+                                longitude: lng
+                            })
+                        });
+
+                        const result = await attendanceResp.json();
+
+                        if (!attendanceResp.ok) {
+                            throw new Error(result.error || result.message || 'Failed to mark attendance');
+                        }
+
+                        // Success!
+                        showResult('success', {
+                            title: 'Attendance Marked!',
+                            subtitle: 'Verified securely with Passkey',
+                            location: result.attendance.subject, // Subject from backend
+                            time: new Date().toLocaleTimeString(),
+                            distance: `${result.attendance.distance}m`
+                        });
+
                     } catch (error) {
-                        const errorMsg = error.response?.data?.error || error.message || 'Verification failed';
-                        throw new Error(errorMsg);
+                        console.error('Scan Error:', error);
+
+                        let title = 'Verification Failed';
+                        let message = error.message;
+
+                        if (message.includes('cancelled')) {
+                            title = 'Cancelled';
+                            message = 'Biometric verification was cancelled';
+                        } else if (message.includes('expired')) {
+                            message = 'QR code has expired. Please scan again.';
+                        }
+
+                        showResult('error', {
+                            title: title,
+                            subtitle: message
+                        });
+                    } finally {
+                        isProcessing = false;
+                        lastScannedCode = null; // Allow rescind
                     }
-                }
-
-                // 4. Mark Attendance
-                if (!currentLocation) {
-                    throw new Error('Please wait for GPS location to be captured before marking attendance.');
-                }
-
-                const payload = {
-                    latitude: currentLocation.latitude,
-                    longitude: currentLocation.longitude,
-                    lat: currentLocation.latitude, // Fallback for backend
-                    lng: currentLocation.longitude  // Fallback for backend
-                };
-
-                if (scannedData.sid && scannedData.t) {
-                    payload.qr_session_id = scannedData.sid;
-                    payload.qr_token = scannedData.t;
-                } else {
-                    // Legacy
-                    payload.token = scannedData.token || scannedData;
                 }
 
                 const response = await axios.post(`${API_URL}/attendance/mark`, payload, {

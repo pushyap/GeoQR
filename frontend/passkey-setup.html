@@ -237,14 +237,17 @@
                 }
                 if (!resp.ok) throw new Error('Failed to start registration');
 
-                const data = await resp.json();
-                const optionsJSON = data.optionsJSON || data;
-                console.log('Registration Options:', optionsJSON);
+                const options = await resp.json();
+                console.log('Registration Options:', options);
+                console.log('Current Hostname:', window.location.hostname);
+                if (options.rp) {
+                    console.log('RP ID from Server:', options.rp.id);
+                }
 
                 // 2. Browser biometric prompt
                 let attResp;
                 try {
-                    attResp = await startRegistration({ optionsJSON });
+                    attResp = await startRegistration(options);
                 } catch (err) {
                     if (err.name === 'NotAllowedError') {
                         throw new Error('Registration cancelled or timed out');

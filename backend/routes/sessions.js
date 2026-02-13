@@ -7,7 +7,6 @@ const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { isFaculty, isFacultyOrAdmin } = require('../middleware/roleCheck');
 const { logDeviceActivity } = require('../utils/security');
-const { autoEndSessions } = require('../utils/sessionHelper');
 
 const router = express.Router();
 
@@ -18,9 +17,6 @@ router.post('/start', authenticate, isFaculty, [
     body('location_id').isInt(),
     body('subject').optional().trim()
 ], async (req, res) => {
-    // 0. Auto-end expired sessions first
-    await autoEndSessions();
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         console.error('Session start validation errors:', errors.array(), 'Body:', req.body);

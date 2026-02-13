@@ -232,10 +232,10 @@
         let timerInterval = null;
         let refreshInterval = null;
 
-        let timeRemaining = 45;
+        let timeRemaining = 10;
         let qrCount = 0;
         let currentQrExpiry = null;
-        const DEFAULT_EXPIRY_SECONDS = 45; // Default fallback to match backend
+        const DEFAULT_EXPIRY_SECONDS = 10; // Default fallback, actual value comes from backend
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {

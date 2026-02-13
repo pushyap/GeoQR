@@ -6,7 +6,6 @@ const express = require('express');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { isFaculty, isFacultyOrAdmin } = require('../middleware/roleCheck');
-const { autoEndSessions } = require('../utils/sessionHelper');
 
 const router = express.Router();
 
@@ -22,9 +21,6 @@ router.get('/dashboard', authenticate, isFaculty, async (req, res) => {
     const facultyId = req.user.id;
 
     try {
-        // 0. Auto-end expired sessions first
-        await autoEndSessions();
-
         // 1. Faculty profile
         const profileResult = await db.query(
             `SELECT id, name, email, created_at FROM users WHERE id = $1`,
