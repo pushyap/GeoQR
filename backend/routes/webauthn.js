@@ -316,8 +316,8 @@ router.post('/auth/verify', authenticate, async (req, res) => {
             // ISSUE VERIFICATION TICKET
             // ==========================================
             const ticketToken = crypto.randomBytes(16).toString('hex');
-            // Expires in 10-20 seconds (short lived)
-            const expiresAt = new Date(Date.now() + 20000);
+            // Expires in 60 seconds (increased from 20s)
+            const expiresAt = new Date(Date.now() + 60000);
 
             await db.query(
                 `INSERT INTO verification_tickets (student_id, session_id, ticket_token, expires_at)
