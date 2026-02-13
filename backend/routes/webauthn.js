@@ -179,7 +179,13 @@ router.post('/auth/options', authenticate, async (req, res) => {
         const { rpID } = getDynamicConfig(req);
 
         if (!qr_session_id || !qr_token) {
+            console.error(`[AuthOptions] Missing info: sid=${qr_session_id}, token=${qr_token ? 'present' : 'missing'}`);
             return res.status(400).json({ error: 'Missing QR session info' });
+        }
+
+        const sessionId = Number(qr_session_id);
+        if (isNaN(sessionId)) {
+            return res.status(400).json({ error: 'Invalid session ID format' });
         }
 
         // 1. Validate QR Token
@@ -190,7 +196,7 @@ router.post('/auth/options', authenticate, async (req, res) => {
 
         const tokenCheck = await db.query(
             'SELECT * FROM qr_tokens WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()',
-            [qr_session_id, tokenHash]
+            [sessionId, tokenHash]
         );
 
         if (tokenCheck.rows.length === 0) {

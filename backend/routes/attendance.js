@@ -34,7 +34,9 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
     }
 
     const studentId = req.user.id;
-    const { latitude, longitude, token, qr_session_id, qr_token } = req.body;
+    const latitude = req.body.latitude || req.body.lat;
+    const longitude = req.body.longitude || req.body.lng;
+    const { token, qr_session_id, qr_token } = req.body;
     const ipAddress = getClientIp(req);
 
     try {
