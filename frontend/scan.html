@@ -1378,7 +1378,8 @@
                             qr_token: scannedData.t
                         }, { headers: { Authorization: `Bearer ${token}` } });
 
-                        const options = optionsResp.data;
+                        // Handle both old and new response formats
+                        const optionsJSON = optionsResp.data.optionsJSON || optionsResp.data;
 
                         // 2. Start Authentication (SimpleWebAuthn Browser)
                         if (typeof SimpleWebAuthnBrowser === 'undefined') {
@@ -1387,7 +1388,7 @@
 
                         let asseResp;
                         try {
-                            asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
+                            asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON });
                         } catch (webauthnErr) {
                             if (webauthnErr.name === 'NotAllowedError') {
                                 throw new Error('Biometric verification cancelled. Please try again.');
