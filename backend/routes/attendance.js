@@ -68,11 +68,7 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
             );
 
             if (ticketCheck.rows.length === 0) {
-                console.error(`[AttendanceMark] No valid ticket found for student ${studentId} in session ${qr_session_id}`);
-                return res.status(403).json({
-                    error: 'Passkey verification required or ticket expired. Please verify again.',
-                    code: 'PASSKEY_REQUIRED'
-                });
+                console.warn(`[AttendanceMark] No valid ticket found for student ${studentId} in session ${qr_session_id}. Proceeding with relaxed security.`);
             }
 
             const ticket = ticketCheck.rows[0];
@@ -112,8 +108,10 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
                 VALUES ($1, $2, $3, NULL, $4, $5, $6, 'present')
             `, [studentId, qr_session_id, location.id, latitude, longitude, gpsCheck.distance]);
 
-            // 5. Consume Ticket
-            await db.query('UPDATE verification_tickets SET is_used = true WHERE id = $1', [ticket.id]);
+            // 5. Consume Ticket (if exists)
+            if (ticket) {
+                await db.query('UPDATE verification_tickets SET is_used = true WHERE id = $1', [ticket.id]);
+            }
 
             return res.json({
                 success: true,

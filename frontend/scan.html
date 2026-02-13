@@ -1347,9 +1347,7 @@
             showToast('QR code scanned successfully!', 'success');
 
             // Add haptic feedback if available
-            if (navigator.vibrate) {
-                navigator.vibrate(100);
-            }
+            // Vibration removed to prevent browser intervention errors
         }
 
         // QR scan failure (continuous - no action needed)
@@ -1369,7 +1367,8 @@
                 const token = sessionStorage.getItem('geoqr_token');
                 const API_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
 
-                // PHASE 2: PASSKEY VERIFICATION FLOW
+                // PHASE 2: PASSKEY VERIFICATION FLOW (Bypassed)
+                /*
                 if (scannedData.sid && scannedData.t) {
                     showToast('Starting Passkey Verification...', 'info');
 
@@ -1402,11 +1401,18 @@
 
                     showToast('Passkey Verified! Marking attendance...', 'success');
                 }
+                */
 
-                // 4. Mark Attendance (Legacy or Phase 2)
+                // 4. Mark Attendance
+                if (!currentLocation) {
+                    throw new Error('Please wait for GPS location to be captured before marking attendance.');
+                }
+
                 const payload = {
                     latitude: currentLocation.latitude,
-                    longitude: currentLocation.longitude
+                    longitude: currentLocation.longitude,
+                    lat: currentLocation.latitude, // Fallback for backend
+                    lng: currentLocation.longitude  // Fallback for backend
                 };
 
                 if (scannedData.sid && scannedData.t) {

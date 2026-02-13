@@ -376,7 +376,7 @@ router.get('/qr', authenticateDevice, qrGenerationRateLimit, async (req, res) =>
         const session = sessionResult.rows[0];
 
         // Generate signed QR payload
-        const expirySeconds = parseInt(process.env.QR_TOKEN_EXPIRY_SECONDS) || 60;
+        const expirySeconds = parseInt(process.env.QR_TOKEN_EXPIRY_SECONDS) || 45;
         const qrData = generateSignedQRPayload({
             sessionId: session?.id || null,
             deviceId: device.id,
@@ -632,8 +632,8 @@ router.post('/token', [
 
         const session = sessionResult.rows[0];
 
-        // Generate signed QR
-        const expirySeconds = parseInt(process.env.QR_TOKEN_EXPIRY_SECONDS) || 20;
+        // Generate signed QR payload
+        const expirySeconds = parseInt(process.env.QR_TOKEN_EXPIRY_SECONDS) || 45;
         const qrData = generateSignedQRPayload({
             sessionId: session?.id || null,
             deviceId: device.id,
