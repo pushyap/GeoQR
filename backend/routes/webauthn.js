@@ -23,19 +23,20 @@ function getDynamicConfig(req) {
     const clientOrigin = req.get('Origin') || process.env.ORIGIN || 'http://localhost:5500';
 
     // 2. Determine RP ID
-    let currentRPID = process.env.RP_ID || 'localhost'; // Default fallback
+    // Default to environment variable if set (best practice for production)
+    let currentRPID = process.env.RP_ID || 'localhost';
 
-    // Dynamic handling for dev/preview environments
-    const hostname = req.hostname;
-
-    if (hostname === '127.0.0.1' || hostname === 'localhost') {
-        currentRPID = hostname;
-    } else {
-        // For production (e.g., render.com), RP ID must be the domain
-        currentRPID = hostname;
+    try {
+        // Fallback: Derive from Origin (Frontend Domain)
+        // e.g. https://geo-qr.app -> geo-qr.app
+        const originUrl = new URL(clientOrigin);
+        currentRPID = originUrl.hostname;
+    } catch (e) {
+        console.warn('Invalid client origin URL, using fallback RPID:', clientOrigin);
+        // Fallback to process.env.RP_ID or localhost
     }
 
-    // Override if matching client origin logic specific for 127/localhost mixed usage
+    // Dynamic handling for dev/preview environments (special cases)
     if (clientOrigin.includes('127.0.0.1')) {
         currentRPID = '127.0.0.1';
     } else if (clientOrigin.includes('localhost')) {
