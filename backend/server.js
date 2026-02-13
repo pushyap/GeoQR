@@ -30,6 +30,9 @@ const { errorMiddleware } = require('./utils/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy (Required for Render/Heroku/Vercel)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors({
     origin: '*', // Allow all origins in development

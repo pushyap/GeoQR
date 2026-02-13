@@ -217,6 +217,11 @@
                 if (!resp.ok) throw new Error('Failed to start registration');
 
                 const options = await resp.json();
+                console.log('Registration Options:', options);
+                console.log('Current Hostname:', window.location.hostname);
+                if (options.rp) {
+                    console.log('RP ID from Server:', options.rp.id);
+                }
 
                 // 2. Browser biometric prompt
                 let attResp;
