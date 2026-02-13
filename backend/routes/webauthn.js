@@ -267,7 +267,6 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         }
 
         // 1. Get credential from DB to verify signature
-        // The assertion contains the credential ID used.
         const credentialId = assertion.id;
         const credentialResult = await db.query(
             'SELECT * FROM webauthn_credentials WHERE user_id = $1 AND credential_id = $2',
@@ -275,29 +274,25 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         );
 
         if (credentialResult.rows.length === 0) {
+            console.error(`[AuthVerify] Credential not found: ${credentialId} for user ${userId}`);
             return res.status(400).json({ error: 'Credential not found' });
         }
 
         const credential = credentialResult.rows[0];
-        // credential.public_key is stored as base64 string
-        // verifyAuthenticationResponse expects Uint8Array for credentialPublicKey if passed?
-        // Actually it retrieves it from standard means? No, we must pass it?
-        // Docs say: `authenticator` object needed? Or just `credential.publicKey`?
-        // Wait, verifyAuthenticationResponse takes `credential` which includes `publicKey`.
-        // My DB stores `public_key` as base64 string.
 
-        // Convert base64 public key back to Uint8Array
+        // IMPORTANT: SimpleWebAuthn expects Uint8Array for binary fields in the authenticator object
         const publicKey = new Uint8Array(Buffer.from(credential.public_key, 'base64'));
+        const credentialIDBytes = new Uint8Array(Buffer.from(credential.credential_id, 'base64url'));
 
-        console.log(`Verify: Assertion from ${origin} (RPID: ${rpID})`);
+        console.log(`[AuthVerify] Verifying for user ${userId} with RPID: ${rpID}, Origin: ${origin}`);
 
         const verification = await verifyAuthenticationResponse({
             response: assertion,
             expectedChallenge,
-            expectedOrigin: origin, // Allow dynamic origin
+            expectedOrigin: origin,
             expectedRPID: rpID,
             authenticator: {
-                credentialID: credential.credential_id,
+                credentialID: credentialIDBytes,
                 credentialPublicKey: publicKey,
                 counter: credential.counter,
                 transports: credential.transports ? JSON.parse(credential.transports) : undefined,

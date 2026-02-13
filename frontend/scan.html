@@ -1387,7 +1387,7 @@
                         throw new Error('WebAuthn library not loaded. Please refresh.');
                     }
 
-                    const asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
+                    const asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
 
                     // 3. Verify Authentication
                     const verifyResp = await axios.post(`${API_URL}/webauthn/auth/verify`, {
