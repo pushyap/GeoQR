@@ -22,18 +22,24 @@ const rpName = 'GeoQR Attendance';
 function getDynamicConfig(req) {
     const clientOrigin = req.get('Origin') || process.env.ORIGIN || 'https://geo-qr.app';
 
+    console.log(`[WebAuthnConfig] Incoming Origin: ${req.get('Origin')}, ENV ORIGIN: ${process.env.ORIGIN}`);
+
     // Explicit production override
     if (clientOrigin.includes('geo-qr.app')) {
-        return { rpID: 'geo-qr.app', origin: 'https://geo-qr.app' };
+        const config = { rpID: 'geo-qr.app', origin: 'https://geo-qr.app' };
+        console.log(`[WebAuthnConfig] Using Override:`, config);
+        return config;
     }
 
     let currentRPID = process.env.RP_ID || 'localhost';
+    let finalOrigin = clientOrigin;
 
     try {
         const originUrl = new URL(clientOrigin);
         currentRPID = originUrl.hostname;
+        finalOrigin = originUrl.origin;
     } catch (e) {
-        console.warn('Invalid client origin URL, using fallback RPID:', clientOrigin);
+        console.warn('[WebAuthnConfig] Invalid client origin URL:', clientOrigin);
     }
 
     if (clientOrigin.includes('127.0.0.1')) {
@@ -42,7 +48,9 @@ function getDynamicConfig(req) {
         currentRPID = 'localhost';
     }
 
-    return { rpID: currentRPID, origin: clientOrigin };
+    const result = { rpID: currentRPID, origin: finalOrigin };
+    console.log(`[WebAuthnConfig] Computed:`, result);
+    return result;
 }
 
 /**
@@ -184,8 +192,6 @@ router.post('/register/verify', authenticate, async (req, res) => {
     }
 });
 
-module.exports = router;
-
 // =========================================
 // POST /api/webauthn/auth/options
 // Generate authentication options (Student scans QR)
@@ -194,7 +200,9 @@ router.post('/auth/options', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
         const { qr_session_id, qr_token } = req.body;
-        const { rpID } = getDynamicConfig(req);
+        const { rpID, origin } = getDynamicConfig(req);
+
+        console.log(`[AuthOptions] Start for user=${userId}, rpID=${rpID}, origin=${origin}`);
 
         if (!qr_session_id || !qr_token) {
             console.error(`[AuthOptions] Missing info: sid=${qr_session_id}, token=${qr_token ? 'present' : 'missing'}`);
@@ -203,14 +211,13 @@ router.post('/auth/options', authenticate, async (req, res) => {
 
         const sessionId = Number(qr_session_id);
         if (isNaN(sessionId)) {
+            console.error(`[AuthOptions] Invalid session ID: ${qr_session_id}`);
             return res.status(400).json({ error: 'Invalid session ID format' });
         }
 
         // 1. Validate QR Token
         const tokenHash = hashToken(qr_token);
-        console.log(`[AuthOptions] Verifying token for session ${qr_session_id}`);
-        console.log(`[AuthOptions] Incoming token: ${qr_token.substring(0, 8)}...`);
-        console.log(`[AuthOptions] Computed hash: ${tokenHash}`);
+        console.log(`[AuthOptions] tokenHash=${tokenHash.substring(0, 10)}...`);
 
         const tokenCheck = await db.query(
             'SELECT * FROM qr_tokens WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()',
@@ -218,12 +225,14 @@ router.post('/auth/options', authenticate, async (req, res) => {
         );
 
         if (tokenCheck.rows.length === 0) {
+            console.warn(`[AuthOptions] Invalid/Expired QR for session ${sessionId}`);
             return res.status(400).json({ error: 'Invalid or expired QR code' });
         }
 
         // 2. Check if user has passkey
         const userResult = await db.query('SELECT passkey_enabled FROM users WHERE id = $1', [userId]);
         if (userResult.rows.length === 0 || !userResult.rows[0].passkey_enabled) {
+            console.warn(`[AuthOptions] User ${userId} has no passkey enabled`);
             return res.status(400).json({
                 success: false,
                 code: 'PASSKEY_NOT_FOUND',
@@ -235,6 +244,7 @@ router.post('/auth/options', authenticate, async (req, res) => {
         const credentials = await db.query('SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = $1', [userId]);
 
         if (credentials.rows.length === 0) {
+            console.warn(`[AuthOptions] No credentials in DB for user ${userId}`);
             return res.status(400).json({
                 success: false,
                 code: 'PASSKEY_NOT_FOUND',
@@ -242,18 +252,25 @@ router.post('/auth/options', authenticate, async (req, res) => {
             });
         }
 
+        console.log(`[AuthOptions] Building allowCredentials for ${credentials.rows.length} keys`);
         const allowCredentials = credentials.rows.map(row => {
-            // SimpleWebAuthn library expects id to be Uint8Array (binary)
-            // But we store it as a base64url string in the DB.
-            return {
-                id: Buffer.from(row.credential_id, 'base64url'),
-                type: 'public-key',
-                transports: row.transports ? JSON.parse(row.transports) : undefined,
-            };
-        });
+            try {
+                return {
+                    id: Buffer.from(row.credential_id, 'base64url'),
+                    type: 'public-key',
+                    transports: row.transports ? JSON.parse(row.transports) : undefined,
+                };
+            } catch (e) {
+                console.error(`[AuthOptions] Failed to parse credential ${row.credential_id}:`, e);
+                return null;
+            }
+        }).filter(Boolean);
 
-        console.log(`[AuthOptions] Found ${allowCredentials.length} credentials for user ${userId}`);
+        if (allowCredentials.length === 0) {
+            throw new Error('All user credentials failed to parse');
+        }
 
+        console.log(`[AuthOptions] Generating options with rpID=${rpID}`);
         const options = await generateAuthenticationOptions({
             rpID,
             allowCredentials,
@@ -261,13 +278,18 @@ router.post('/auth/options', authenticate, async (req, res) => {
         });
 
         // Store active challenge in DB
+        console.log(`[AuthOptions] Storing challenge...`);
         await storeChallenge(userId, options.challenge);
 
+        console.log(`[AuthOptions] Success! Returning options.`);
         res.json(options);
 
     } catch (error) {
-        console.error('Auth options error:', error);
-        res.status(500).json({ error: 'Failed to generate auth options' });
+        console.error('Auth options error:', error.message, error.stack);
+        res.status(500).json({
+            error: 'Failed to generate auth options',
+            details: error.message
+        });
     }
 });
 
@@ -371,3 +393,5 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Failed to verify auth' });
     }
 });
+
+module.exports = router;
