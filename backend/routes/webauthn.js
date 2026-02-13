@@ -20,24 +20,22 @@ const rpName = 'GeoQR Attendance';
 
 // Helper: Determine RP ID and Origin dynamically
 function getDynamicConfig(req) {
-    // 1. Determine Origin
-    const clientOrigin = req.get('Origin') || process.env.ORIGIN || 'http://localhost:5500';
+    const clientOrigin = req.get('Origin') || process.env.ORIGIN || 'https://geo-qr.app';
 
-    // 2. Determine RP ID
-    // Default to environment variable if set (best practice for production)
+    // Explicit production override
+    if (clientOrigin.includes('geo-qr.app')) {
+        return { rpID: 'geo-qr.app', origin: 'https://geo-qr.app' };
+    }
+
     let currentRPID = process.env.RP_ID || 'localhost';
 
     try {
-        // Fallback: Derive from Origin (Frontend Domain)
-        // e.g. https://geo-qr.app -> geo-qr.app
         const originUrl = new URL(clientOrigin);
         currentRPID = originUrl.hostname;
     } catch (e) {
         console.warn('Invalid client origin URL, using fallback RPID:', clientOrigin);
-        // Fallback to process.env.RP_ID or localhost
     }
 
-    // Dynamic handling for dev/preview environments (special cases)
     if (clientOrigin.includes('127.0.0.1')) {
         currentRPID = '127.0.0.1';
     } else if (clientOrigin.includes('localhost')) {
@@ -47,8 +45,26 @@ function getDynamicConfig(req) {
     return { rpID: currentRPID, origin: clientOrigin };
 }
 
-// In-memory challenge store (use Redis in production)
-const challengeStore = new Map(); // userId -> challenge
+/**
+ * Challenge Management Helpers (DB Backed)
+ */
+async function storeChallenge(userId, challenge) {
+    const expiresAt = new Date(Date.now() + 2 * 60000); // 2 minutes
+    await db.query(
+        `INSERT INTO webauthn_challenges (user_id, challenge, expires_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id) DO UPDATE SET challenge = $2, expires_at = $3`,
+        [userId, challenge, expiresAt]
+    );
+}
+
+async function getAndDeleteChallenge(userId) {
+    const result = await db.query(
+        'DELETE FROM webauthn_challenges WHERE user_id = $1 AND expires_at > NOW() RETURNING challenge',
+        [userId]
+    );
+    return result.rows[0]?.challenge;
+}
 
 // =========================================
 // POST /api/webauthn/register/options
@@ -99,8 +115,8 @@ router.post('/register/options', authenticate, async (req, res) => {
             excludeCredentials,
         });
 
-        // Store challenge
-        challengeStore.set(userId, options.challenge);
+        // Store challenge in DB
+        await storeChallenge(userId, options.challenge);
 
         res.json(options);
 
@@ -120,7 +136,7 @@ router.post('/register/verify', authenticate, async (req, res) => {
         const body = req.body;
         const { rpID, origin } = getDynamicConfig(req);
 
-        const expectedChallenge = challengeStore.get(userId);
+        const expectedChallenge = await getAndDeleteChallenge(userId);
         if (!expectedChallenge) {
             return res.status(400).json({ error: 'Registration challenge not found or expired' });
         }
@@ -152,8 +168,7 @@ router.post('/register/verify', authenticate, async (req, res) => {
             // Enable passkey for user
             await db.query('UPDATE users SET passkey_enabled = true WHERE id = $1', [userId]);
 
-            // Clear challenge
-            challengeStore.delete(userId);
+            // Challenge already deleted by getAndDeleteChallenge
 
             res.json({ verified: true });
         } else {
@@ -224,8 +239,8 @@ router.post('/auth/options', authenticate, async (req, res) => {
             userVerification: 'preferred',
         });
 
-        // Store active challenge
-        challengeStore.set(userId, options.challenge);
+        // Store active challenge in DB
+        await storeChallenge(userId, options.challenge);
 
         res.json(options);
 
@@ -249,8 +264,9 @@ router.post('/auth/verify', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Missing QR info' });
         }
 
-        const expectedChallenge = challengeStore.get(userId);
+        const expectedChallenge = await getAndDeleteChallenge(userId);
         if (!expectedChallenge) {
+            console.error(`[AuthVerify] Challenge not found for user ${userId}`);
             return res.status(400).json({ error: 'Challenge not found or expired' });
         }
 
@@ -309,8 +325,7 @@ router.post('/auth/verify', authenticate, async (req, res) => {
                 [newCounter, credential.id]
             );
 
-            // Clear challenge
-            challengeStore.delete(userId);
+            // Challenge already deleted by getAndDeleteChallenge
 
             // ==========================================
             // ISSUE VERIFICATION TICKET

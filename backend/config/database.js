@@ -221,6 +221,18 @@ async function initializeDatabase() {
             )
         `);
 
+        // 13. WebAuthn Challenges (Persistent storage)
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS webauthn_challenges (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                challenge TEXT NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id)
+            )
+        `);
+
         console.log('✅ Database schema initialized');
     } catch (error) {
         console.error('❌ Database initialization error:', error);
