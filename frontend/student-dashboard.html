@@ -709,12 +709,13 @@
                 if (secResp.ok) {
                     const secData = await secResp.json();
 
+                    // Force setup if:
+                    // 1. User has NO passkeys at all (backend check)
+                    // 2. OR User has passkeys but NOT on this device (local check)
+                    const localSetupDone = localStorage.getItem('passkey_setup_complete') === 'true';
+
                     if (secData.passkey_required) {
-                        // If backend says enabled, ensure local state matches and don't redirect
-                        if (secData.passkey_enabled) {
-                            localStorage.setItem('passkey_setup_complete', 'true');
-                        } else {
-                            // Only redirect if backend says NOT enabled
+                        if (!secData.passkey_enabled || !localSetupDone) {
                             window.location.href = 'passkey-setup.html';
                             return;
                         }

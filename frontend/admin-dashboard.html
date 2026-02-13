@@ -841,10 +841,8 @@
                     return;
                 }
 
-                if (user.role !== 'admin' && user.role !== 'superadmin') {
-                    // Redirect based on role
+                if (user.role !== 'admin' && user.role !== 'faculty') {
                     const dashboards = {
-                        'faculty': 'faculty-dashboard.html',
                         'student': 'dashboard.html',
                         'device': 'device/'
                     };

@@ -152,7 +152,7 @@
                             <circle class="timer-progress" cx="60" cy="60" r="54" id="timerCircle" />
                         </svg>
                         <div class="timer-content">
-                            <span class="timer-value" id="timerValue">45</span>
+                            <span class="timer-value" id="timerValue">15</span>
                             <span class="timer-label">sec</span>
                         </div>
                     </div>
@@ -411,7 +411,7 @@
                 }
 
                 const qrData = response.data.qr;
-                const expirySeconds = qrData.expirySeconds || 45;
+                const expirySeconds = qrData.expirySeconds || 10;
 
                 // Clear old QR
                 const qrContainer = document.getElementById('qrCode');
@@ -469,7 +469,7 @@
 
         // Timer State
         // timerInterval & refreshInterval are declared at top scope
-        let totalDuration = 45;
+        let totalDuration = 10;
         let endTime = 0;
 
         function startTimer(expirySeconds, expiryTimestamp) {
@@ -478,7 +478,7 @@
             if (refreshInterval) clearInterval(refreshInterval);
 
             // Rule 2 & 3: Set expiry-based time
-            totalDuration = expirySeconds || 45;
+            totalDuration = expirySeconds || 10;
 
             // Use backend timestamp if available, else calculate local expiry
             // backend 'expiresAt' -> convert to ms

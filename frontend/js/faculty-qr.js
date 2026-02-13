@@ -59,9 +59,9 @@ async function startLiveQR(sessionId) {
         // 3. Render Initial QR
         renderQR(qrContainer, data.qr_session_id, data.qr_token);
 
-        // 4. Start Refresh Loop (30s) - QR expires in 45s, so refresh at 30s
+        // 4. Start Refresh Loop (10s)
         if (qrRefreshInterval) clearInterval(qrRefreshInterval);
-        qrRefreshInterval = setInterval(() => refreshQR(data.qr_session_id), 30000);
+        qrRefreshInterval = setInterval(() => refreshQR(data.qr_session_id), 10000);
 
         // Update UI status
         document.getElementById('liveSessionName').textContent = 'Live Session';

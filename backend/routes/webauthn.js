@@ -20,51 +20,30 @@ const rpName = 'GeoQR Attendance';
 
 // Helper: Determine RP ID and Origin dynamically
 function getDynamicConfig(req) {
-    // 1. Determine Origin (where the frontend is)
-    let clientOrigin = req.get('Origin') || req.get('Referer');
+    // 1. Determine Origin
+    const clientOrigin = req.get('Origin') || process.env.ORIGIN || 'http://localhost:5500';
 
-    // If it's a Referer, strip the path
-    if (clientOrigin && !clientOrigin.startsWith('http')) {
-        // Handle cases where it might not be a full URL
-    } else if (clientOrigin) {
-        try {
-            const refUrl = new URL(clientOrigin);
-            clientOrigin = `${refUrl.protocol}//${refUrl.host}`;
-        } catch (e) { }
+    // 2. Determine RP ID
+    // Default to environment variable if set (best practice for production)
+    let currentRPID = process.env.RP_ID || 'localhost';
+
+    try {
+        // Fallback: Derive from Origin (Frontend Domain)
+        // e.g. https://geo-qr.app -> geo-qr.app
+        const originUrl = new URL(clientOrigin);
+        currentRPID = originUrl.hostname;
+    } catch (e) {
+        console.warn('Invalid client origin URL, using fallback RPID:', clientOrigin);
+        // Fallback to process.env.RP_ID or localhost
     }
 
-    // Final fallback for origin
-    if (!clientOrigin) {
-        clientOrigin = process.env.ORIGIN || 'http://localhost:5500';
-    }
-
-    // 2. Determine RP ID (the domain the authenticator ties to)
-    // Priority: Env Var > Derived from Origin > Host Header > localhost
-    let currentRPID = process.env.RP_ID;
-
-    if (!currentRPID) {
-        try {
-            const originUrl = new URL(clientOrigin);
-            currentRPID = originUrl.hostname;
-        } catch (e) {
-            // Fallback to Host header
-            const host = req.get('Host');
-            if (host) {
-                currentRPID = host.split(':')[0];
-            } else {
-                currentRPID = 'localhost';
-            }
-        }
-    }
-
-    // Dynamic overrides for common dev environments
+    // Dynamic handling for dev/preview environments (special cases)
     if (clientOrigin.includes('127.0.0.1')) {
         currentRPID = '127.0.0.1';
     } else if (clientOrigin.includes('localhost')) {
         currentRPID = 'localhost';
     }
 
-    console.log(`[WebAuthn Config] Derived RPID: ${currentRPID}, Origin: ${clientOrigin}`);
     return { rpID: currentRPID, origin: clientOrigin };
 }
 
@@ -187,6 +166,8 @@ router.post('/register/verify', authenticate, async (req, res) => {
     }
 });
 
+module.exports = router;
+
 // =========================================
 // POST /api/webauthn/auth/options
 // Generate authentication options (Student scans QR)
@@ -198,47 +179,23 @@ router.post('/auth/options', authenticate, async (req, res) => {
         const { rpID } = getDynamicConfig(req);
 
         if (!qr_session_id || !qr_token) {
-            console.error(`[AuthOptions] Missing info: sid=${qr_session_id}, token=${qr_token ? 'present' : 'missing'}`);
             return res.status(400).json({ error: 'Missing QR session info' });
         }
 
-        const sessionId = Number(qr_session_id);
-        if (isNaN(sessionId)) {
-            return res.status(400).json({ error: 'Invalid session ID format' });
-        }
-
-        // 1. Detailed QR Validation + Session Status
+        // 1. Validate QR Token
         const tokenHash = hashToken(qr_token);
+        console.log(`[AuthOptions] Verifying token for session ${qr_session_id}`);
+        console.log(`[AuthOptions] Incoming token: ${qr_token.substring(0, 8)}...`);
+        console.log(`[AuthOptions] Computed hash: ${tokenHash}`);
 
-        // Check session separately for better logging
-        const sessionCheck = await db.query('SELECT is_active, subject FROM sessions WHERE id = $1', [sessionId]);
-        if (sessionCheck.rows.length === 0) {
-            console.error(`[AuthOptions] Session NOT FOUND. ID: ${sessionId}`);
-            return res.status(400).json({ success: false, code: 'SESSION_NOT_FOUND', message: 'Session does not exist' });
-        }
-        if (!sessionCheck.rows[0].is_active) {
-            console.error(`[AuthOptions] Session INACTIVE. ID: ${sessionId}, Subject: ${sessionCheck.rows[0].subject}`);
-            return res.status(400).json({ success: false, code: 'SESSION_INACTIVE', message: 'Session has ended' });
-        }
-
-        // Check token separately
         const tokenCheck = await db.query(
-            `SELECT expires_at, (expires_at > NOW()) as is_valid, token_hash 
-             FROM qr_tokens 
-             WHERE session_id = $1 AND token_hash = $2`,
-            [sessionId, tokenHash]
+            'SELECT * FROM qr_tokens WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()',
+            [qr_session_id, tokenHash]
         );
 
         if (tokenCheck.rows.length === 0) {
-            console.error(`[AuthOptions] Token HASH MISMATCH. Session: ${sessionId}, Provided Token: ${qr_token.substring(0, 5)}...`);
-            return res.status(400).json({ success: false, code: 'INVALID_TOKEN', message: 'Invalid QR token' });
+            return res.status(400).json({ error: 'Invalid or expired QR code' });
         }
-        if (!tokenCheck.rows[0].is_valid) {
-            console.error(`[AuthOptions] Token EXPIRED. Session: ${sessionId}, Expired at: ${tokenCheck.rows[0].expires_at}`);
-            return res.status(400).json({ success: false, code: 'TOKEN_EXPIRED', message: 'QR code has expired' });
-        }
-
-        console.log(`[AuthOptions] QR Validated Successfully. Session: ${sessionId}`);
 
         // 2. Check if user has passkey
         const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -292,39 +249,16 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         }
 
         // 1. Double check QR (security layer)
-        const sessionId = Number(qr_session_id);
-        if (isNaN(sessionId)) {
-            return res.status(400).json({ error: 'Invalid session ID format' });
-        }
         const tokenHash = hashToken(qr_token);
-
-        const sessionCheck = await db.query('SELECT is_active FROM sessions WHERE id = $1', [sessionId]);
-        if (sessionCheck.rows.length === 0) {
-            console.error(`[AuthVerify] Session NOT FOUND. ID: ${sessionId}`);
-            return res.status(400).json({ error: 'Session does not exist (Verify Phase)' });
-        }
-        if (!sessionCheck.rows[0].is_active) {
-            console.error(`[AuthVerify] Session INACTIVE. ID: ${sessionId}`);
-            return res.status(400).json({ error: 'Session has ended (Verify Phase)' });
-        }
-
         const tokenCheck = await db.query(
-            `SELECT expires_at, (expires_at > NOW()) as is_valid 
-             FROM qr_tokens 
-             WHERE session_id = $1 AND token_hash = $2`,
-            [sessionId, tokenHash]
+            'SELECT id FROM qr_tokens WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()',
+            [qr_session_id, tokenHash]
         );
 
         if (tokenCheck.rows.length === 0) {
-            console.error(`[AuthVerify] Token HASH MISMATCH. Session: ${sessionId}`);
-            return res.status(400).json({ error: 'Invalid QR token (Verify Phase)' });
+            console.error(`[AuthVerify] QR Validation Failed. Hash: ${tokenHash}`);
+            return res.status(400).json({ error: 'Invalid or expired QR code (Verify Phase)' });
         }
-        if (!tokenCheck.rows[0].is_valid) {
-            console.error(`[AuthVerify] Token EXPIRED. Session: ${sessionId}, Expired at: ${tokenCheck.rows[0].expires_at}`);
-            return res.status(400).json({ error: 'QR code session timed out. Please scan again.' });
-        }
-
-        console.log(`[AuthVerify] QR Validated. Proceeding with Biometric Verification for User: ${userId}`);
 
         // 1. Get credential from DB to verify signature
         // The assertion contains the credential ID used.
@@ -381,8 +315,8 @@ router.post('/auth/verify', authenticate, async (req, res) => {
             // ISSUE VERIFICATION TICKET
             // ==========================================
             const ticketToken = crypto.randomBytes(16).toString('hex');
-            // Expires in 10 seconds (Strict verification window)
-            const expiresAt = new Date(Date.now() + 10000);
+            // Expires in 10-20 seconds (short lived)
+            const expiresAt = new Date(Date.now() + 20000);
 
             await db.query(
                 `INSERT INTO verification_tickets (student_id, session_id, ticket_token, expires_at)
@@ -400,5 +334,3 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Failed to verify auth' });
     }
 });
-
-module.exports = router;
