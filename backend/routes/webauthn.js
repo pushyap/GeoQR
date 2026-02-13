@@ -274,14 +274,25 @@ router.post('/auth/verify', authenticate, async (req, res) => {
 
         const credential = credentialResult.rows[0];
         // credential.public_key is stored as base64 string
-        // verifyAuthenticationResponse expects Uint8Array for credentialPublicKey if passed?
-        // Actually it retrieves it from standard means? No, we must pass it?
-        // Docs say: `authenticator` object needed? Or just `credential.publicKey`?
-        // Wait, verifyAuthenticationResponse takes `credential` which includes `publicKey`.
-        // My DB stores `public_key` as base64 string.
+
+        // Debugging for Render Error
+        console.log('[AuthVerify] Credential from DB:', {
+            id: credential.id,
+            credential_id: credential.credential_id,
+            counter: credential.counter,
+            counterType: typeof credential.counter,
+            transports: credential.transports
+        });
 
         // Convert base64 public key back to Uint8Array
         const publicKey = new Uint8Array(Buffer.from(credential.public_key, 'base64'));
+
+        // Convert credential ID to Uint8Array (base64url)
+        const credentialIDBuffer = new Uint8Array(Buffer.from(credential.credential_id, 'base64url'));
+
+        // Prepare authenticator object
+        // Ensure counter is a number (Postgres BIGINT comes as string sometimes)
+        const storedCounter = Number(credential.counter);
 
         console.log(`Verify: Assertion from ${origin} (RPID: ${rpID})`);
 
@@ -291,9 +302,9 @@ router.post('/auth/verify', authenticate, async (req, res) => {
             expectedOrigin: origin, // Allow dynamic origin
             expectedRPID: rpID,
             authenticator: {
-                credentialID: credential.credential_id,
+                credentialID: credentialIDBuffer,
                 credentialPublicKey: publicKey,
-                counter: credential.counter,
+                counter: storedCounter,
                 transports: credential.transports ? JSON.parse(credential.transports) : undefined,
             },
         });
