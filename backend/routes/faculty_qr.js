@@ -11,7 +11,7 @@ const { hashToken } = require('../utils/token');
 
 const router = express.Router();
 
-const QR_EXPIRY_SECONDS = 60;
+const QR_EXPIRY_SECONDS = 45;
 
 /**
  * Helper: Generate and store a new QR token for a session

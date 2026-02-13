@@ -68,8 +68,9 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
             );
 
             if (ticketCheck.rows.length === 0) {
-                return res.status(400).json({
-                    error: 'Passkey verification required. Please retry.',
+                console.error(`[AttendanceMark] No valid ticket found for student ${studentId} in session ${qr_session_id}`);
+                return res.status(403).json({
+                    error: 'Passkey verification required or ticket expired. Please verify again.',
                     code: 'PASSKEY_REQUIRED'
                 });
             }

@@ -95,10 +95,6 @@ function generateSignedQRPayload(data, expirySeconds = 10) {
  * @returns {Object} { valid, payload, error }
  */
 function verifyQRContent(qrContent) {
-    if (typeof qrContent !== 'string') {
-        console.warn('[Security] verifyQRContent received non-string content:', qrContent);
-        return { valid: false, error: 'Invalid QR content format' };
-    }
     try {
         const [payloadB64, signature] = qrContent.split('.');
 

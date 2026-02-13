@@ -1387,7 +1387,7 @@
                         throw new Error('WebAuthn library not loaded. Please refresh.');
                     }
 
-                    const asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
+                    const asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
 
                     // 3. Verify Authentication
                     const verifyResp = await axios.post(`${API_URL}/webauthn/auth/verify`, {
@@ -1413,9 +1413,8 @@
                     payload.qr_session_id = scannedData.sid;
                     payload.qr_token = scannedData.t;
                 } else {
-                    // Legacy - Ensure it's a string
-                    const rawToken = scannedData.token || scannedData;
-                    payload.token = typeof rawToken === 'string' ? rawToken : JSON.stringify(rawToken);
+                    // Legacy
+                    payload.token = scannedData.token || scannedData;
                 }
 
                 const response = await axios.post(`${API_URL}/attendance/mark`, payload, {
