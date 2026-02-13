@@ -355,6 +355,33 @@ router.get('/me', authenticate, (req, res) => {
 });
 
 // =====================================
+// GET /api/auth/security-status
+// Check if passkey is enabled
+// =====================================
+router.get('/security-status', authenticate, async (req, res) => {
+    try {
+        const result = await db.query('SELECT passkey_enabled FROM users WHERE id = $1', [req.user.id]);
+        const user = result.rows[0];
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        // Count registered passkeys
+        const keys = await db.query('SELECT count(*) as count FROM webauthn_credentials WHERE user_id = $1', [req.user.id]);
+        const passkeyCount = parseInt(keys.rows[0].count) || 0;
+
+        res.json({
+            passkey_required: true, // Hardcoded for this phase
+            passkey_enabled: user.passkey_enabled || false,
+            passkey_count: passkeyCount,
+            max_passkeys: 2
+        });
+    } catch (error) {
+        console.error('Security status error:', error);
+        res.status(500).json({ error: 'Failed to check security status' });
+    }
+});
+
+// =====================================
 // POST /api/auth/logout
 // =====================================
 router.post('/logout', authenticate, (req, res) => {

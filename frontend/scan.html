@@ -1103,6 +1103,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
@@ -1258,15 +1259,20 @@
         // QR scan success callback
         function onScanSuccess(decodedText, decodedResult) {
             if (!isScanning) return;
-
             isScanning = false;
 
             try {
-                // Try to parse as JSON first
+                // Try to parse as JSON first (Phase 2 format: { sid, t })
                 scannedData = JSON.parse(decodedText);
             } catch (e) {
-                // If not JSON, treat as plain token
-                scannedData = { token: decodedText };
+                // Formatting might be Base64 encoded JSON (Legacy or variant)
+                try {
+                    const decoded = atob(decodedText);
+                    scannedData = JSON.parse(decoded);
+                } catch (e2) {
+                    // If not JSON or Base64 JSON, treat as plain token
+                    scannedData = { token: decodedText };
+                }
             }
 
             // Stop scanning
@@ -1280,10 +1286,36 @@
             document.getElementById('statusText').textContent = 'QR code detected!';
 
             // Show result
-            const tokenDisplay = scannedData.token || decodedText;
-            document.getElementById('scannedToken').textContent =
-                tokenDisplay.length > 40 ? tokenDisplay.substring(0, 40) + '...' : tokenDisplay;
+            // Phase 2: Show Session ID or Token preview
+            let tokenDisplay = '---';
+            if (scannedData.sid) {
+                tokenDisplay = `Session: ${scannedData.sid}`;
+            } else if (scannedData.token) {
+                tokenDisplay = scannedData.token.substring(0, 20) + '...';
+            } else {
+                tokenDisplay = JSON.stringify(scannedData).substring(0, 20) + '...';
+            }
+
+            document.getElementById('scannedToken').textContent = tokenDisplay;
             document.getElementById('scannedResult').classList.remove('hidden');
+
+            const submitBtn = document.getElementById('submitBtn');
+            // Update button text to reflect verification requirement if Phase 2
+            if (scannedData.sid && scannedData.t) {
+                submitBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    <span>Verify Passkey & Mark</span>
+                `;
+            } else {
+                submitBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>Mark Attendance</span>
+                `;
+            }
 
             showToast('QR code scanned successfully!', 'success');
 
@@ -1298,21 +1330,67 @@
             // Silent - continuous scanning
         }
 
-        // Submit attendance
+        // Submit attendance (Phase 2 Upgrade)
         async function submitAttendance() {
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
+            // Spinner
+            const originalBtnContent = submitBtn.innerHTML;
             submitBtn.innerHTML = '<span class="spinner" style="width:20px;height:20px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;"></span>';
 
             try {
                 const token = sessionStorage.getItem('geoqr_token');
                 const API_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
 
-                const response = await axios.post(`${API_URL}/attendance/scan`, {
-                    qr: scannedData.token || scannedData,
+                // PHASE 2: PASSKEY VERIFICATION FLOW
+                if (scannedData.sid && scannedData.t) {
+                    showToast('Starting Passkey Verification...', 'info');
+
+                    // 1. Get Auth Options
+                    const optionsResp = await axios.post(`${API_URL}/webauthn/auth/options`, {
+                        qr_session_id: scannedData.sid,
+                        qr_token: scannedData.t
+                    }, { headers: { Authorization: `Bearer ${token}` } });
+
+                    const options = optionsResp.data;
+
+                    // 2. Start Authentication (SimpleWebAuthn Browser)
+                    // Ensure SimpleWebAuthnBrowser is loaded
+                    if (typeof SimpleWebAuthnBrowser === 'undefined') {
+                        throw new Error('WebAuthn library not loaded. Please refresh.');
+                    }
+
+                    const asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
+
+                    // 3. Verify Authentication
+                    const verifyResp = await axios.post(`${API_URL}/webauthn/auth/verify`, {
+                        qr_session_id: scannedData.sid,
+                        qr_token: scannedData.t,
+                        assertion: asseResp
+                    }, { headers: { Authorization: `Bearer ${token}` } });
+
+                    if (!verifyResp.data.success) {
+                        throw new Error(verifyResp.data.error || 'Passkey verification failed');
+                    }
+
+                    showToast('Passkey Verified! Marking attendance...', 'success');
+                }
+
+                // 4. Mark Attendance (Legacy or Phase 2)
+                const payload = {
                     lat: currentLocation.latitude,
                     lng: currentLocation.longitude
-                }, {
+                };
+
+                if (scannedData.sid && scannedData.t) {
+                    payload.qr_session_id = scannedData.sid;
+                    payload.qr_token = scannedData.t;
+                } else {
+                    // Legacy
+                    payload.token = scannedData.token || scannedData;
+                }
+
+                const response = await axios.post(`${API_URL}/attendance/mark`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -1320,11 +1398,13 @@
                     // Show success modal
                     document.getElementById('successTime').textContent = new Date().toLocaleString();
                     document.getElementById('successLocation').textContent =
-                        response.data.attendance?.location || 'Classroom';
+                        response.data.attendance?.location || response.data.location || 'Classroom';
                     document.getElementById('successSubject').textContent =
-                        response.data.attendance?.subject || 'Class Session';
-                    document.getElementById('successDistance').textContent =
-                        response.data.attendance?.distance ? `${response.data.attendance.distance}m away` : '15m away';
+                        response.data.attendance?.subject || response.data.subject || 'Class Session'; // Fix property access
+
+                    const dist = response.data.attendance?.distance || response.data.distance;
+                    document.getElementById('successDistance').textContent = dist ? `${dist}m away` : '15m away';
+
                     document.getElementById('successModal').classList.add('active');
 
                     // Create confetti celebration
@@ -1336,17 +1416,20 @@
                     }
                 }
             } catch (error) {
-                const message = error.response?.data?.error || 'Failed to mark attendance';
+                console.error("Attendance Error:", error);
+
+                let message = error.response?.data?.error || error.message || 'Failed to mark attendance';
+
+                // Specific handling for QR expiry
+                if (error.response?.status === 400 && (String(message).includes('expired') || String(message).includes('Invalid'))) {
+                    message = 'QR Code Expired. Please Rescan.';
+                }
+
                 document.getElementById('errorMessage').textContent = message;
                 document.getElementById('errorModal').classList.add('active');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <span>Mark Attendance</span>
-                `;
+                submitBtn.innerHTML = originalBtnContent;
             }
         }
 

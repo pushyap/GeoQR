@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Secure your GeoQR account">
+    <title>Secure Account | GeoQR</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- SimpleWebAuthn Browser Client -->
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+
+    <script>
+        // Apply theme immediately
+        (function () {
+            var theme = localStorage.getItem('geoqr-theme');
+            if (!theme) {
+                theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+                    ? 'soft-light-pro' : 'dark-pro';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+
+    <style>
+        .passkey-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-4);
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .passkey-icon svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        .status-message {
+            min-height: 24px;
+            margin: var(--space-3) 0;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .status-message.error {
+            color: var(--danger);
+        }
+
+        .status-message.success {
+            color: var(--success);
+        }
+
+        .btn.loading .btn-content {
+            display: none;
+        }
+
+        .btn.loading .btn-loader {
+            display: flex;
+        }
+
+        .btn-loader {
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header class="header">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none">
+                        <circle cx="20" cy="20" r="18" stroke="#6366f1" stroke-width="3" />
+                        <circle cx="20" cy="20" r="8" fill="#6366f1" />
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>GeoQR</h1>
+                    <span class="logo-badge">Security Check</span>
+                </div>
+            </a>
+        </header>
+
+        <!-- Main Card -->
+        <main class="login-card glass-card">
+
+            <div class="card-header">
+                <div class="passkey-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                    </svg>
+                </div>
+                <h2>Secure Your Account</h2>
+                <p class="card-description">
+                    Please register a passkey (FaceID, TouchID, or PIN) to continue. This ensures only you can mark
+                    attendance.
+                </p>
+            </div>
+
+            <div style="padding: 0 var(--space-6) var(--space-6);">
+                <button id="registerBtn" class="btn btn-primary" style="width: 100%;">
+                    <span class="btn-content">
+                        <span id="btnText">Enable Passkey</span>
+                        <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                    </span>
+                    <span class="btn-loader">
+                        <span class="spinner"></span>
+                    </span>
+                </button>
+
+                <div id="statusMessage" class="status-message"></div>
+
+                <div style="text-align: center; margin-top: var(--space-4);">
+                    <button id="logoutBtn"
+                        style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.9rem;">
+                        Log Out
+                    </button>
+                    <!-- <button id="logoutBtn" class="btn btn-outline" style="width: 100%; margin-top: 10px;">Log Out</button> -->
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 GeoQR Attendance System</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script>
+        const { startRegistration } = SimpleWebAuthnBrowser;
+        const registerBtn = document.getElementById('registerBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const statusEl = document.getElementById('statusMessage');
+        const btnText = document.getElementById('btnText');
+
+        // Check authentication using sessionStorage (matches auth.js key geoqr_token)
+        const token = sessionStorage.getItem('geoqr_token');
+
+        if (!token) {
+            // Redirect to login if no token found
+            window.location.href = 'index.html';
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                registerBtn.classList.add('loading');
+                registerBtn.disabled = true;
+            } else {
+                registerBtn.classList.remove('loading');
+                registerBtn.disabled = false;
+            }
+        }
+
+        function showStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = 'status-message ' + type;
+        }
+
+        registerBtn.addEventListener('click', async () => {
+            setLoading(true);
+            showStatus('', '');
+
+            try {
+                // 1. Get options from server
+                const resp = await fetch(`${API_BASE_URL}/webauthn/register/options`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (resp.status === 401) {
+                    throw new Error('Session expired. Please login again.');
+                }
+                if (!resp.ok) throw new Error('Failed to start registration');
+
+                const options = await resp.json();
+
+                // 2. Browser biometric prompt
+                let attResp;
+                try {
+                    attResp = await startRegistration(options);
+                } catch (err) {
+                    if (err.name === 'NotAllowedError') {
+                        throw new Error('Registration cancelled or timed out');
+                    }
+                    throw err;
+                }
+
+                // 3. Verify with server
+                const verifyResp = await fetch(`${API_BASE_URL}/webauthn/register/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(attResp)
+                });
+
+                const verifyResult = await verifyResp.json();
+
+                if (verifyResult.verified) {
+                    // Mark this device as setup
+                    localStorage.setItem('passkey_setup_complete', 'true');
+
+                    showStatus('Success! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.replace('student-dashboard.html');
+                    }, 1500);
+                } else {
+                    throw new Error(verifyResult.error || 'Verification failed');
+                }
+
+            } catch (error) {
+                console.error(error);
+                showStatus(error.message || 'Error: ' + error.message, 'error');
+                if (error.message.includes('Session expired')) {
+                    setTimeout(() => window.location.href = 'index.html', 2000);
+                }
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+
+</html>

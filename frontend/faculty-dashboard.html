@@ -23,6 +23,9 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/faculty-qr.js"></script>
 </head>
 
 <body>
@@ -1174,6 +1177,10 @@
                         await FacultyAPI.endSession(sessionId);
                         FacultyState.activeSessions.delete(sessionId);
 
+                        if (window.stopLiveQR) {
+                            stopLiveQR();
+                        }
+
                         AdminCore.toast('Session ended successfully', 'success');
                         updateLiveIndicator();
                         loadDashboardData();
@@ -1511,6 +1518,11 @@
                         startedAt: sessionDateTime.toISOString(),
                         endTime: new Date(sessionDateTime.getTime() + durationMinutes * 60000).toISOString()
                     });
+
+                    // Start Live QR
+                    if (window.startLiveQR) {
+                        startLiveQR(result.session.id);
+                    }
 
                     updateLiveIndicator();
                     loadDashboardData();

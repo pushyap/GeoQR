@@ -21,6 +21,11 @@
         })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
@@ -694,6 +699,34 @@
                 window.location.href = 'login.html';
                 return;
             }
+
+            // check security status (Passkey Guard)
+            // check security status (Passkey Guard)
+            try {
+                const secResp = await fetch(`${API_BASE_URL}/auth/security-status`, {
+                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                });
+                if (secResp.ok) {
+                    const secData = await secResp.json();
+
+                    // Force setup if:
+                    // 1. User has NO passkeys at all (backend check)
+                    // 2. OR User has passkeys but NOT on this device (local check)
+                    const localSetupDone = localStorage.getItem('passkey_setup_complete') === 'true';
+
+                    if (secData.passkey_required) {
+                        if (!secData.passkey_enabled || !localSetupDone) {
+                            window.location.href = 'passkey-setup.html';
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Security check failed', e);
+            }
+
+            // Show body after checks
+            document.body.style.display = 'block';
 
             // Check role - only allow students
             if (user.role !== 'student') {
