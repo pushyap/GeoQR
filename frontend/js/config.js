@@ -9,10 +9,10 @@ window.GeoQR.config = {
     getApiUrl: function () {
         const hostname = window.location.hostname;
 
-        // Development
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'http://localhost:3000/api';
-        }
+        // Development (Uncomment if running local backend)
+        // if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        //     return 'http://localhost:3000/api';
+        // }
 
         // Production - REPLACE THIS with your actual backend URL if different
         // Example: 'https://my-geoqr-backend.onrender.com/api'

@@ -200,6 +200,27 @@
             statusEl.className = 'status-message ' + type;
         }
 
+        // Check status on load
+        async function checkStatus() {
+            try {
+                const resp = await fetch(`${API_BASE_URL}/auth/security-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.passkey_enabled) {
+                        showStatus('Passkey already enabled. Redirecting...', 'success');
+                        setTimeout(() => window.location.href = 'student-dashboard.html', 1500);
+                        registerBtn.disabled = true;
+                        registerBtn.textContent = 'Already Enabled';
+                    }
+                }
+            } catch (e) {
+                console.warn('Status check failed', e);
+            }
+        }
+        checkStatus();
+
         registerBtn.addEventListener('click', async () => {
             setLoading(true);
             showStatus('', '');

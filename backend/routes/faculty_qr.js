@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { isFaculty } = require('../middleware/roleCheck');
+const { hashToken } = require('../utils/token');
 
 const router = express.Router();
 
@@ -26,11 +27,14 @@ async function generateQRToken(sessionId, deviceId = null) {
     // Calculate expiry
     const expiresAt = new Date(Date.now() + QR_EXPIRY_SECONDS * 1000);
 
+    // Generate hash
+    const tokenHash = hashToken(rawToken);
+
     // Insert into qr_tokens
     await db.query(
         `INSERT INTO qr_tokens (session_id, raw_token, token_hash, expires_at)
          VALUES ($1, $2, $3, $4)`,
-        [sessionId, rawToken, 'raw-storage-mode', expiresAt]
+        [sessionId, rawToken, tokenHash, expiresAt]
     );
 
     return {

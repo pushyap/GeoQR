@@ -231,6 +231,7 @@
         let qrInstance = null;
         let timerInterval = null;
         let refreshInterval = null;
+
         let timeRemaining = 10;
         let qrCount = 0;
         let currentQrExpiry = null;
@@ -375,8 +376,9 @@
             document.getElementById('deviceStatus').className = 'device-status generating';
 
             generateQR();
-            startTimer();
-
+            // StartTimer is called inside generateQR now
+            // But for safety/debugging:
+            // startTimer();  <-- Removing this as generateQR calls it with correct params
             Toast.success('QR generation started');
         }
 
@@ -445,7 +447,9 @@
                 // Set timer based on backend expiry
                 timeRemaining = expirySeconds;
                 currentQrExpiry = new Date(qrData.expiresAt);
-                updateTimerDisplay();
+
+                // Call robust timer with explicit timestamp
+                startTimer(expirySeconds, currentQrExpiry);
 
             } catch (error) {
                 console.error('QR generation error:', error);
@@ -463,45 +467,87 @@
             }
         }
 
-        function startTimer() {
+        // Timer State
+        // timerInterval & refreshInterval are declared at top scope
+        let totalDuration = 10;
+        let endTime = 0;
+
+        function startTimer(expirySeconds, expiryTimestamp) {
+            // Rule 1: Clear existing intervals
             if (timerInterval) clearInterval(timerInterval);
             if (refreshInterval) clearInterval(refreshInterval);
 
-            // Get expiry seconds from current timeRemaining (set by generateQR)
-            const expirySeconds = timeRemaining || 10;
+            // Rule 2 & 3: Set expiry-based time
+            totalDuration = expirySeconds || 10;
 
-            timerInterval = setInterval(() => {
-                timeRemaining--;
-                updateTimerDisplay();
-
-                if (timeRemaining <= 0) {
-                    document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot warning"></span>Refreshing...';
-                    document.getElementById('qrStatus').className = 'qr-status refreshing';
+            // Use backend timestamp if available, else calculate local expiry
+            // backend 'expiresAt' -> convert to ms
+            if (expiryTimestamp) {
+                try {
+                    endTime = new Date(expiryTimestamp).getTime();
+                } catch (e) {
+                    endTime = Date.now() + (totalDuration * 1000);
                 }
-            }, 1000);
+            } else {
+                endTime = Date.now() + (totalDuration * 1000);
+            }
 
-            // Refresh QR based on backend expiry time
-            refreshInterval = setInterval(() => {
-                generateQR();
-            }, expirySeconds * 1000);
+            // Immediate update
+            updateTimerLoop();
+
+            // Start new interval
+            timerInterval = setInterval(updateTimerLoop, 1000);
         }
 
-        function updateTimerDisplay() {
+        function updateTimerLoop() {
+            const now = Date.now();
+            const msLeft = endTime - now;
+
+            // Calculate secondsLeft
+            let secondsLeft = Math.ceil(msLeft / 1000);
+            if (secondsLeft < 0) secondsLeft = 0;
+
+            // Update State
+            timeRemaining = secondsLeft;
+
+            // Update UI
+            updateTimerDisplay(secondsLeft, totalDuration);
+
+            // Handle Expiry/Refresh
+            if (secondsLeft <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+
+                document.getElementById('qrStatus').innerHTML = '<span class="pulse-dot warning"></span>Refreshing...';
+                document.getElementById('qrStatus').className = 'qr-status refreshing';
+
+                // Trigger refresh exactly when timer ends
+                generateQR();
+            }
+        }
+
+        function updateTimerDisplay(secondsLeft, totalDurationSeconds) {
             const timerValue = document.getElementById('timerValue');
             const timerCircle = document.getElementById('timerCircle');
 
-            timerValue.textContent = timeRemaining;
+            timerValue.textContent = secondsLeft;
 
             // Update progress ring
             const circumference = 2 * Math.PI * 54;
-            const progress = (timeRemaining / DEFAULT_EXPIRY_SECONDS) * circumference;
-            timerCircle.style.strokeDasharray = `${progress} ${circumference}`;
+
+            // Progress ratio: 1.0 (full) -> 0.0 (empty)
+            // Use Math.max/min to clamp
+            const safeTotal = totalDurationSeconds > 0 ? totalDurationSeconds : 10;
+            const ratio = Math.max(0, Math.min(1, secondsLeft / safeTotal));
+
+            const visibleLength = circumference * ratio;
+            timerCircle.style.strokeDasharray = `${visibleLength} ${circumference}`;
 
             // Color changes
-            if (timeRemaining <= 3) {
+            if (secondsLeft <= 3) {
                 timerValue.style.color = '#ef4444';
                 timerCircle.style.stroke = '#ef4444';
-            } else if (timeRemaining <= 5) {
+            } else if (secondsLeft <= 5) {
                 timerValue.style.color = '#f59e0b';
                 timerCircle.style.stroke = '#f59e0b';
             } else {

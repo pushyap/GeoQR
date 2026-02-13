@@ -635,6 +635,7 @@ body.device-fullscreen::before {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
+    transform-origin: center;
 }
 
 .timer-bg {
@@ -648,7 +649,8 @@ body.device-fullscreen::before {
     stroke: url(#timerGradient);
     stroke-width: 6;
     stroke-linecap: round;
-    transition: stroke-dasharray 0.3s ease, stroke 0.3s ease;
+    transition: stroke-dasharray 1s linear, stroke 0.3s ease;
+    transform-origin: center;
 }
 
 .timer-content {

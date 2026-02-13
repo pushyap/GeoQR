@@ -11,6 +11,7 @@ const {
 } = require('@simplewebauthn/server');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
+const { hashToken } = require('../utils/token');
 
 const router = express.Router();
 
@@ -63,13 +64,25 @@ router.post('/register/options', authenticate, async (req, res) => {
         if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         const user = result.rows[0];
 
-        // Check existing credentials to prevent re-registration of same authenticator if needed
+        // Check existing credentials to prevent re-registration
         const credentials = await db.query('SELECT credential_id FROM webauthn_credentials WHERE user_id = $1', [userId]);
-        const excludeCredentials = credentials.rows.map(row => ({
-            id: row.credential_id,
-            type: 'public-key',
-            transports: ['internal'], // Optional hint
-        }));
+
+        // STRICT RULE: If passkey already exists, BLOCK registration
+        if (credentials.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                code: "PASSKEY_ALREADY_EXISTS",
+                message: "Passkey already registered. Use authentication instead."
+            });
+        }
+
+        const excludeCredentials =
+            // We don't need excludeCredentials if we strictly block, but keeping it empty or just in case we relax rule later
+            credentials.rows.map(row => ({
+                id: row.credential_id,
+                type: 'public-key',
+                transports: ['internal'],
+            }));
 
         const options = await generateRegistrationOptions({
             rpName,
@@ -170,9 +183,14 @@ router.post('/auth/options', authenticate, async (req, res) => {
         }
 
         // 1. Validate QR Token
+        const tokenHash = hashToken(qr_token);
+        console.log(`[AuthOptions] Verifying token for session ${qr_session_id}`);
+        console.log(`[AuthOptions] Incoming token: ${qr_token.substring(0, 8)}...`);
+        console.log(`[AuthOptions] Computed hash: ${tokenHash}`);
+
         const tokenCheck = await db.query(
-            'SELECT * FROM qr_tokens WHERE session_id = $1 AND raw_token = $2 AND expires_at > NOW()',
-            [qr_session_id, qr_token]
+            'SELECT * FROM qr_tokens WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()',
+            [qr_session_id, tokenHash]
         );
 
         if (tokenCheck.rows.length === 0) {
@@ -228,6 +246,18 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         const expectedChallenge = challengeStore.get(userId);
         if (!expectedChallenge) {
             return res.status(400).json({ error: 'Challenge not found or expired' });
+        }
+
+        // 1. Double check QR (security layer)
+        const tokenHash = hashToken(qr_token);
+        const tokenCheck = await db.query(
+            'SELECT id FROM qr_tokens WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()',
+            [qr_session_id, tokenHash]
+        );
+
+        if (tokenCheck.rows.length === 0) {
+            console.error(`[AuthVerify] QR Validation Failed. Hash: ${tokenHash}`);
+            return res.status(400).json({ error: 'Invalid or expired QR code (Verify Phase)' });
         }
 
         // 1. Get credential from DB to verify signature
