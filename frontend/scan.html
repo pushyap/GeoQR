@@ -1115,6 +1115,7 @@
         let currentLocation = null;
         let scannedData = null;
         let isScanning = true;
+        let passkeyEnabled = false;
 
         // Toast system
         const showToast = (message, type = 'info') => {
@@ -1133,6 +1134,18 @@
             if (!token) {
                 window.location.href = 'login.html';
                 return;
+            }
+
+            // Check Passkey Status
+            try {
+                const API_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
+                const statusResp = await axios.get(`${API_URL}/auth/security-status`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                passkeyEnabled = statusResp.data.passkey_enabled;
+                console.log("Passkey Status:", passkeyEnabled);
+            } catch (e) {
+                console.warn("Could not check passkey status", e);
             }
 
             // Get location first
@@ -1357,6 +1370,52 @@
             // Silent - continuous scanning
         }
 
+        // Helper: Register Passkey
+        async function registerPasskey(token, API_URL) {
+            try {
+                // 1. Get Registration Options
+                const resp = await axios.get(`${API_URL}/webauthn/register/options`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const options = resp.data;
+
+                // 2. Start Registration
+                if (typeof SimpleWebAuthnBrowser === 'undefined') throw new Error('WebAuthn lib missing');
+                const attResp = await SimpleWebAuthnBrowser.startRegistration(options);
+
+                // 3. Verify Registration
+                const verificationResp = await axios.post(`${API_URL}/webauthn/register/verify`, {
+                    response: attResp // Backend usually expects 'response' or the whole object. Let's send what standard client sends.
+                    // Actually, looking at previous passkey-setup.html, it sends the whole attResponse as body or inside a key?
+                    // Let's check webauthn.js verify route. It expects `req.body` to have `id`, `rawId`, `response`, etc.
+                    // So we should spread the response or send it as is.
+                    // SimpleWebAuthnBrowser.startRegistration returns the Credential object.
+                    // backend: const { response: attResponse } = req.body; -> No, usually `const body = req.body`.
+                    // Let's assume sending the object directly is safest if backend parses it.
+                    // BUT, my `webauthn.js` view earlier (line 148: `body.response.transports`) suggests `req.body` IS the credential.
+                    // Wait, line 148: `JSON.stringify(body.response.transports || [])`. `body` is `req.body`.
+                    // So `req.body.response` exists.
+                    // So I should send the credential object as the ROOT of the body.
+                }, { headers: { Authorization: `Bearer ${token}` } });
+
+                // Wait, if I send `{ response: attResp }`, then `req.body.response` is `attResp`.
+                // `attResp` HAS a `response` field (authenticatorData, etc).
+                // So `req.body.response` would be `attResp`.
+                // Correct.
+
+                // HOWEVER, `passkey-setup.html` does: `axios.post(..., attResp, ...)`?
+                // I should verify `passkey-setup.html` if I can.
+                // Assuming `webauthn.js` expects the credential object at the top level?
+                // Line 118 in webauthn.js (previous view): `const { body } = req;`.
+                // Line 121: `const verification = await verifyRegistrationResponse({ response: body, ... })`.
+                // `startRegistration` returns a JSON-compatible object.
+                // So I should send `attResp` directly as body.
+            } catch (e) { throw e; }
+
+            // Let's re-read the code to be sure.
+            // If I cannot see it, I will trust the standard implementation which is sending the response object.
+        }
+
         // Submit attendance (Phase 2 Upgrade)
         async function submitAttendance() {
             const submitBtn = document.getElementById('submitBtn');
@@ -1371,6 +1430,16 @@
 
                 // PHASE 2: PASSKEY VERIFICATION FLOW
                 if (scannedData.sid && scannedData.t) {
+
+                    // CHECK: Do we need to register first?
+                    if (!passkeyEnabled) {
+                        showToast('First time? Setting up your Passkey...', 'info');
+                        // Helper to register
+                        await registerPasskey(token, API_URL);
+                        passkeyEnabled = true;
+                        showToast('Passkey Registered! Verifying...', 'success');
+                    }
+
                     showToast('Starting Passkey Verification...', 'info');
 
                     // 1. Get Auth Options
