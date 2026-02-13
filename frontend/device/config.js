@@ -11,13 +11,13 @@ window.GeoQR.config = {
     getApiUrl: function () {
         const hostname = window.location.hostname;
 
-        // Development
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return 'http://localhost:3000/api';
+        // Development / Local Network
+        if (hostname === 'localhost' || hostname === '127.0.0.1' ||
+            hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+            return `http://${hostname}:3000/api`;
         }
 
         // Production - Your Render backend URL
-        // Update this to your actual backend URL if different
         return 'https://smart-qr-lidf.onrender.com/api';
     }
 };

@@ -1264,17 +1264,43 @@
             isScanning = false;
 
             try {
-                // Try to parse as JSON first (Phase 2 format: { sid, t })
-                scannedData = JSON.parse(decodedText);
-            } catch (e) {
-                // Formatting might be Base64 encoded JSON (Legacy or variant)
-                try {
-                    const decoded = atob(decodedText);
-                    scannedData = JSON.parse(decoded);
-                } catch (e2) {
-                    // If not JSON or Base64 JSON, treat as plain token
-                    scannedData = { token: decodedText };
+                // 1. Check for Signed Format (Base64.Signature)
+                if (decodedText.includes('.')) {
+                    const parts = decodedText.split('.');
+                    if (parts.length === 2) {
+                        try {
+                            const payload = JSON.parse(atob(parts[0]));
+                            if (payload.sid) {
+                                scannedData = {
+                                    sid: payload.sid,
+                                    t: decodedText, // Use full string as token for verification
+                                    type: 'device'
+                                };
+                            }
+                        } catch (e) {
+                            console.warn("Failed to parse signed QR payload", e);
+                        }
+                    }
                 }
+
+                // 2. Try to parse as JSON (Faculty format: { sid, t })
+                if (!scannedData) {
+                    try {
+                        scannedData = JSON.parse(decodedText);
+                        if (scannedData.sid && scannedData.t) {
+                            scannedData.type = 'faculty';
+                        }
+                    } catch (e) { }
+                }
+
+                // 3. Fallback to Legacy/Plain Token
+                if (!scannedData) {
+                    scannedData = { token: decodedText, type: 'legacy' };
+                }
+
+            } catch (err) {
+                console.error("Scan processing error:", err);
+                scannedData = { token: decodedText, type: 'error' };
             }
 
             // Stop scanning
@@ -1288,14 +1314,13 @@
             document.getElementById('statusText').textContent = 'QR code detected!';
 
             // Show result
-            // Phase 2: Show Session ID or Token preview
             let tokenDisplay = '---';
             if (scannedData.sid) {
                 tokenDisplay = `Session: ${scannedData.sid}`;
-            } else if (scannedData.token) {
-                tokenDisplay = scannedData.token.substring(0, 20) + '...';
+            } else if (scannedData.t) {
+                tokenDisplay = scannedData.t.substring(0, 15) + '...';
             } else {
-                tokenDisplay = JSON.stringify(scannedData).substring(0, 20) + '...';
+                tokenDisplay = decodedText.substring(0, 15) + '...';
             }
 
             document.getElementById('scannedToken').textContent = tokenDisplay;

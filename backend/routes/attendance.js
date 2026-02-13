@@ -44,13 +44,17 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
         if (qr_session_id && qr_token) {
             // 1. Verify QR Token
             const tokenHash = hashToken(qr_token);
+            console.log(`[AttendanceMark] Verifying token for session ${qr_session_id}`);
+            console.log(`[AttendanceMark] Incoming token: ${qr_token.substring(0, 8)}...`);
+            console.log(`[AttendanceMark] Computed hash: ${tokenHash}`);
+
             const qrCheck = await db.query(
                 'SELECT * FROM qr_tokens WHERE session_id = $1 AND token_hash = $2 AND expires_at > NOW()',
                 [qr_session_id, tokenHash]
             );
 
             if (qrCheck.rows.length === 0) {
-                console.error(`[AttendanceMark] QR Validation Failed. Hash: ${tokenHash}`);
+                console.error(`[AttendanceMark] QR Validation Failed. Session: ${qr_session_id}, Hash: ${tokenHash}`);
                 return res.status(400).json({ error: 'Invalid or expired QR code' });
             }
 

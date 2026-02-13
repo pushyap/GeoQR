@@ -8,15 +8,20 @@ window.GeoQR.config = {
     // Auto-detect environment
     getApiUrl: function () {
         const hostname = window.location.hostname;
+        const port = window.location.port;
 
-        // Development (Uncomment if running local backend)
-        // if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        //     return 'http://localhost:3000/api';
-        // }
+        // Development / Local Network
+        if (hostname === 'localhost' || hostname === '127.0.0.1' ||
+            hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
+            // If on a local network, assume backend is on port 3000
+            return `http://${hostname}:3000/api`;
+        }
 
-        // Production - REPLACE THIS with your actual backend URL if different
-        // Example: 'https://my-geoqr-backend.onrender.com/api'
-        // If frontend and backend are on same domain, leave as '/api'
+        // Production - Default to current origin or Render
+        if (hostname.includes('onrender.com')) {
+            return `https://${hostname.split('.')[0]}.onrender.com/api`;
+        }
+
         return 'https://smart-qr-lidf.onrender.com/api';
     }
 };
