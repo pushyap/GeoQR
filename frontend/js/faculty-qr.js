@@ -13,7 +13,7 @@ async function startLiveQR(sessionId) {
     try {
         // 1. Start QR Session
         const token = sessionStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE_URL}/api/faculty/qr/start`, {
+        const response = await fetch(`${API_BASE_URL}/faculty/qr/start`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ async function startLiveQR(sessionId) {
 async function refreshQR(sessionId) {
     try {
         const token = sessionStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE_URL}/api/faculty/qr/refresh`, {
+        const response = await fetch(`${API_BASE_URL}/faculty/qr/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ qr_session_id: sessionId })
@@ -148,7 +148,7 @@ async function stopLiveQR() {
     if (currentQRSessionId) {
         try {
             const token = sessionStorage.getItem('authToken');
-            await fetch(`${API_BASE_URL}/api/faculty/qr/stop`, {
+            await fetch(`${API_BASE_URL}/faculty/qr/stop`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ qr_session_id: currentQRSessionId })

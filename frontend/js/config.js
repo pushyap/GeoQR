@@ -27,4 +27,5 @@ window.GeoQR.config = {
 };
 
 // Global shorthand
-const API_BASE_URL = window.GeoQR.config.getApiUrl();
+// Global shorthand
+window.API_BASE_URL = window.GeoQR.config.getApiUrl();
