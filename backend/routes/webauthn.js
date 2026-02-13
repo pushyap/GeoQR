@@ -153,12 +153,15 @@ router.post('/register/verify', authenticate, async (req, res) => {
             const { id: credentialID, publicKey: credentialPublicKey, counter, transports } = credential;
 
             // Save credential to DB
+            // Ensure credentialID is stored as base64url string for consistency
+            const credentialIDString = typeof credentialID === 'string' ? credentialID : Buffer.from(credentialID).toString('base64url');
+
             await db.query(
                 `INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter, transports)
                  VALUES ($1, $2, $3, $4, $5)`,
                 [
                     userId,
-                    credentialID,
+                    credentialIDString,
                     Buffer.from(credentialPublicKey).toString('base64'),
                     counter,
                     JSON.stringify(body.response.transports || []) // Save transports hint
@@ -219,19 +222,37 @@ router.post('/auth/options', authenticate, async (req, res) => {
         }
 
         // 2. Check if user has passkey
-        const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
-        if (!user.rows[0].passkey_enabled) {
-            return res.status(400).json({ error: 'Passkey not set up. Please register first.' });
+        const userResult = await db.query('SELECT passkey_enabled FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0 || !userResult.rows[0].passkey_enabled) {
+            return res.status(400).json({
+                success: false,
+                code: 'PASSKEY_NOT_FOUND',
+                error: 'Passkey not set up. Please register first.'
+            });
         }
 
         // 3. Get user's credentials
         const credentials = await db.query('SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = $1', [userId]);
 
-        const allowCredentials = credentials.rows.map(row => ({
-            id: row.credential_id,
-            type: 'public-key',
-            transports: row.transports ? JSON.parse(row.transports) : undefined,
-        }));
+        if (credentials.rows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: 'PASSKEY_NOT_FOUND',
+                error: 'No registered credentials found.'
+            });
+        }
+
+        const allowCredentials = credentials.rows.map(row => {
+            // SimpleWebAuthn library expects id to be Uint8Array (binary)
+            // But we store it as a base64url string in the DB.
+            return {
+                id: Buffer.from(row.credential_id, 'base64url'),
+                type: 'public-key',
+                transports: row.transports ? JSON.parse(row.transports) : undefined,
+            };
+        });
+
+        console.log(`[AuthOptions] Found ${allowCredentials.length} credentials for user ${userId}`);
 
         const options = await generateAuthenticationOptions({
             rpID,
