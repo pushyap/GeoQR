@@ -56,35 +56,80 @@ const Toast = {
 // API Client
 // ========================================
 const API = {
-    async post(endpoint, body) {
-        const res = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
+    getHeaders() {
+        const token = Session.getToken();
+        return {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        };
+    },
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Request failed');
-        return data;
+    async request(method, endpoint, body = null) {
+        const headers = this.getHeaders();
+        const config = {
+            method,
+            headers,
+        };
+
+        if (body) config.body = JSON.stringify(body);
+
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, config);
+
+            if (res.status === 401) {
+                console.warn('⚠️ 401 Unauthorized - Redirecting to login');
+                Session.clear();
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || data.error || 'Request failed');
+            return data;
+        } catch (error) {
+            console.error(`API ${method} ${endpoint} error:`, error);
+            throw error;
+        }
+    },
+
+    async get(endpoint) {
+        return this.request('GET', endpoint);
+    },
+
+    async post(endpoint, body) {
+        return this.request('POST', endpoint, body);
+    },
+
+    async put(endpoint, body) {
+        return this.request('PUT', endpoint, body);
+    },
+
+    async delete(endpoint) {
+        return this.request('DELETE', endpoint);
     }
 };
 
 // ========================================
 // Session Manager (uses sessionStorage - clears on browser close)
 // ========================================
+// ========================================
+// Session Manager (uses localStorage - persistent)
+// ========================================
 const Session = {
     save(token, user) {
-        sessionStorage.setItem(CONFIG.TOKEN_KEY, token);
-        sessionStorage.setItem(CONFIG.DATA_KEY, JSON.stringify(user));
+        localStorage.setItem(CONFIG.TOKEN_KEY, token);
+        localStorage.setItem(CONFIG.DATA_KEY, JSON.stringify(user));
     },
 
     getToken() {
-        return sessionStorage.getItem(CONFIG.TOKEN_KEY);
+        return localStorage.getItem(CONFIG.TOKEN_KEY);
     },
 
     getUser() {
-        const d = sessionStorage.getItem(CONFIG.DATA_KEY);
-        return d ? JSON.parse(d) : null;
+        const d = localStorage.getItem(CONFIG.DATA_KEY);
+        try {
+            return d ? JSON.parse(d) : null;
+        } catch (e) { return null; }
     },
 
     getRole() {
@@ -96,9 +141,38 @@ const Session = {
     },
 
     clear() {
-        sessionStorage.clear();
+        localStorage.removeItem(CONFIG.TOKEN_KEY);
+        localStorage.removeItem(CONFIG.DATA_KEY);
+        sessionStorage.clear(); // Clear legacy session storage just in case
     }
 };
+
+// ========================================
+// Axios Configuration (Global Interceptors)
+// ========================================
+if (window.axios) {
+    // Add Token to every request
+    axios.interceptors.request.use(config => {
+        const token = Session.getToken();
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    }, error => Promise.reject(error));
+
+    // Handle 401 Unauthorized globally
+    axios.interceptors.response.use(response => response, error => {
+        if (error.response && error.response.status === 401) {
+            console.warn('⚠️ Axios 401 Unauthorized - Redirecting to login');
+            Session.clear();
+            // Avoid redirection loop if already on login page
+            if (!window.location.pathname.endsWith('index.html') && !window.location.pathname.endsWith('/')) {
+                window.location.href = 'index.html';
+            }
+        }
+        return Promise.reject(error);
+    });
+}
 
 // ========================================
 // Role Guard
