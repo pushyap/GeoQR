@@ -977,6 +977,7 @@
             }
 
             if (!user || user.role !== 'faculty') {
+                Session.clear();
                 window.location.href = 'login.html';
                 return;
             }

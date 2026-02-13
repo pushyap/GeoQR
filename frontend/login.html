@@ -261,9 +261,15 @@
 
         // Check for remembered session
         document.addEventListener('DOMContentLoaded', () => {
-            // Clear any partial/invalid sessions
-            const token = sessionStorage.getItem('geoqr_token');
-            const userData = sessionStorage.getItem('geoqr_user_data');
+            // Check localStorage first (new system), then sessionStorage (legacy/temp)
+            let token = localStorage.getItem('geoqr_token');
+            let userData = localStorage.getItem('geoqr_user_data');
+
+            // Fallback to session storage if not in local
+            if (!token) {
+                token = sessionStorage.getItem('geoqr_token');
+                userData = sessionStorage.getItem('geoqr_user_data');
+            }
 
             if (token && userData) {
                 try {
@@ -275,14 +281,28 @@
                             'faculty': 'faculty-dashboard.html',
                             'admin': 'admin-dashboard.html'
                         };
+                        // Ensure persistent storage (fix for redirect loop)
+                        localStorage.setItem('geoqr_token', token);
+                        // userData is a string from storage, user is parsed object
+                        // We can just save userData string back if it came from sessionStorage
+                        if (typeof userData === 'string') {
+                            localStorage.setItem('geoqr_user_data', userData);
+                        } else {
+                            localStorage.setItem('geoqr_user_data', JSON.stringify(user));
+                        }
+
                         window.location.href = dashboards[user.role] || 'dashboard.html';
                     } else {
                         // Invalid user data, clear it
                         console.log('⚠️ Invalid user data, clearing session');
+                        localStorage.removeItem('geoqr_token');
+                        localStorage.removeItem('geoqr_user_data');
                         sessionStorage.clear();
                     }
                 } catch (e) {
                     console.log('⚠️ Corrupt session data, clearing');
+                    localStorage.removeItem('geoqr_token');
+                    localStorage.removeItem('geoqr_user_data');
                     sessionStorage.clear();
                 }
             }
