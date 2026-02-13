@@ -16,9 +16,34 @@ const router = express.Router();
 
 // RP ID should be your domain (e.g. localhost or geoqr.com)
 const rpName = 'GeoQR Attendance';
-// In production, this should be your actual domain
-const rpID = process.env.RP_ID || 'localhost';
-const origin = process.env.ORIGIN || 'http://localhost:5500'; // Frontend origin
+
+// Helper: Determine RP ID and Origin dynamically
+function getDynamicConfig(req) {
+    // 1. Determine Origin
+    const clientOrigin = req.get('Origin') || process.env.ORIGIN || 'http://localhost:5500';
+
+    // 2. Determine RP ID
+    let currentRPID = process.env.RP_ID || 'localhost'; // Default fallback
+
+    // Dynamic handling for dev/preview environments
+    const hostname = req.hostname;
+
+    if (hostname === '127.0.0.1' || hostname === 'localhost') {
+        currentRPID = hostname;
+    } else {
+        // For production (e.g., render.com), RP ID must be the domain
+        currentRPID = hostname;
+    }
+
+    // Override if matching client origin logic specific for 127/localhost mixed usage
+    if (clientOrigin.includes('127.0.0.1')) {
+        currentRPID = '127.0.0.1';
+    } else if (clientOrigin.includes('localhost')) {
+        currentRPID = 'localhost';
+    }
+
+    return { rpID: currentRPID, origin: clientOrigin };
+}
 
 // In-memory challenge store (use Redis in production)
 const challengeStore = new Map(); // userId -> challenge
@@ -30,6 +55,7 @@ const challengeStore = new Map(); // userId -> challenge
 router.post('/register/options', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
+        const { rpID } = getDynamicConfig(req);
 
         // Get user details
         const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
@@ -78,6 +104,7 @@ router.post('/register/verify', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
         const body = req.body;
+        const { rpID, origin } = getDynamicConfig(req);
 
         const expectedChallenge = challengeStore.get(userId);
         if (!expectedChallenge) {
@@ -135,6 +162,7 @@ router.post('/auth/options', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
         const { qr_session_id, qr_token } = req.body;
+        const { rpID } = getDynamicConfig(req);
 
         if (!qr_session_id || !qr_token) {
             return res.status(400).json({ error: 'Missing QR session info' });
@@ -190,6 +218,7 @@ router.post('/auth/verify', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
         const { qr_session_id, qr_token, assertion } = req.body;
+        const { rpID, origin } = getDynamicConfig(req);
 
         if (!qr_session_id || !qr_token) {
             return res.status(400).json({ error: 'Missing QR info' });
@@ -223,23 +252,13 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         // Convert base64 public key back to Uint8Array
         const publicKey = new Uint8Array(Buffer.from(credential.public_key, 'base64'));
 
-        // Determine RPID and Origin dynamically for Dev
-        const clientOrigin = req.get('Origin') || origin;
-        let currentRPID = rpID;
-
-        if (clientOrigin.includes('127.0.0.1')) {
-            currentRPID = '127.0.0.1';
-        } else if (clientOrigin.includes('localhost')) {
-            currentRPID = 'localhost';
-        }
-
-        console.log(`Verify: Assertion from ${clientOrigin} (RPID: ${currentRPID})`);
+        console.log(`Verify: Assertion from ${origin} (RPID: ${rpID})`);
 
         const verification = await verifyAuthenticationResponse({
             response: assertion,
             expectedChallenge,
-            expectedOrigin: clientOrigin, // Allow dynamic origin
-            expectedRPID: currentRPID,
+            expectedOrigin: origin, // Allow dynamic origin
+            expectedRPID: rpID,
             authenticator: {
                 credentialID: credential.credential_id,
                 credentialPublicKey: publicKey,
