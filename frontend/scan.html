@@ -1367,41 +1367,51 @@
                 const token = sessionStorage.getItem('geoqr_token');
                 const API_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
 
-                // PHASE 2: PASSKEY VERIFICATION FLOW (Bypassed)
-                /*
+                // PHASE 2: PASSKEY VERIFICATION FLOW (STRICT)
                 if (scannedData.sid && scannedData.t) {
-                    showToast('Starting Passkey Verification...', 'info');
+                    showToast('Applying biometric security...', 'info');
 
-                    // 1. Get Auth Options
-                    const optionsResp = await axios.post(`${API_URL}/webauthn/auth/options`, {
-                        qr_session_id: scannedData.sid,
-                        qr_token: scannedData.t
-                    }, { headers: { Authorization: `Bearer ${token}` } });
+                    try {
+                        // 1. Get Auth Options
+                        const optionsResp = await axios.post(`${API_URL}/webauthn/auth/options`, {
+                            qr_session_id: scannedData.sid,
+                            qr_token: scannedData.t
+                        }, { headers: { Authorization: `Bearer ${token}` } });
 
-                    const options = optionsResp.data;
+                        const options = optionsResp.data;
 
-                    // 2. Start Authentication (SimpleWebAuthn Browser)
-                    // Ensure SimpleWebAuthnBrowser is loaded
-                    if (typeof SimpleWebAuthnBrowser === 'undefined') {
-                        throw new Error('WebAuthn library not loaded. Please refresh.');
+                        // 2. Start Authentication (SimpleWebAuthn Browser)
+                        if (typeof SimpleWebAuthnBrowser === 'undefined') {
+                            throw new Error('WebAuthn library not loaded. Please refresh the page.');
+                        }
+
+                        let asseResp;
+                        try {
+                            asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
+                        } catch (webauthnErr) {
+                            if (webauthnErr.name === 'NotAllowedError') {
+                                throw new Error('Biometric verification cancelled. Please try again.');
+                            }
+                            throw webauthnErr;
+                        }
+
+                        // 3. Verify Authentication
+                        const verifyResp = await axios.post(`${API_URL}/webauthn/auth/verify`, {
+                            qr_session_id: scannedData.sid,
+                            qr_token: scannedData.t,
+                            assertion: asseResp
+                        }, { headers: { Authorization: `Bearer ${token}` } });
+
+                        if (!verifyResp.data.success) {
+                            throw new Error(verifyResp.data.error || 'Passkey verification failed');
+                        }
+
+                        showToast('Secure Ticket Issued! Marking attendance...', 'success');
+                    } catch (error) {
+                        const errorMsg = error.response?.data?.error || error.message || 'Verification failed';
+                        throw new Error(errorMsg);
                     }
-
-                    const asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
-
-                    // 3. Verify Authentication
-                    const verifyResp = await axios.post(`${API_URL}/webauthn/auth/verify`, {
-                        qr_session_id: scannedData.sid,
-                        qr_token: scannedData.t,
-                        assertion: asseResp
-                    }, { headers: { Authorization: `Bearer ${token}` } });
-
-                    if (!verifyResp.data.success) {
-                        throw new Error(verifyResp.data.error || 'Passkey verification failed');
-                    }
-
-                    showToast('Passkey Verified! Marking attendance...', 'success');
                 }
-                */
 
                 // 4. Mark Attendance
                 if (!currentLocation) {

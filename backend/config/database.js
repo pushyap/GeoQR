@@ -18,12 +18,29 @@ pool.on('error', (err) => {
 
 const db = {
     async query(sql, params = []) {
-        const client = await pool.connect();
+        let client;
         try {
+            client = await pool.connect();
             const result = await client.query(sql, params);
             return result;
+        } catch (error) {
+            console.error(`❌ Database Query Error: ${error.message}`);
+            // If it's a transient connection error, we could retry once
+            if (error.code === 'ENOTFOUND' || error.message.includes('getaddrinfo')) {
+                console.warn('⚠️ Transient DNS/Network issue detected. Retrying...');
+                // Wait 1s and retry once
+                await new Promise(r => setTimeout(r, 1000));
+                try {
+                    client = await pool.connect();
+                    return await client.query(sql, params);
+                } catch (retryError) {
+                    console.error('❌ Retry failed:', retryError.message);
+                    throw retryError;
+                }
+            }
+            throw error;
         } finally {
-            client.release();
+            if (client) client.release();
         }
     },
 
