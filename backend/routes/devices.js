@@ -44,7 +44,7 @@ router.get('/', authenticate, isAdmin, async (req, res) => {
     try {
         const { status } = req.query;
         let query = `
-            SELECT d.id, d.device_code, d.device_name, d.location_id, d.is_active, d.last_active,
+            SELECT d.id, d.device_code, d.device_name, d.device_type, d.location_id, d.is_active, d.last_active,
                    l.name as location_name
             FROM devices d
             LEFT JOIN locations l ON d.location_id = l.id
@@ -77,12 +77,14 @@ router.get('/', authenticate, isAdmin, async (req, res) => {
 /**
  * POST /api/devices/register
  * Admin registers a new device with password
+ * Location is required for Academic devices, optional for other types
  */
 router.post('/register', authenticate, isAdmin, [
     body('device_code').trim().isLength({ min: 3 }),
     body('device_name').optional().trim(),
+    body('device_type').optional().trim().isIn(['Academic', 'Entry Gate', 'Library', 'Common Area', 'Security']),
     body('password').isLength({ min: 4 }),
-    body('location_id').isInt()
+    body('location_id').optional().isInt()
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -92,9 +94,18 @@ router.post('/register', authenticate, isAdmin, [
         });
     }
 
-    const { device_code, device_name, password, location_id } = req.body;
+    const { device_code, device_name, device_type, password, location_id } = req.body;
+    const finalDeviceType = device_type || 'Academic';
 
     try {
+        // Validate: Academic devices must have location_id
+        if (finalDeviceType === 'Academic' && !location_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'Location is required for Academic devices (session-allocated)'
+            });
+        }
+
         // Check for duplicates
         const duplicateCheck = await db.query(
             'SELECT id FROM devices WHERE LOWER(device_code) = LOWER($1) OR LOWER(device_name) = LOWER($2)',
@@ -112,9 +123,9 @@ router.post('/register', authenticate, isAdmin, [
         const passwordHash = bcrypt.hashSync(password, 12);
 
         const result = await db.query(
-            `INSERT INTO devices (device_code, device_name, password_hash, location_id)
-             VALUES ($1, $2, $3, $4) RETURNING id, device_code, device_name, location_id`,
-            [device_code, device_name || device_code, passwordHash, location_id]
+            `INSERT INTO devices (device_code, device_name, device_type, password_hash, location_id)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id, device_code, device_name, device_type, location_id`,
+            [device_code, device_name || device_code, finalDeviceType, passwordHash, location_id || null]
         );
 
         res.status(201).json({
@@ -124,6 +135,7 @@ router.post('/register', authenticate, isAdmin, [
 
         await logDeviceActivity(result.rows[0].id, 'device_registered', {
             code: result.rows[0].device_code,
+            device_type: result.rows[0].device_type,
             by: req.user.id
         });
 
@@ -689,12 +701,38 @@ router.post('/token', [
 /**
  * PUT /api/devices/:id
  * Update device details (admin only)
+ * Location is required for Academic devices, optional for other types
  */
 router.put('/:id', authenticate, isAdmin, async (req, res) => {
     const deviceId = req.params.id;
-    const { device_name, location_id, is_active, password } = req.body;
+    const { device_name, device_type, location_id, is_active, password } = req.body;
 
     try {
+        // First, get current device to validate type changes
+        const currentDeviceResult = await db.query(
+            'SELECT device_type, location_id FROM devices WHERE id = $1',
+            [deviceId]
+        );
+
+        if (currentDeviceResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Device not found'
+            });
+        }
+
+        const currentDevice = currentDeviceResult.rows[0];
+        const finalDeviceType = device_type !== undefined ? device_type : currentDevice.device_type;
+        const finalLocationId = location_id !== undefined ? location_id : currentDevice.location_id;
+
+        // Validate: Academic devices must have location_id
+        if (finalDeviceType === 'Academic' && !finalLocationId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Location is required for Academic devices (session-allocated)'
+            });
+        }
+
         // Build update query dynamically
         const updates = [];
         const values = [];
@@ -706,10 +744,24 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
             values.push(device_name);
         }
 
+        if (device_type !== undefined) {
+            // Validate device_type
+            const validTypes = ['Academic', 'Entry Gate', 'Library', 'Common Area', 'Security'];
+            if (!validTypes.includes(device_type)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid device type. Valid types are: Academic, Entry Gate, Library, Common Area, Security'
+                });
+            }
+            paramCount++;
+            updates.push(`device_type = $${paramCount}`);
+            values.push(device_type);
+        }
+
         if (location_id !== undefined) {
             paramCount++;
             updates.push(`location_id = $${paramCount}`);
-            values.push(location_id);
+            values.push(location_id || null); // Allow null for non-academic devices
         }
 
         if (is_active !== undefined) {
@@ -738,7 +790,7 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
             UPDATE devices 
             SET ${updates.join(', ')}
             WHERE id = $${paramCount}
-            RETURNING id, device_code, device_name, location_id, is_active, last_active
+            RETURNING id, device_code, device_name, device_type, location_id, is_active, last_active
         `, values);
 
         if (result.rows.length === 0) {
@@ -763,7 +815,7 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
         });
 
         await logDeviceActivity(deviceId, 'device_updated', {
-            updates: { device_name, location_id, is_active },
+            updates: { device_name, device_type, location_id, is_active },
             by: req.user.id
         });
 

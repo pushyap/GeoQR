@@ -86,12 +86,18 @@ async function initializeDatabase() {
                 id SERIAL PRIMARY KEY,
                 device_code VARCHAR(50) UNIQUE NOT NULL,
                 device_name VARCHAR(100),
+                device_type VARCHAR(50) DEFAULT 'Academic',
                 password_hash VARCHAR(255),
                 location_id INTEGER REFERENCES locations(id),
                 is_active BOOLEAN DEFAULT true,
                 last_active TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+
+        // Migration: add device_type column if missing (for existing databases)
+        await db.query(`
+            ALTER TABLE devices ADD COLUMN IF NOT EXISTS device_type VARCHAR(50) DEFAULT 'Academic'
         `);
 
         // 4. Sessions table (references users, locations)
