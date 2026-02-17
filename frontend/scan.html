@@ -1104,6 +1104,7 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- Scripts -->
+    <script src="js/student-api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="js/config.js"></script>
@@ -1380,23 +1381,34 @@
                 const token = sessionStorage.getItem('geoqr_token');
                 const API_URL = window.GeoQR?.config?.getApiUrl() || 'http://localhost:3000/api';
 
+                // Validate location was acquired
+                if (!currentLocation) {
+                    throw new Error('Location not acquired');
+                }
+
                 // Mark Attendance
                 const payload = {
-                    lat: currentLocation.latitude,
-                    lng: currentLocation.longitude
+                    latitude: currentLocation.latitude,
+                    longitude: currentLocation.longitude
                 };
 
                 if (scannedData.sid && scannedData.t) {
                     payload.qr_session_id = scannedData.sid;
                     payload.qr_token = scannedData.t;
+                } else if (scannedData.token) {
+                    // Legacy format
+                    payload.token = scannedData.token;
                 } else {
-                    // Legacy
-                    payload.token = scannedData.token || scannedData;
+                    throw new Error('Invalid QR data');
                 }
+
+                console.log('[SubmitAttendance] Payload:', payload);
 
                 const response = await axios.post(`${API_URL}/attendance/mark`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
+
+                console.log('[SubmitAttendance] Response:', response.data);
 
                 if (response.data.success) {
                     // Show success modal
@@ -1404,7 +1416,7 @@
                     document.getElementById('successLocation').textContent =
                         response.data.attendance?.location || response.data.location || 'Classroom';
                     document.getElementById('successSubject').textContent =
-                        response.data.attendance?.subject || response.data.subject || 'Class Session'; // Fix property access
+                        response.data.attendance?.subject || response.data.subject || 'Class Session';
 
                     const dist = response.data.attendance?.distance || response.data.distance;
                     document.getElementById('successDistance').textContent = dist ? `${dist}m away` : '15m away';
