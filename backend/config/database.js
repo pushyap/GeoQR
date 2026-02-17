@@ -188,39 +188,6 @@ async function initializeDatabase() {
             )
         `);
 
-        // 11. Passkey support (WebAuthn)
-        // Add passkey_enabled to users if not exists
-        await db.query(`
-            ALTER TABLE users ADD COLUMN IF NOT EXISTS passkey_enabled BOOLEAN DEFAULT false
-        `);
-
-        // Create webauthn_credentials table
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS webauthn_credentials (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                credential_id TEXT NOT NULL,
-                public_key TEXT NOT NULL,
-                counter INTEGER DEFAULT 0,
-                transports TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, credential_id)
-            )
-        `);
-
-        // 12. Verification Tickets (Passkey Phase 2)
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS verification_tickets (
-                id SERIAL PRIMARY KEY,
-                student_id INTEGER REFERENCES users(id),
-                session_id INTEGER REFERENCES sessions(id),
-                ticket_token VARCHAR(255),
-                verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                expires_at TIMESTAMP NOT NULL,
-                is_used BOOLEAN DEFAULT false
-            )
-        `);
-
         console.log('✅ Database schema initialized');
     } catch (error) {
         console.error('❌ Database initialization error:', error);
