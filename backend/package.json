@@ -37,7 +37,8 @@
         "redis": "^5.10.0",
         "resend": "^6.8.0",
         "sqlite3": "^5.1.7",
-        "uuid": "^9.0.0"
+        "uuid": "^9.0.0",
+        "@simplewebauthn/server": "^11.0.0"
     },
     "devDependencies": {
         "cross-env": "^7.0.3",

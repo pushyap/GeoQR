@@ -20,6 +20,7 @@ const facultyRoutes = require('./routes/faculty');
 const webhookRoutes = require('./routes/webhook');
 const reportRoutes = require('./routes/reports');
 const { router: realtimeRoutes } = require('./routes/realtime');
+const webauthnRoutes = require('./routes/webauthn');
 
 // Import utilities
 const { initRedis, getCacheStatus } = require('./config/redis');
@@ -70,6 +71,7 @@ app.use('/api/webhook', webhookRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/realtime', realtimeRoutes);
 app.use('/api/faculty/qr', require('./routes/faculty_qr'));
+app.use('/api/webauthn', webauthnRoutes);
 
 // Default route
 app.get('/', (req, res) => {
