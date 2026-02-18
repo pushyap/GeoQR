@@ -6,7 +6,10 @@
     "scripts": {
         "start": "node server.js",
         "dev": "node --watch server.js",
-        "seed": "node scripts/seed.js"
+        "seed": "node scripts/seed.js",
+        "test": "cross-env NODE_ENV=test jest --runInBand",
+        "migrate:run": "node scripts/migrations/run_migrations.js",
+        "migrate:check-unique": "node scripts/ensure_unique_webauthn_user.js"
     },
     "keywords": [
         "attendance",
@@ -36,5 +39,11 @@
         "resend": "^6.8.0",
         "sqlite3": "^5.1.7",
         "uuid": "^9.0.0"
+    }
+    ,
+    "devDependencies": {
+        "cross-env": "^7.0.3",
+        "jest": "^29.7.0",
+        "supertest": "^6.3.3"
     }
 }

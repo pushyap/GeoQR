@@ -360,18 +360,23 @@ router.get('/me', authenticate, (req, res) => {
 // =====================================
 router.get('/security-status', authenticate, async (req, res) => {
     try {
-        const result = await db.query('SELECT passkey_enabled FROM users WHERE id = $1', [req.user.id]);
+        const result = await db.query('SELECT passkey_enabled, role FROM users WHERE id = $1', [req.user.id]);
         const user = result.rows[0];
 
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        // Count registered passkeys
+        // Count ACTUAL registered passkeys from webauthn_credentials table
         const keys = await db.query('SELECT count(*) as count FROM webauthn_credentials WHERE user_id = $1', [req.user.id]);
         const passkeyCount = parseInt(keys.rows[0].count) || 0;
 
+        // passkey_enabled is TRUE only if user has at least 1 actual credential
+        const hasPasskey = passkeyCount > 0;
+
+        console.log(`🔑 Security status for user ${req.user.id}: role=${user.role}, db_flag=${user.passkey_enabled}, credential_count=${passkeyCount}, has_passkey=${hasPasskey}`);
+
         res.json({
-            passkey_required: true, // Hardcoded for this phase
-            passkey_enabled: user.passkey_enabled || false,
+            passkey_required: user.role === 'student', // Only students need passkeys
+            passkey_enabled: hasPasskey,
             passkey_count: passkeyCount,
             max_passkeys: 2
         });

@@ -218,7 +218,33 @@
 
                     Toast.success('Registration complete! Redirecting...');
 
-                    setTimeout(() => {
+                    // Enforce passkey setup for students — STRICT
+                    setTimeout(async () => {
+                        const user = Session.getUser();
+                        if (user && user.role === 'student') {
+                            try {
+                                const resp = await fetch(`${API_BASE_URL}/auth/security-status`, {
+                                    headers: { 'Authorization': `Bearer ${Session.getToken()}` }
+                                });
+                                if (resp.ok) {
+                                    const data = await resp.json();
+                                    if (!data.passkey_enabled) {
+                                        window.location.href = 'passkey-setup.html';
+                                        return;
+                                    }
+                                } else {
+                                    // API error — redirect to passkey setup to be safe
+                                    window.location.href = 'passkey-setup.html';
+                                    return;
+                                }
+                            } catch (e) {
+                                console.warn('Security status check failed', e);
+                                // On failure, redirect to passkey setup to be safe
+                                window.location.href = 'passkey-setup.html';
+                                return;
+                            }
+                        }
+
                         const dashboards = {
                             'student': 'dashboard.html',
                             'faculty': 'faculty-dashboard.html',

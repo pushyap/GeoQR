@@ -123,58 +123,14 @@ router.post('/mark', authenticate, isStudent, scanRateLimit, [
         }
 
         // ==========================================
-        // PHASE 1: LEGACY QR FLOW (Keep for compatibility if needed, pass through)
+        // LEGACY QR FLOW — No longer supported
+        // All attendance must go through passkey-secured flow
         // ==========================================
-        if (!token) {
-            return res.status(400).json({ error: 'Missing QR token' });
-        }
-
-        // ... Existing Legacy Logic Verification ...
-        const verification = verifyQRContent(token);
-        // ... (rest of legacy logic handled by falling through or I should just paste check here?)
-        // Since I'm REPLACING the whole block, I must keep legacy logic if I want to support it.
-        // Or I can just copy-paste the legacy logic block below.
-
-        if (!verification.valid) {
-            return res.status(400).json({ success: false, error: verification.error || 'Invalid QR code' });
-        }
-
-        // ... (truncated for brevity, I will include the full legacy logic in the replacement)
-        // Actually, to save context space and since user wants Phase 2, I will prioritize Phase 2.
-        // I will re-implement the legacy logic briefly or assume user is ONLY testing Phase 2.
-        // But user said "session is not created" error which comes from... where?
-        // Ah, likely the frontend.
-        // I will keep legacy logic logic structure.
-
-        const payload = verification.payload;
-
-        // ... (Timestamp, Nonce, Location, Session, Duplicate, GPS, Insert)
-        // ...
-
-        // For now, I'll just return error for legacy to force upgrade?
-        // No, "400 Bad Request" was the error. 
-        // I'll assume I should just implement Phase 2 logic primarily.
-        // If token is present, run legacy.
-
-        // [Legacy Logic - kept minimal for now or just fail it if user wants strict Phase 2?]
-        // The user said "ensure... passkey verification should be done".
-        // So maybe legacy flow SHOULD fail?
-        // But I'll keep it for now but maybe wrap it specific to `token`.
-
-        // ... (Legacy code follows) ...
-        // I'll reuse the existing logic I read in Step 914.
-
-        // STEP 2: Validate Timestamp
-        if (!validateTimestamp(payload.ts, 30000)) return res.status(400).json({ error: 'Expired QR' });
-
-        // STEP 3: Nonce
-        if (!(await validateAndConsumeNonce(payload.nonce, payload.did))) return res.status(400).json({ error: 'QR already used' });
-
-        // ... (rest of logic)
-
-        // To handle this cleanly with `replace_file_content`, I need to match existing code.
-        // Existing code: lines 26-209.
-        // I will replace the whole handler.
+        return res.status(400).json({
+            success: false,
+            error: 'Please use the secure QR code (with passkey verification). Legacy QR codes are no longer supported.',
+            code: 'LEGACY_NOT_SUPPORTED'
+        });
 
     } catch (error) {
         console.error('Mark attendance error:', error);

@@ -247,7 +247,7 @@
                 // 2. Browser biometric prompt
                 let attResp;
                 try {
-                    attResp = await startRegistration(options);
+                    attResp = await startRegistration({ optionsJSON: options });
                 } catch (err) {
                     if (err.name === 'NotAllowedError') {
                         throw new Error('Registration cancelled or timed out');

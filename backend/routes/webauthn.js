@@ -12,6 +12,7 @@ const {
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { hashToken } = require('../utils/token');
+const { setCache, getCache, deleteCache } = require('../config/redis');
 
 const router = express.Router();
 
@@ -47,8 +48,8 @@ function getDynamicConfig(req) {
     return { rpID: currentRPID, origin: clientOrigin };
 }
 
-// In-memory challenge store (use Redis in production)
-const challengeStore = new Map(); // userId -> challenge
+// Use cache (Redis or in-memory fallback) for ephemeral challenges
+const CHALLENGE_TTL = 300; // seconds (5 minutes)
 
 // =========================================
 // POST /api/webauthn/register/options
@@ -99,8 +100,8 @@ router.post('/register/options', authenticate, async (req, res) => {
             excludeCredentials,
         });
 
-        // Store challenge
-        challengeStore.set(userId, options.challenge);
+        // Store challenge (ephemeral)
+        await setCache(`webauthn:register:${userId}`, { challenge: options.challenge }, CHALLENGE_TTL);
 
         res.json(options);
 
@@ -120,7 +121,8 @@ router.post('/register/verify', authenticate, async (req, res) => {
         const body = req.body;
         const { rpID, origin } = getDynamicConfig(req);
 
-        const expectedChallenge = challengeStore.get(userId);
+        const stored = await getCache(`webauthn:register:${userId}`);
+        const expectedChallenge = stored?.challenge;
         if (!expectedChallenge) {
             return res.status(400).json({ error: 'Registration challenge not found or expired' });
         }
@@ -153,7 +155,7 @@ router.post('/register/verify', authenticate, async (req, res) => {
             await db.query('UPDATE users SET passkey_enabled = true WHERE id = $1', [userId]);
 
             // Clear challenge
-            challengeStore.delete(userId);
+            await deleteCache(`webauthn:register:${userId}`);
 
             res.json({ verified: true });
         } else {
@@ -165,8 +167,6 @@ router.post('/register/verify', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Failed to verify registration' });
     }
 });
-
-module.exports = router;
 
 // =========================================
 // POST /api/webauthn/auth/options
@@ -197,14 +197,13 @@ router.post('/auth/options', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Invalid or expired QR code' });
         }
 
-        // 2. Check if user has passkey
-        const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
-        if (!user.rows[0].passkey_enabled) {
+        // 2. Get user's credentials
+        const credentials = await db.query('SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = $1', [userId]);
+
+        // Check if user has actual registered passkeys
+        if (credentials.rows.length === 0) {
             return res.status(400).json({ error: 'Passkey not set up. Please register first.' });
         }
-
-        // 3. Get user's credentials
-        const credentials = await db.query('SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = $1', [userId]);
 
         const allowCredentials = credentials.rows.map(row => ({
             id: row.credential_id,
@@ -218,8 +217,8 @@ router.post('/auth/options', authenticate, async (req, res) => {
             userVerification: 'preferred',
         });
 
-        // Store active challenge
-        challengeStore.set(userId, options.challenge);
+        // Store active challenge (ephemeral)
+        await setCache(`webauthn:auth:${userId}`, { challenge: options.challenge, qr_session_id }, CHALLENGE_TTL);
 
         res.json(options);
 
@@ -243,7 +242,8 @@ router.post('/auth/verify', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'Missing QR info' });
         }
 
-        const expectedChallenge = challengeStore.get(userId);
+        const stored = await getCache(`webauthn:auth:${userId}`);
+        const expectedChallenge = stored?.challenge;
         if (!expectedChallenge) {
             return res.status(400).json({ error: 'Challenge not found or expired' });
         }
@@ -320,7 +320,7 @@ router.post('/auth/verify', authenticate, async (req, res) => {
             );
 
             // Clear challenge
-            challengeStore.delete(userId);
+            await deleteCache(`webauthn:auth:${userId}`);
 
             // ==========================================
             // ISSUE VERIFICATION TICKET
@@ -345,3 +345,5 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Failed to verify auth' });
     }
 });
+
+module.exports = router;

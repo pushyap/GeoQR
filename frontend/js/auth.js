@@ -180,6 +180,34 @@ const DashboardGuard = {
     init() {
         if (!Session.isValid()) {
             window.location.href = 'index.html';
+            return;
+        }
+
+        // If student, ensure passkey is enabled before allowing dashboard access
+        const user = Session.getUser();
+        if (user && user.role === 'student') {
+            (async () => {
+                try {
+                    const token = Session.getToken();
+                    const resp = await fetch(`${CONFIG.API_BASE_URL}/auth/security-status`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (!data.passkey_enabled) {
+                            // Force passkey setup
+                            window.location.href = 'passkey-setup.html';
+                        }
+                    } else {
+                        // On error, treat as not authenticated
+                        Session.clear();
+                        window.location.href = 'index.html';
+                    }
+                } catch (e) {
+                    console.error('Security status check failed', e);
+                    // Best-effort: allow access if service unreachable
+                }
+            })();
         }
     }
 };
