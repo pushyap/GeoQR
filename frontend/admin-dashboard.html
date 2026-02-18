@@ -408,6 +408,7 @@
                             <tr>
                                 <th>Device Code</th>
                                 <th>Name</th>
+                                <th>Type</th>
                                 <th>Location</th>
                                 <th>Last Active</th>
                                 <th>Status</th>
@@ -771,26 +772,119 @@
             <div class="modal-backdrop" onclick="AdminCore.closeModal('deviceModal')"></div>
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>Add/Edit Device</h3>
+                    <h3 id="deviceModalTitle">Add New Device</h3>
                     <button class="modal-close" onclick="AdminCore.closeModal('deviceModal')">&times;</button>
                 </div>
+
+                <!-- Device Type Selection Toggle -->
+                <div class="modal-body" id="deviceTypeSelector"
+                    style="display: flex; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); flex-direction: column;">
+                    <label style="font-size: 0.9em; font-weight: 600; color: var(--text-muted);">Choose Device
+                        Type:</label>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" class="btn device-type-btn active" data-type="session"
+                            onclick="switchDeviceType('session')" style="flex: 1;">
+                            <span style="font-weight: 600;">🎓 Session-Allocated</span>
+                            <span
+                                style="display: block; font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">For
+                                academic locations</span>
+                        </button>
+                        <button type="button" class="btn device-type-btn" data-type="common"
+                            onclick="switchDeviceType('common')" style="flex: 1;">
+                            <span style="font-weight: 600;">📍 Common Area</span>
+                            <span
+                                style="display: block; font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">Entry
+                                gate, library, etc.</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="modal-body">
-                    <form id="deviceForm" onsubmit="event.preventDefault(); saveDevice();">
+                    <!-- Session-Allocated Device Form -->
+                    <form id="deviceFormSession" onsubmit="event.preventDefault(); saveDevice();"
+                        style="display: block;">
                         <div class="form-group">
-                            <label class="form-label">Device Name</label>
-                            <input type="text" class="form-input" id="deviceName" placeholder="e.g. Science Lab Tab 1">
+                            <label class="form-label">Device Name <span style="color: red;">*</span></label>
+                            <input type="text" class="form-input" id="deviceNameSession"
+                                placeholder="e.g. Science Lab Tab 1" required>
                         </div>
+
                         <div class="form-group">
-                            <label class="form-label">Location</label>
-                            <select class="form-select" id="deviceLocation" required>
+                            <label class="form-label">Location <span style="color: red;">*</span></label>
+                            <select class="form-select" id="deviceLocationSession" required>
                                 <!-- Populated by JS -->
                             </select>
+                            <small style="color: var(--text-muted);">Select the location/classroom for this
+                                device</small>
                         </div>
-                        <div class="alert info" style="margin-top:10px; font-size:0.9em;">
-                            For new devices, you will be prompted to set a Device Code and Password.
+
+                        <!-- Fields for NEW devices only -->
+                        <div id="newDeviceFieldsSession">
+                            <div class="form-group">
+                                <label class="form-label">Device Code <span style="color: red;">*</span></label>
+                                <input type="text" class="form-input" id="deviceCodeSession" placeholder="e.g. LAB-001"
+                                    required>
+                                <small style="color: var(--text-muted);">Unique identifier for this device</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Device Password <span style="color: red;">*</span></label>
+                                <input type="password" class="form-input" id="devicePasswordSession"
+                                    placeholder="Enter a strong password" required>
+                                <small style="color: var(--text-muted);">Used for device authentication</small>
+                            </div>
+
+                            <div class="alert info" style="margin-top: 15px;">
+                                ℹ️ Save credentials securely. Required for QR code generation during sessions.
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Common Area Device Form -->
+                    <form id="deviceFormCommon" onsubmit="event.preventDefault(); saveDevice();" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Device Name <span style="color: red;">*</span></label>
+                            <input type="text" class="form-input" id="deviceNameCommon"
+                                placeholder="e.g. Entry Gate - Main" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Device Purpose <span style="color: red;">*</span></label>
+                            <select class="form-select" id="devicePurposeCommon" required>
+                                <option value="">Select Purpose</option>
+                                <option value="Entry Gate">Entry Gate</option>
+                                <option value="Library">Library</option>
+                                <option value="Canteen">Canteen</option>
+                                <option value="Parking">Parking</option>
+                                <option value="Hostel Gate">Hostel Gate</option>
+                                <option value="Security">Security Checkpoint</option>
+                            </select>
+                            <small style="color: var(--text-muted);">Purpose of this common area device</small>
+                        </div>
+
+                        <!-- Fields for NEW devices only -->
+                        <div id="newDeviceFieldsCommon">
+                            <div class="form-group">
+                                <label class="form-label">Device Code <span style="color: red;">*</span></label>
+                                <input type="text" class="form-input" id="deviceCodeCommon" placeholder="e.g. GATE-001"
+                                    required>
+                                <small style="color: var(--text-muted);">Unique identifier for this device</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Device Password <span style="color: red;">*</span></label>
+                                <input type="password" class="form-input" id="devicePasswordCommon"
+                                    placeholder="Enter a strong password" required>
+                                <small style="color: var(--text-muted);">Used for device authentication</small>
+                            </div>
+
+                            <div class="alert info" style="margin-top: 15px;">
+                                ℹ️ Save credentials securely. Used for attendance scanning at common areas.
+                            </div>
                         </div>
                     </form>
                 </div>
+
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="AdminCore.closeModal('deviceModal')">Cancel</button>
                     <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
@@ -1056,8 +1150,8 @@
                 <tr>
                     <td><code>${dev.device_code}</code></td>
                     <td>${dev.device_name}</td>
+                    <td><span style="background: var(--bg-secondary); padding: 2px 8px; border-radius: 4px; font-size: 0.9em;">${dev.device_type || 'Academic'}</span></td>
                     <td>${dev.location_name || 'Unassigned'}</td>
-                    <td><span class="reliability-badge high">100%</span></td>
                     <td>${dev.last_active ? new Date(dev.last_active).toLocaleString() : 'Never'}</td>
                     <td><span class="status-dot ${dev.is_active ? 'active' : 'inactive'}">${dev.is_active ? 'Active' : 'Inactive'}</span></td>
                     <td>
@@ -1295,45 +1389,169 @@
             }
 
             // Devices
+            let currentDeviceType = 'session'; // Track current device type view
+
+            function switchDeviceType(type) {
+                currentDeviceType = type;
+
+                // Update button states
+                document.querySelectorAll('.device-type-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-type="${type}"]`).classList.add('active');
+
+                // Toggle form visibility
+                if (type === 'session') {
+                    document.getElementById('deviceFormSession').style.display = 'block';
+                    document.getElementById('deviceFormCommon').style.display = 'none';
+                } else {
+                    document.getElementById('deviceFormSession').style.display = 'none';
+                    document.getElementById('deviceFormCommon').style.display = 'block';
+                }
+            }
+
             function editDevice(id) {
                 AdminState.editingDeviceId = id;
+                const modalTitle = document.getElementById('deviceModalTitle');
+
                 if (id) {
+                    // EDITING MODE
                     const dev = AdminState.devices.find(d => d.id === id);
                     if (dev) {
-                        document.getElementById('deviceName').value = dev.device_name;
-                        document.getElementById('deviceLocation').value = dev.location_id;
-                        // Code and password usually not editable or hidden
+                        modalTitle.textContent = 'Edit Device';
+                        const isSessionType = dev.device_type === 'Academic';
+
+                        // Switch to appropriate form type
+                        switchDeviceType(isSessionType ? 'session' : 'common');
+
+                        // Populate session form
+                        document.getElementById('deviceNameSession').value = dev.device_name;
+                        if (dev.location_id) {
+                            document.getElementById('deviceLocationSession').value = dev.location_id;
+                        }
+                        document.getElementById('newDeviceFieldsSession').style.display = 'none';
+                        document.getElementById('deviceCodeSession').removeAttribute('required');
+                        document.getElementById('devicePasswordSession').removeAttribute('required');
+
+                        // Populate common form
+                        document.getElementById('deviceNameCommon').value = dev.device_name;
+                        if (dev.device_type && dev.device_type !== 'Academic') {
+                            document.getElementById('devicePurposeCommon').value = dev.device_type;
+                        }
+                        document.getElementById('newDeviceFieldsCommon').style.display = 'none';
+                        document.getElementById('deviceCodeCommon').removeAttribute('required');
+                        document.getElementById('devicePasswordCommon').removeAttribute('required');
                     }
                     AdminCore.openModal('deviceModal');
                 } else {
-                    document.getElementById('deviceForm').reset();
+                    // NEW DEVICE MODE
+                    modalTitle.textContent = 'Add New Device';
+                    // Reset both forms
+                    document.getElementById('deviceFormSession').reset();
+                    document.getElementById('deviceFormCommon').reset();
+
+                    // Start with session type
+                    switchDeviceType('session');
+
+                    // Show code/password fields for new devices
+                    document.getElementById('newDeviceFieldsSession').style.display = 'block';
+                    document.getElementById('deviceCodeSession').setAttribute('required', 'required');
+                    document.getElementById('devicePasswordSession').setAttribute('required', 'required');
+
+                    document.getElementById('newDeviceFieldsCommon').style.display = 'block';
+                    document.getElementById('deviceCodeCommon').setAttribute('required', 'required');
+                    document.getElementById('devicePasswordCommon').setAttribute('required', 'required');
+
                     AdminCore.openModal('deviceModal');
                 }
             }
 
             async function saveDevice() {
-                const data = {
-                    device_name: document.getElementById('deviceName').value,
-                    location_id: document.getElementById('deviceLocation').value,
-                    device_code: document.getElementById('deviceCode')?.value || undefined, // Only for new
-                    password: document.getElementById('devicePassword')?.value || undefined
-                };
+                let data = {};
+
+                if (currentDeviceType === 'session') {
+                    // SESSION-ALLOCATED DEVICE
+                    const deviceName = document.getElementById('deviceNameSession').value.trim();
+                    const deviceLocation = document.getElementById('deviceLocationSession').value;
+
+                    if (!deviceName || !deviceLocation) {
+                        AdminCore.toast('Device Name and Location are required', 'warning');
+                        return;
+                    }
+
+                    data = {
+                        device_name: deviceName,
+                        device_type: 'Academic',
+                        location_id: deviceLocation
+                    };
+
+                    // For new devices, require device code and password
+                    if (!AdminState.editingDeviceId) {
+                        const deviceCode = document.getElementById('deviceCodeSession').value.trim();
+                        const devicePassword = document.getElementById('devicePasswordSession').value;
+
+                        if (!deviceCode || !devicePassword) {
+                            AdminCore.toast('Device Code and Password are required', 'warning');
+                            return;
+                        }
+
+                        if (devicePassword.length < 6) {
+                            AdminCore.toast('Password must be at least 6 characters', 'warning');
+                            return;
+                        }
+
+                        data.device_code = deviceCode;
+                        data.password = devicePassword;
+                    }
+                } else {
+                    // COMMON AREA DEVICE
+                    const deviceName = document.getElementById('deviceNameCommon').value.trim();
+                    const devicePurpose = document.getElementById('devicePurposeCommon').value;
+
+                    if (!deviceName || !devicePurpose) {
+                        AdminCore.toast('Device Name and Purpose are required', 'warning');
+                        return;
+                    }
+
+                    data = {
+                        device_name: deviceName,
+                        device_type: devicePurpose
+                    };
+
+                    // For new devices, require device code and password
+                    if (!AdminState.editingDeviceId) {
+                        const deviceCode = document.getElementById('deviceCodeCommon').value.trim();
+                        const devicePassword = document.getElementById('devicePasswordCommon').value;
+
+                        if (!deviceCode || !devicePassword) {
+                            AdminCore.toast('Device Code and Password are required', 'warning');
+                            return;
+                        }
+
+                        if (devicePassword.length < 6) {
+                            AdminCore.toast('Password must be at least 6 characters', 'warning');
+                            return;
+                        }
+
+                        data.device_code = deviceCode;
+                        data.password = devicePassword;
+                    }
+                }
 
                 try {
                     if (AdminState.editingDeviceId) {
                         await AdminAPI.updateDevice(AdminState.editingDeviceId, data);
-                        AdminCore.toast('Device updated', 'success');
+                        AdminCore.toast('Device updated successfully', 'success');
                     } else {
-                        // Need code and password for new device
-                        data.device_code = prompt("Enter Device Code (e.g. DEV-001):");
-                        data.password = prompt("Enter Device Password:");
                         await AdminAPI.createDevice(data);
-                        AdminCore.toast('Device created', 'success');
+                        AdminCore.toast('Device created successfully', 'success');
                     }
+                    AdminState.editingDeviceId = null;
                     AdminCore.closeModal('deviceModal');
                     renderDevicesTable();
                 } catch (err) {
-                    AdminCore.toast('Failed to save device', 'error');
+                    console.error('Save device error:', err);
+                    AdminCore.toast(err.response?.data?.error || 'Failed to save device', 'error');
                 }
             }
 
@@ -1586,7 +1804,7 @@
                         locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
                 }
 
-                const deviceLocSelect = document.getElementById('deviceLocation');
+                const deviceLocSelect = document.getElementById('deviceLocationSession');
                 if (deviceLocSelect) {
                     deviceLocSelect.innerHTML = '<option value="">Select Location</option>' +
                         locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');

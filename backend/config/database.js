@@ -86,12 +86,18 @@ async function initializeDatabase() {
                 id SERIAL PRIMARY KEY,
                 device_code VARCHAR(50) UNIQUE NOT NULL,
                 device_name VARCHAR(100),
+                device_type VARCHAR(50) DEFAULT 'Academic',
                 password_hash VARCHAR(255),
                 location_id INTEGER REFERENCES locations(id),
                 is_active BOOLEAN DEFAULT true,
                 last_active TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+
+        // Migration: add device_type column if missing (for existing databases)
+        await db.query(`
+            ALTER TABLE devices ADD COLUMN IF NOT EXISTS device_type VARCHAR(50) DEFAULT 'Academic'
         `);
 
         // 4. Sessions table (references users, locations)
@@ -185,39 +191,6 @@ async function initializeDatabase() {
                 key VARCHAR(50) PRIMARY KEY,
                 value TEXT,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // 11. Passkey support (WebAuthn)
-        // Add passkey_enabled to users if not exists
-        await db.query(`
-            ALTER TABLE users ADD COLUMN IF NOT EXISTS passkey_enabled BOOLEAN DEFAULT false
-        `);
-
-        // Create webauthn_credentials table
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS webauthn_credentials (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                credential_id TEXT NOT NULL,
-                public_key TEXT NOT NULL,
-                counter INTEGER DEFAULT 0,
-                transports TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, credential_id)
-            )
-        `);
-
-        // 12. Verification Tickets (Passkey Phase 2)
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS verification_tickets (
-                id SERIAL PRIMARY KEY,
-                student_id INTEGER REFERENCES users(id),
-                session_id INTEGER REFERENCES sessions(id),
-                ticket_token VARCHAR(255),
-                verified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                expires_at TIMESTAMP NOT NULL,
-                is_used BOOLEAN DEFAULT false
             )
         `);
 
