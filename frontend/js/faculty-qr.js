@@ -12,7 +12,7 @@ let qrCodeObj = null;
 async function startLiveQR(sessionId) {
     try {
         // 1. Start QR Session
-        const token = sessionStorage.getItem('authToken');
+        const token = sessionStorage.getItem('geoqr_token');
         const response = await fetch(`${API_BASE_URL}/faculty/qr/start`, {
             method: 'POST',
             headers: {
@@ -74,7 +74,7 @@ async function startLiveQR(sessionId) {
 
 async function refreshQR(sessionId) {
     try {
-        const token = sessionStorage.getItem('authToken');
+        const token = sessionStorage.getItem('geoqr_token');
         const response = await fetch(`${API_BASE_URL}/faculty/qr/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -147,7 +147,7 @@ async function stopLiveQR() {
 
     if (currentQRSessionId) {
         try {
-            const token = sessionStorage.getItem('authToken');
+            const token = sessionStorage.getItem('geoqr_token');
             await fetch(`${API_BASE_URL}/faculty/qr/stop`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
