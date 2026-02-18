@@ -275,36 +275,41 @@ router.post('/auth/verify', authenticate, async (req, res) => {
         const credential = credentialResult.rows[0];
         // credential.public_key is stored as base64 string
 
-        // Debugging for Render Error
+        // Debugging
         console.log('[AuthVerify] Credential from DB:', {
             id: credential.id,
             credential_id: credential.credential_id,
             counter: credential.counter,
             counterType: typeof credential.counter,
-            transports: credential.transports
+            transports: credential.transports,
+            has_public_key: !!credential.public_key
         });
 
         // Convert base64 public key back to Uint8Array
         const publicKey = new Uint8Array(Buffer.from(credential.public_key, 'base64'));
 
-        // Convert credential ID to Uint8Array (base64url)
-        const credentialIDBuffer = new Uint8Array(Buffer.from(credential.credential_id, 'base64url'));
-
-        // Prepare authenticator object
         // Ensure counter is a number (Postgres BIGINT comes as string sometimes)
-        const storedCounter = Number(credential.counter);
+        const storedCounter = Number(credential.counter) || 0;
 
-        console.log(`Verify: Assertion from ${origin} (RPID: ${rpID})`);
+        console.log(`[AuthVerify] Assertion from ${origin} (RPID: ${rpID})`);
 
+        // ==========================================
+        // SimpleWebAuthn v11+ API:
+        // Uses 'credential' (not 'authenticator') with fields:
+        //   id: Base64URLString (NOT buffer)
+        //   publicKey: Uint8Array
+        //   counter: number
+        //   transports: string[] (optional)
+        // ==========================================
         const verification = await verifyAuthenticationResponse({
             response: assertion,
             expectedChallenge,
-            expectedOrigin: origin, // Allow dynamic origin
+            expectedOrigin: origin,
             expectedRPID: rpID,
-            authenticator: {
-                credentialID: credentialIDBuffer,
-                credentialPublicKey: publicKey,
-                counter: storedCounter,
+            credential: {
+                id: credential.credential_id,          // base64url string as stored in DB
+                publicKey: publicKey,                   // Uint8Array
+                counter: storedCounter,                 // number
                 transports: credential.transports ? JSON.parse(credential.transports) : undefined,
             },
         });
@@ -326,7 +331,7 @@ router.post('/auth/verify', authenticate, async (req, res) => {
             // ISSUE VERIFICATION TICKET
             // ==========================================
             const ticketToken = crypto.randomBytes(16).toString('hex');
-            // Expires in 10-20 seconds (short lived)
+            // Expires in 20 seconds (short lived)
             const expiresAt = new Date(Date.now() + 20000);
 
             await db.query(
@@ -337,12 +342,14 @@ router.post('/auth/verify', authenticate, async (req, res) => {
 
             res.json({ success: true, message: 'Verified', ticket_token: ticketToken });
         } else {
-            res.status(400).json({ verified: false, error: 'Verification failed' });
+            res.status(400).json({ verified: false, error: 'Passkey verification failed' });
         }
 
     } catch (error) {
         console.error('Auth verification error:', error);
-        res.status(500).json({ error: 'Failed to verify auth' });
+        // Return specific error info for debugging
+        const errMsg = error.message || 'Failed to verify auth';
+        res.status(500).json({ error: errMsg });
     }
 });
 
