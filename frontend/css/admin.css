@@ -48,6 +48,8 @@
     overflow: hidden;
     transform: scale(0.9) translateY(20px);
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    flex-direction: column;
 }
 
 .modal.active .modal-content {
@@ -90,7 +92,8 @@
 .modal-body {
     padding: var(--space-5);
     overflow-y: auto;
-    max-height: 60vh;
+    flex: 1;
+    min-height: 0;
 }
 
 .modal-footer {
@@ -216,6 +219,94 @@
 
 .toggle-switch input:focus+.toggle-slider {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* ============================
+   Device Type Selector Improved
+   ============================ */
+
+#deviceTypeSelector {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    margin-bottom: var(--space-3);
+
+    /* Hide scrollbar - all browsers */
+    -ms-overflow-style: none;      /* IE & Edge */
+    scrollbar-width: none;         /* Firefox */
+}
+
+#deviceTypeSelector::-webkit-scrollbar {
+    display: none;                 /* Chrome, Safari */
+}
+
+#deviceTypeSelector > div {
+    display: flex;
+    gap: 12px;
+    width: max-content;
+}
+
+/* Device Buttons */
+.device-type-btn {
+    flex: 0 0 auto;
+    min-width: 140px;
+    padding: 14px 16px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+    justify-content: center;
+
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+/* Hover Effect */
+.device-type-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-500);
+    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.25);
+}
+
+/* Active State */
+.device-type-btn.active {
+    background: linear-gradient(
+        135deg,
+        rgba(79, 46, 229, 0.95),
+        rgba(99, 102, 241, 0.95)
+    );
+    border-color: var(--primary-500);
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(99, 102, 241, 0.25);
+}
+
+/* Optional Icon inside button */
+.device-type-btn .device-icon {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #deviceTypeSelector {
+        overflow-x: auto;
+    }
+
+    .device-type-btn {
+        min-width: 120px;
+        padding: 12px;
+    }
 }
 
 /* ============================
@@ -1957,4 +2048,25 @@
         opacity: 0;
         transform: translateX(20px);
     }
+}
+
+/* ============================
+   Add Device Button - Devices Tab
+   ============================ */
+#addDeviceBtn {
+    cursor: pointer;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 150px;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+#addDeviceBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(79, 70, 229, 0.3);
 }
