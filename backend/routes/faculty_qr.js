@@ -9,23 +9,22 @@ const { authenticate } = require('../middleware/auth');
 const { isFaculty } = require('../middleware/roleCheck');
 const { hashToken } = require('../utils/token');
 
-const router = express.Router();
+const { getSetting } = require('../utils/settings');
 
-const QR_EXPIRY_SECONDS = 45;
+const router = express.Router();
 
 /**
  * Helper: Generate and store a new QR token for a session
+ * Reads qr_expiry from system_settings DB table
  */
 async function generateQRToken(sessionId, deviceId = null) {
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    // In a real high-security app, you might hash this. 
-    // For this phase, storing raw for simplicity as per requirements (or hash if verified by device).
-    // The requirement says "qr_token" matches. We'll store it as is or hash? 
-    // config/database.js has token_hash AND raw_token columns.
-    // We'll store raw_token for now to match the user's flow where student sends it back.
+    // Get QR expiry from DB settings (defaults to 60 if not set)
+    const qrExpirySeconds = parseInt(await getSetting('qr_expiry')) || 60;
 
-    // Calculate expiry
-    const expiresAt = new Date(Date.now() + QR_EXPIRY_SECONDS * 1000);
+    const rawToken = crypto.randomBytes(32).toString('hex');
+
+    // Calculate expiry using DB setting
+    const expiresAt = new Date(Date.now() + qrExpirySeconds * 1000);
 
     // Generate hash
     const tokenHash = hashToken(rawToken);
@@ -39,7 +38,7 @@ async function generateQRToken(sessionId, deviceId = null) {
 
     return {
         qr_token: rawToken,
-        expires_in: QR_EXPIRY_SECONDS
+        expires_in: qrExpirySeconds
     };
 }
 

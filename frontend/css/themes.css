@@ -496,6 +496,7 @@ html.theme-transitioning *::after {
     box-shadow: none !important;
 }
 
+
 [data-theme="soft-light-pro"] .glass-card:hover,
 [data-theme="soft-light-pro"] .card:hover,
 [data-theme="soft-light-pro"] .stat-card:hover,
@@ -783,6 +784,11 @@ html.theme-transitioning *::after {
     backdrop-filter: none !important;
     overflow: hidden !important;
     /* Ensures contents don't bleed out */
+}
+
+/* Allow role-badge to be visible above the role-card */
+[data-theme="soft-light-pro"] .role-card {
+    overflow: visible !important;
 }
 
 /* Hover effects for interactive cards */
@@ -1488,12 +1494,102 @@ html.theme-transitioning *::after {
     border-radius: 24px !important;
 }
 
+[data-theme="soft-light-pro"] .modal-backdrop {
+    background: rgba(15, 23, 42, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
 [data-theme="soft-light-pro"] .modal-header {
     border-bottom: 1px solid rgba(99, 102, 241, 0.1) !important;
+    background: #fefefe !important;
+}
+
+[data-theme="soft-light-pro"] .modal-header h3 {
+    color: #0f172a !important;
+}
+
+[data-theme="soft-light-pro"] .modal-close {
+    color: #94a3b8 !important;
+}
+
+[data-theme="soft-light-pro"] .modal-close:hover {
+    background: rgba(239, 68, 68, 0.08) !important;
+    color: #ef4444 !important;
+}
+
+[data-theme="soft-light-pro"] .modal-body {
+    background: #ffffff !important;
 }
 
 [data-theme="soft-light-pro"] .modal-footer {
     border-top: 1px solid rgba(99, 102, 241, 0.1) !important;
+    background: #f8fafc !important;
+}
+
+/* Modal form elements */
+[data-theme="soft-light-pro"] .modal .form-label {
+    color: #1e293b !important;
+    font-weight: 500 !important;
+}
+
+[data-theme="soft-light-pro"] .modal .form-input,
+[data-theme="soft-light-pro"] .modal .form-select,
+[data-theme="soft-light-pro"] .modal .form-textarea {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+    border-radius: 10px !important;
+}
+
+[data-theme="soft-light-pro"] .modal .form-input:focus,
+[data-theme="soft-light-pro"] .modal .form-select:focus,
+[data-theme="soft-light-pro"] .modal .form-textarea:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+    background: #ffffff !important;
+}
+
+[data-theme="soft-light-pro"] .modal .form-input::placeholder {
+    color: #94a3b8 !important;
+}
+
+[data-theme="soft-light-pro"] .modal select option {
+    background: #ffffff !important;
+    color: #1e293b !important;
+}
+
+[data-theme="soft-light-pro"] .modal small,
+[data-theme="soft-light-pro"] .modal .form-hint {
+    color: #64748b !important;
+}
+
+/* Device type selector buttons in device modal */
+[data-theme="soft-light-pro"] .device-type-btn {
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #475569 !important;
+}
+
+[data-theme="soft-light-pro"] .device-type-btn:hover {
+    background: #e2e8f0 !important;
+    border-color: #6366f1 !important;
+    color: #4f46e5 !important;
+}
+
+[data-theme="soft-light-pro"] .device-type-btn.active {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
+}
+
+/* Device type selector container */
+[data-theme="soft-light-pro"] #deviceTypeSelector {
+    border-bottom-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+[data-theme="soft-light-pro"] #deviceTypeSelector label {
+    color: #475569 !important;
 }
 
 /* Button enhancements */

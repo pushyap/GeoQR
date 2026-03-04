@@ -11,7 +11,8 @@ const { initDB, initializeDatabase } = require('./config/database');
 // Import routes
 const authRoutes = require('./routes/auth');
 const locationRoutes = require('./routes/locations');
-const deviceRoutes = require('./routes/devices');
+const devicesRouter = require('./routes/devices');
+const reportsFacultyRouter = require('./routes/reports_faculty');
 const attendanceRoutes = require('./routes/attendance');
 const sessionRoutes = require('./routes/sessions');
 const adminRoutes = require('./routes/admin');
@@ -61,7 +62,8 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/locations', locationRoutes);
-app.use('/api/devices', deviceRoutes);
+app.use('/api/devices', devicesRouter);
+app.use('/api/faculty/report', reportsFacultyRouter);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/admin', adminRoutes);

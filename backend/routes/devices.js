@@ -26,6 +26,7 @@ const {
     cleanupOldNonces
 } = require('../utils/security');
 const { hashToken } = require('../utils/token');
+const { getSetting } = require('../utils/settings');
 
 const router = express.Router();
 
@@ -388,7 +389,7 @@ router.get('/qr', authenticateDevice, qrGenerationRateLimit, async (req, res) =>
         const session = sessionResult.rows[0];
 
         // Generate signed QR payload
-        const expirySeconds = parseInt(process.env.QR_TOKEN_EXPIRY_SECONDS) || 10;
+        const expirySeconds = parseInt(await getSetting('qr_expiry')) || 60;
         const qrData = generateSignedQRPayload({
             sessionId: session?.id || null,
             deviceId: device.id,
@@ -645,7 +646,7 @@ router.post('/token', [
         const session = sessionResult.rows[0];
 
         // Generate signed QR
-        const expirySeconds = parseInt(process.env.QR_TOKEN_EXPIRY_SECONDS) || 20;
+        const expirySeconds = parseInt(await getSetting('qr_expiry')) || 60;
         const qrData = generateSignedQRPayload({
             sessionId: session?.id || null,
             deviceId: device.id,

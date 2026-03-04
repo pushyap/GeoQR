@@ -11,6 +11,7 @@ const { body, validationResult } = require('express-validator');
 const { db } = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { sendEmail } = require('../utils/mailer');
+const { getSetting } = require('../utils/settings');
 
 const router = express.Router();
 require('dotenv').config();
@@ -78,8 +79,34 @@ router.post('/login', [
         }
 
         // ===============================
-        // ALL ROLES → EMAIL OTP REQUIRED
+        // CHECK IF OTP IS ENABLED (from DB settings)
         // ===============================
+        const otpEnabled = await getSetting('enable_otp');
+
+        if (otpEnabled === 'false') {
+            // OTP DISABLED → Direct login
+            const token = jwt.sign(
+                { userId: user.id, role: user.role },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            console.log(`✅ Direct login (OTP disabled) for ${user.email} (Role: ${user.role})`);
+
+            return res.json({
+                success: true,
+                token,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    studentId: user.student_id
+                }
+            });
+        }
+
+        // OTP ENABLED → Send OTP email
         const otp = generateOtp();
         const tempToken = crypto.randomUUID();
 

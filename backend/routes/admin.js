@@ -10,6 +10,7 @@ const { authenticate } = require('../middleware/auth');
 const { isAdmin } = require('../middleware/roleCheck');
 const { logDeviceActivity } = require('../utils/security');
 const { generateAttendancePDF } = require('../utils/pdfGenerator');
+const { getSystemSettings, getSetting } = require('../utils/settings');
 
 const router = express.Router();
 
@@ -467,6 +468,7 @@ router.get('/suspicious', authenticate, isAdmin, async (req, res) => {
         `);
 
         // 3. GPS anomaly detection (large distance variations)
+        const maxDist = parseInt(await getSetting('max_distance')) || 50;
         const gpsAnomalyResult = await db.query(`
             SELECT 
                 u.name as student_name, u.student_id,
@@ -476,11 +478,11 @@ router.get('/suspicious', authenticate, isAdmin, async (req, res) => {
             FROM attendance_logs al
             JOIN users u ON al.student_id = u.id
             JOIN locations l ON al.location_id = l.id
-            WHERE al.distance_from_device > 40
+            WHERE al.distance_from_device > $1
             AND al.marked_at >= NOW() - INTERVAL '24 hours'
             ORDER BY al.distance_from_device DESC
             LIMIT 20
-        `);
+        `, [maxDist]);
 
         // 4. Failed login attempts
         const failedLoginsResult = await db.query(`
@@ -818,7 +820,7 @@ router.get('/reports/pdf', authenticate, isAdmin, async (req, res) => {
         const { date, locationId, studentId } = req.query;
 
         let query = `
-            SELECT a.id, a.status, a.marked_at as timestamp, a.created_at,
+            SELECT a.id, a.status, a.marked_at as timestamp,
             u.name as student_name, u.student_id as student_code, u.email,
             l.name as location_name,
             s.subject, s.faculty_id
@@ -855,7 +857,7 @@ router.get('/reports/pdf', authenticate, isAdmin, async (req, res) => {
         const result = await db.query(query, params);
 
         // Generate PDF
-        generateAttendancePDF(res, result.rows, { date, locationId, studentId });
+        await generateAttendancePDF(res, result.rows, { date, locationId, studentId });
 
         // Log activity (fire and forget)
         logDeviceActivity(null, 'report_generated', {
@@ -874,35 +876,27 @@ router.get('/reports/pdf', authenticate, isAdmin, async (req, res) => {
 
 /**
  * GET /api/admin/settings
- * Get system settings (stored in a settings table or defaults)
+ * Get system settings from DB with proper defaults
  */
 router.get('/settings', authenticate, isAdmin, async (req, res) => {
     try {
-        // Check if settings table exists
-        const settingsResult = await db.query(`
-            SELECT key, value FROM system_settings
-            `).catch(() => ({ rows: [] }));
+        const settings = await getSystemSettings();
 
-        const settings = {};
-        settingsResult.rows.forEach(row => {
-            settings[row.key] = row.value;
-        });
-
-        // Default settings
-        const defaults = {
-            qrExpiry: settings.qr_expiry || '15',
-            maxDistance: settings.max_distance || '100',
-            lateThreshold: settings.late_threshold || '10',
-            sessionTimeout: settings.session_timeout || '120',
-            allowMultipleScans: settings.allow_multiple_scans || 'false',
-            requireLocationVerification: settings.require_location_verification || 'true',
-            systemName: settings.system_name || 'GeoQR Attendance',
-            timezone: settings.timezone || 'Asia/Kolkata'
-        };
-
+        // Return camelCase keys for the frontend
         res.json({
             success: true,
-            settings: defaults
+            settings: {
+                qrExpiry: settings.qr_expiry,
+                maxDistance: settings.max_distance,
+                gpsRadius: settings.max_distance,
+                lateThreshold: settings.late_threshold,
+                sessionTimeout: settings.session_timeout,
+                enableGpsValidation: settings.enable_gps_validation,
+                enableOtp: settings.enable_otp,
+                allowMultipleScans: settings.allow_multiple_scans,
+                systemName: settings.system_name,
+                timezone: settings.timezone
+            }
         });
 
     } catch (error) {
@@ -916,22 +910,35 @@ router.get('/settings', authenticate, isAdmin, async (req, res) => {
 
 /**
  * PUT /api/admin/settings
- * Update system settings
+ * Update system settings — accepts both camelCase and snake_case keys
  */
 router.put('/settings', authenticate, isAdmin, async (req, res) => {
-    const settings = req.body;
+    const rawSettings = req.body;
+
+    // Map camelCase frontend keys to snake_case DB keys
+    const keyMap = {
+        qrExpiry: 'qr_expiry',
+        maxDistance: 'max_distance',
+        gpsRadius: 'max_distance',
+        lateThreshold: 'late_threshold',
+        sessionTimeout: 'session_timeout',
+        enableGpsValidation: 'enable_gps_validation',
+        enableOtp: 'enable_otp',
+        allowMultipleScans: 'allow_multiple_scans',
+        systemName: 'system_name',
+        timezone: 'timezone'
+    };
 
     try {
-        // Upsert each setting
-        for (const [key, value] of Object.entries(settings)) {
+        // Normalize keys to snake_case and upsert each setting
+        for (const [key, value] of Object.entries(rawSettings)) {
+            const dbKey = keyMap[key] || key; // Use mapped key or original if already snake_case
             await db.query(`
                 INSERT INTO system_settings(key, value, updated_at)
-        VALUES($1, $2, CURRENT_TIMESTAMP)
+                VALUES($1, $2, CURRENT_TIMESTAMP)
                 ON CONFLICT(key) 
                 DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP
-            `, [key, String(value)]).catch(() => {
-                // Table might not exist, that's ok
-            });
+            `, [dbKey, String(value)]);
         }
 
         res.json({
@@ -940,7 +947,7 @@ router.put('/settings', authenticate, isAdmin, async (req, res) => {
         });
 
         await logDeviceActivity(null, 'settings_updated', {
-            updates: settings,
+            updates: rawSettings,
             by: req.user.id
         });
 

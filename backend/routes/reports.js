@@ -227,7 +227,7 @@ router.get('/session/:sessionId/pdf', authenticate, isFaculty, async (req, res) 
                     r.student_name || 'Unknown',
                     r.student_code || '--',
                     r.email || '--',
-                    r.status.toUpperCase(),
+                    (r.status || 'N/A').toUpperCase(),
                     new Date(r.marked_at).toLocaleTimeString('en-IN', {
                         hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
                     }),
@@ -235,7 +235,7 @@ router.get('/session/:sessionId/pdf', authenticate, isFaculty, async (req, res) 
                 ])
             };
 
-            doc.table(table, {
+            await doc.table(table, {
                 prepareHeader: () => doc.font('Helvetica-Bold').fontSize(9),
                 prepareRow: () => doc.font('Helvetica').fontSize(9)
             });

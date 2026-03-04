@@ -155,16 +155,45 @@ router.put('/:id', authenticate, isAdmin, async (req, res) => {
 router.delete('/:id', authenticate, isAdmin, async (req, res) => {
     const locationId = req.params.id;
     try {
-        // 1. Delete associated data to handle foreign keys
-        // Delete tokens and sessions first
+        // 1. Find all session IDs at this location (needed for cascading FK cleanup)
+        const sessionResult = await db.query(
+            'SELECT id FROM sessions WHERE location_id = $1', [locationId]
+        );
+        const sessionIds = sessionResult.rows.map(r => r.id);
+
+        // 2. Delete qr_tokens referencing this location OR its sessions
         await db.query('DELETE FROM qr_tokens WHERE location_id = $1', [locationId]);
+        if (sessionIds.length > 0) {
+            await db.query(
+                `DELETE FROM qr_tokens WHERE session_id = ANY($1::int[])`,
+                [sessionIds]
+            );
+        }
+
+        // 3. Delete attendance_logs referencing this location OR its sessions
         await db.query('DELETE FROM attendance_logs WHERE location_id = $1', [locationId]);
+        if (sessionIds.length > 0) {
+            await db.query(
+                `DELETE FROM attendance_logs WHERE session_id = ANY($1::int[])`,
+                [sessionIds]
+            );
+        }
+
+        // 4. Delete verification_tickets referencing sessions at this location
+        if (sessionIds.length > 0) {
+            await db.query(
+                `DELETE FROM verification_tickets WHERE session_id = ANY($1::int[])`,
+                [sessionIds]
+            );
+        }
+
+        // 5. Delete sessions at this location
         await db.query('DELETE FROM sessions WHERE location_id = $1', [locationId]);
 
-        // 2. Clear location from devices before deleting location
+        // 5. Clear location from devices
         await db.query('UPDATE devices SET location_id = NULL WHERE location_id = $1', [locationId]);
 
-        // 3. Delete the location
+        // 6. Delete the location itself
         const result = await db.query(
             'DELETE FROM locations WHERE id = $1 RETURNING id, name',
             [locationId]

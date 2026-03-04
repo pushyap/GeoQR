@@ -471,17 +471,34 @@
                         📊 Generate Session Report
                     </h3>
 
-                    <!-- Session Select -->
-                    <div class="table-container" style="padding: var(--space-5); margin-bottom: var(--space-4);">
-                        <label class="form-label"
-                            style="margin-bottom: var(--space-2); display: block; font-weight: 600;">
-                            Select Session
-                        </label>
-                        <select class="form-select" id="reportSessionSelect"
-                            style="width: 100%; padding: 12px 14px; font-size: 0.95rem;"
-                            onchange="onReportSessionSelected()">
-                            <option value="">— Choose a session —</option>
-                        </select>
+                    <!-- Filtering Section -->
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-4);">
+                        <!-- Date Select -->
+                        <div class="table-container" style="padding: var(--space-5);">
+                            <label class="form-label"
+                                style="margin-bottom: var(--space-2); display: block; font-weight: 600;">
+                                📅 Select Date
+                            </label>
+                            <select class="form-select" id="reportDateSelect"
+                                style="width: 100%; padding: 12px 14px; font-size: 0.95rem;"
+                                onchange="onReportDateSelected()">
+                                <option value="">— Choose a date —</option>
+                            </select>
+                        </div>
+
+                        <!-- Session Select -->
+                        <div class="table-container" style="padding: var(--space-5);">
+                            <label class="form-label"
+                                style="margin-bottom: var(--space-2); display: block; font-weight: 600;">
+                                📚 Select Session
+                            </label>
+                            <select class="form-select" id="reportSessionSelect"
+                                style="width: 100%; padding: 12px 14px; font-size: 0.95rem;"
+                                onchange="onReportSessionSelected()" disabled>
+                                <option value="">— Choose a session —</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Session Preview Panel -->
@@ -1560,39 +1577,79 @@
         // ========================================
         // Reports — New Session-Scoped Logic
         // ========================================
+        // ========================================
+        // Reports — New Dynamic Database-Driven Logic
+        // ========================================
         let reportSessionsCache = [];
         let currentReportData = null;
 
-        async function loadReportSessions() {
-            const select = document.getElementById('reportSessionSelect');
-            if (!select) return;
+        async function loadReportDates() {
+            const dateSelect = document.getElementById('reportDateSelect');
+            if (!dateSelect) return;
 
             try {
-                const response = await axios.get(`${API_BASE}/api/faculty/sessions`, {
+                const response = await axios.get(`${API_BASE}/api/faculty/report/dates`, {
+                    headers: { Authorization: `Bearer ${Session.getToken()}` }
+                });
+
+                const dates = response.data.dates || [];
+                dateSelect.innerHTML = '<option value="">— Choose a date —</option>';
+
+                if (dates.length === 0) {
+                    dateSelect.innerHTML += '<option value="" disabled>No sessions available yet.</option>';
+                    return;
+                }
+
+                dates.forEach(date => {
+                    const opt = document.createElement('option');
+                    opt.value = date;
+
+                    // Simple manual format to avoid timezone shifts: YYYY-MM-DD -> DD MMM YYYY
+                    const parts = date.split('-');
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const displayDate = `${parts[2]} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+
+                    opt.textContent = displayDate;
+                    dateSelect.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Failed to load report dates:', e);
+                AdminCore.toast('Failed to load available dates', 'error');
+            }
+        }
+
+        async function onReportDateSelected() {
+            const dateSelect = document.getElementById('reportDateSelect');
+            const sessionSelect = document.getElementById('reportSessionSelect');
+            const date = dateSelect.value;
+
+            // Reset UI
+            sessionSelect.innerHTML = '<option value="">All Sessions</option>';
+            sessionSelect.disabled = !date;
+            document.getElementById('sessionPreviewPanel').style.display = 'none';
+            document.getElementById('reportOutputSection').style.display = 'none';
+            document.getElementById('reportEmptyState').style.display = 'none';
+            document.getElementById('generateReportBtn').disabled = !date;
+
+            if (!date) return;
+
+            try {
+                const response = await axios.get(`${API_BASE}/api/faculty/report/sessions?date=${date}`, {
                     headers: { Authorization: `Bearer ${Session.getToken()}` }
                 });
 
                 const sessions = response.data.sessions || [];
                 reportSessionsCache = sessions;
 
-                select.innerHTML = '<option value="">— Choose a session —</option>';
                 sessions.forEach(s => {
-                    const date = new Date(s.start_time).toLocaleDateString('en-IN', {
-                        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
-                    });
-                    const time = new Date(s.start_time).toLocaleTimeString('en-IN', {
-                        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
-                    });
-                    const statusIcon = s.status === 'live' ? '🟢' : s.status === 'upcoming' ? '🕐' : '✅';
-                    const label = `${s.subject} • ${date} • ${time} • ${s.location_name} ${statusIcon}`;
                     const opt = document.createElement('option');
                     opt.value = s.session_id;
-                    opt.textContent = label;
-                    select.appendChild(opt);
+                    opt.textContent = `${s.subject} — ${s.start_time} — ${s.location}`;
+                    sessionSelect.appendChild(opt);
                 });
             } catch (e) {
-                console.error('Failed to load sessions for reports:', e);
-                AdminCore.toast('Failed to load sessions', 'error');
+                console.error('Failed to load sessions for date:', e);
+                AdminCore.toast('Failed to load sessions for selected date', 'error');
             }
         }
 
@@ -1609,57 +1666,34 @@
             if (empty) empty.style.display = 'none';
             currentReportData = null;
 
-            if (!sessionId) {
+            if (!sessionId || sessionId === '') {
                 preview.style.display = 'none';
-                btn.disabled = true;
                 return;
             }
 
             const session = reportSessionsCache.find(s => String(s.session_id) === String(sessionId));
             if (!session) {
                 preview.style.display = 'none';
-                btn.disabled = true;
                 return;
             }
 
             // Show preview
             preview.style.display = 'block';
-            preview.style.marginBottom = 'var(--space-4)';
-
-            const dateStr = new Date(session.start_time).toLocaleDateString('en-IN', {
-                weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
-            });
-            const startTime = new Date(session.start_time).toLocaleTimeString('en-IN', {
-                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
-            });
-            const endTime = session.end_time ? new Date(session.end_time).toLocaleTimeString('en-IN', {
-                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'
-            }) : 'N/A';
-
             document.getElementById('previewSubject').textContent = session.subject;
-            document.getElementById('previewDate').textContent = dateStr;
-            document.getElementById('previewTime').textContent = `${startTime} – ${endTime}`;
-            document.getElementById('previewLocation').textContent = session.location_name;
-            document.getElementById('previewExpected').textContent = session.expected_students;
+            document.getElementById('previewDate').textContent = document.getElementById('reportDateSelect').value;
+            document.getElementById('previewTime').textContent = session.start_time;
+            document.getElementById('previewLocation').textContent = session.location;
+            document.getElementById('previewExpected').textContent = '—';
 
-            // Status badge
-            const badge = document.getElementById('sessionStatusBadge');
-            const statusMap = {
-                'live': { text: '🟢 Live', cls: 'success' },
-                'upcoming': { text: '🕐 Upcoming', cls: 'warning' },
-                'completed': { text: '✅ Completed', cls: '' }
-            };
-            const st = statusMap[session.status] || statusMap['completed'];
-            badge.textContent = st.text;
-            badge.className = `status-badge ${st.cls}`;
-
-            btn.disabled = false;
+            document.getElementById('sessionStatusBadge').style.display = 'none';
         }
 
         async function generateSessionReport() {
+            const date = document.getElementById('reportDateSelect').value;
             const sessionId = document.getElementById('reportSessionSelect').value;
-            if (!sessionId) {
-                AdminCore.toast('Please select a session first', 'warning');
+
+            if (!date) {
+                AdminCore.toast('Please select a date first', 'warning');
                 return;
             }
 
@@ -1675,7 +1709,10 @@
             iconEl.style.display = 'none';
 
             try {
-                const response = await axios.get(`${API_BASE}/api/reports/session/${sessionId}`, {
+                const response = await axios.post(`${API_BASE}/api/faculty/report/generate`, {
+                    date,
+                    session_id: sessionId || 'all'
+                }, {
                     headers: { Authorization: `Bearer ${Session.getToken()}` }
                 });
 
@@ -1685,25 +1722,22 @@
                 if (!data.records || data.records.length === 0) {
                     output.style.display = 'none';
                     empty.style.display = 'block';
-                    AdminCore.toast('No attendance records for this session', 'info');
+                    AdminCore.toast('No attendance records found', 'info');
                 } else {
                     empty.style.display = 'none';
                     output.style.display = 'block';
 
-                    document.getElementById('rptTotalStudents').textContent = data.summary.total_students;
+                    document.getElementById('rptTotalStudents').textContent = data.summary.expected_students || data.records.length;
                     document.getElementById('rptPresent').textContent = data.summary.present;
                     document.getElementById('rptLate').textContent = data.summary.late;
                     document.getElementById('rptAbsent').textContent = data.summary.absent;
-                    document.getElementById('rptRate').textContent = data.summary.attendance_rate + '%';
+                    document.getElementById('rptRate').textContent = (data.summary.attendance_rate || 0) + '%';
 
-                    AdminCore.toast(`Report generated: ${data.records.length} records`, 'success');
+                    AdminCore.toast(`Report generated successfully`, 'success');
                 }
             } catch (e) {
                 console.error('Report generation error:', e);
-                const msg = e.response?.data?.message || 'Failed to generate report';
-                AdminCore.toast(msg, 'error');
-                output.style.display = 'none';
-                empty.style.display = 'none';
+                AdminCore.toast(e.response?.data?.message || 'Failed to generate report', 'error');
             } finally {
                 textEl.textContent = 'Generate Report';
                 iconEl.style.display = '';
@@ -1712,10 +1746,14 @@
         }
 
         function downloadReportPDF() {
+            const date = document.getElementById('reportDateSelect').value;
             const sessionId = document.getElementById('reportSessionSelect').value;
-            if (!sessionId) { AdminCore.toast('No session selected', 'warning'); return; }
+            if (!date) return;
+
             AdminCore.toast('Generating PDF…', 'info');
-            fetch(`${API_BASE}/api/reports/session/${sessionId}/pdf`, {
+            const url = `${API_BASE}/api/faculty/report/pdf?date=${date}&session_id=${sessionId || 'all'}`;
+
+            fetch(url, {
                 headers: { Authorization: `Bearer ${Session.getToken()}` }
             }).then(res => {
                 if (!res.ok) throw new Error('PDF download failed');
@@ -1723,28 +1761,41 @@
             }).then(blob => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url; a.download = `attendance_report_${sessionId}.pdf`;
-                a.click(); URL.revokeObjectURL(url);
+                a.href = url;
+                a.download = `attendance_report_${date}_${sessionId || 'all'}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
                 AdminCore.toast('PDF downloaded', 'success');
-            }).catch(e => { console.error(e); AdminCore.toast('Failed to download PDF', 'error'); });
+            }).catch(e => {
+                console.error(e);
+                AdminCore.toast('Failed to download PDF', 'error');
+            });
         }
 
         function downloadReportCSV() {
-            const sessionId = document.getElementById('reportSessionSelect').value;
-            if (!sessionId) { AdminCore.toast('No session selected', 'warning'); return; }
-            AdminCore.toast('Generating CSV…', 'info');
-            fetch(`${API_BASE}/api/reports/session/${sessionId}/csv`, {
-                headers: { Authorization: `Bearer ${Session.getToken()}` }
-            }).then(res => {
-                if (!res.ok) throw new Error('CSV download failed');
-                return res.blob();
-            }).then(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = `attendance_report_${sessionId}.csv`;
-                a.click(); URL.revokeObjectURL(url);
-                AdminCore.toast('CSV downloaded', 'success');
-            }).catch(e => { console.error(e); AdminCore.toast('Failed to download CSV', 'error'); });
+            if (!currentReportData || !currentReportData.records) {
+                AdminCore.toast('Generate report first', 'warning');
+                return;
+            }
+
+            const records = currentReportData.records;
+            let csv = 'Student Name,Roll No,Email,Status,Time,Subject,Location\n';
+            records.forEach(r => {
+                const time = r.time ? new Date(r.time).toLocaleTimeString() : '--';
+                csv += `"${r.name}","${r.roll}","${r.email}","${r.status}","${time}","${r.subject}","${r.location}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `attendance_report_${document.getElementById('reportDateSelect').value}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function viewFullAttendanceTable() {
@@ -1753,26 +1804,25 @@
                 return;
             }
             const records = currentReportData.records;
-            const session = currentReportData.session;
             const modalHtml = `
                 <div class="modal active" id="fullTableModal" onclick="if(event.target===this)this.remove()">
                     <div class="modal-content" style="max-width: 900px; max-height: 85vh; overflow-y: auto;">
                         <div class="modal-header">
-                            <h3>📋 ${session.subject} — Full Attendance</h3>
+                            <h3>📋 Detailed Attendance Report</h3>
                             <button class="modal-close" onclick="document.getElementById('fullTableModal').remove()">✕</button>
                         </div>
                         <div class="modal-body" style="padding: var(--space-4);">
                             <table class="data-table" style="width: 100%;">
-                                <thead><tr><th>#</th><th>Student Name</th><th>Roll No</th><th>Status</th><th>Scan Time</th><th>Distance</th></tr></thead>
+                                <thead><tr><th>#</th><th>Student Name</th><th>Roll No</th><th>Subject</th><th>Status</th><th>Scan Time</th></tr></thead>
                                 <tbody>
                                     ${records.map((r, i) => `
                                         <tr>
                                             <td>${i + 1}</td>
                                             <td><strong>${r.name || 'Unknown'}</strong></td>
                                             <td>${r.roll || '--'}</td>
-                                            <td><span class="status-badge ${r.status === 'present' ? 'success' : 'warning'}">${r.status}</span></td>
-                                            <td>${r.scanned_at ? new Date(r.scanned_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : '--'}</td>
-                                            <td>${r.distance_m ? r.distance_m + 'm' : '--'}</td>
+                                            <td>${r.subject}</td>
+                                            <td><span class="status-badge ${r.status === 'present' ? 'success' : 'warning'}">${r.status.toUpperCase()}</span></td>
+                                            <td>${r.time ? new Date(r.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '--'}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -1788,9 +1838,9 @@
 
         function viewReport(sessionId) {
             showTab('reports');
-            loadReportSessions().then(() => {
-                const select = document.getElementById('reportSessionSelect');
-                if (select) { select.value = sessionId; onReportSessionSelected(); }
+            loadReportDates().then(() => {
+                // This logic needs more care if we want to auto-select a specific session
+                // For now, it will just show the dates
             });
         }
 
@@ -1823,7 +1873,7 @@
                     renderSessionsTable(sessions);
                 });
             }
-            if (tabName === 'reports') loadReportSessions();
+            if (tabName === 'reports') loadReportDates();
         }
 
         // ========================================

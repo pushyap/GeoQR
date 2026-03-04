@@ -529,29 +529,17 @@
 
             <!-- ============= SETTINGS TAB ============= -->
             <div class="tab-content" id="tab-settings">
-                <!-- GPS Settings (Previously starting here) -->
+                <!-- General Settings -->
                 <div class="settings-section">
-                    <h3 class="settings-section-title">📍 GPS Settings</h3>
+                    <h3 class="settings-section-title">⚙️ General Settings</h3>
                     <div class="settings-row">
                         <div class="settings-info">
-                            <div class="settings-label">Default GPS Radius</div>
-                            <div class="settings-description">Default radius (in meters) for new locations</div>
-                        </div>
-                        <div class="settings-control" style="display:flex;align-items:center;gap:10px;">
-                            <input type="range" class="range-slider" id="gpsRadius" min="10" max="200" value="50">
-                            <span class="range-value" id="gpsRadiusValue">50m</span>
-                        </div>
-                    </div>
-                    <div class="settings-row">
-                        <div class="settings-info">
-                            <div class="settings-label">Enable GPS Validation</div>
-                            <div class="settings-description">Require GPS location within radius for attendance</div>
+                            <div class="settings-label">System Name</div>
+                            <div class="settings-description">Name displayed across the application</div>
                         </div>
                         <div class="settings-control">
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="enableGpsValidation" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
+                            <input type="text" class="form-input" id="systemName" value="GeoQR Attendance"
+                                style="width:200px;">
                         </div>
                     </div>
                 </div>
@@ -566,9 +554,12 @@
                         <div class="settings-control">
                             <select class="form-select" id="qrExpiry">
                                 <option value="10">10 seconds</option>
-                                <option value="15" selected>15 seconds</option>
+                                <option value="15">15 seconds</option>
                                 <option value="30">30 seconds</option>
-                                <option value="60">60 seconds</option>
+                                <option value="45">45 seconds</option>
+                                <option value="60" selected>60 seconds</option>
+                                <option value="90">90 seconds</option>
+                                <option value="120">2 minutes</option>
                             </select>
                         </div>
                     </div>
@@ -778,7 +769,7 @@
 
                 <!-- Device Type Selection Toggle -->
                 <div class="modal-body" id="deviceTypeSelector"
-                    style="display: flex; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); flex-direction: column;">
+                    style="display: flex; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color); flex-direction: column; overflow: hidden; flex-shrink: 0;">
                     <label style="font-size: 0.9em; font-weight: 600; color: var(--text-muted);">Choose Device
                         Type:</label>
                     <div style="display: flex; gap: 12px;">
@@ -1410,9 +1401,17 @@
                 }
             }
 
-            function editDevice(id) {
+            async function editDevice(id) {
                 AdminState.editingDeviceId = id;
                 const modalTitle = document.getElementById('deviceModalTitle');
+
+                // Refresh device location dropdown with only active locations from DB
+                const activeLocations = await AdminAPI.getLocations('active');
+                const deviceLocSelect = document.getElementById('deviceLocationSession');
+                if (deviceLocSelect) {
+                    deviceLocSelect.innerHTML = '<option value="">Select Location</option>' +
+                        activeLocations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                }
 
                 if (id) {
                     // EDITING MODE
@@ -1461,6 +1460,12 @@
                     document.getElementById('newDeviceFieldsCommon').style.display = 'block';
                     document.getElementById('deviceCodeCommon').setAttribute('required', 'required');
                     document.getElementById('devicePasswordCommon').setAttribute('required', 'required');
+
+                    // Re-populate location dropdown after form reset
+                    if (deviceLocSelect) {
+                        deviceLocSelect.innerHTML = '<option value="">Select Location</option>' +
+                            activeLocations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                    }
 
                     AdminCore.openModal('deviceModal');
                 }
@@ -1611,20 +1616,29 @@
                     // Save to local for offline backup
                     SettingsManager.save(settings);
 
-                    // GPS
+                    // GPS Radius
                     const gpsInput = document.getElementById('gpsRadius');
                     if (gpsInput) {
-                        gpsInput.value = settings.gpsRadius || 50;
+                        gpsInput.value = settings.gpsRadius || settings.maxDistance || 50;
                         const valDisplay = document.getElementById('gpsRadiusValue');
-                        if (valDisplay) valDisplay.textContent = (settings.gpsRadius || 50) + 'm';
+                        if (valDisplay) valDisplay.textContent = (settings.gpsRadius || settings.maxDistance || 50) + 'm';
                     }
 
+                    // GPS Validation toggle
                     const gpsToggle = document.getElementById('enableGpsValidation');
-                    if (gpsToggle) gpsToggle.checked = settings.enableGpsValidation !== false;
+                    if (gpsToggle) gpsToggle.checked = settings.enableGpsValidation !== 'false' && settings.enableGpsValidation !== false;
 
-                    // QR
+                    // OTP Verification toggle
+                    const otpToggle = document.getElementById('enableOtp');
+                    if (otpToggle) otpToggle.checked = settings.enableOtp !== 'false' && settings.enableOtp !== false;
+
+                    // QR Expiry
                     const qrSelect = document.getElementById('qrExpiry');
-                    if (qrSelect) qrSelect.value = settings.qrExpiry || 15;
+                    if (qrSelect) qrSelect.value = settings.qrExpiry || 60;
+
+                    // Session Timeout
+                    const sessionSelect = document.getElementById('sessionTimeout');
+                    if (sessionSelect) sessionSelect.value = settings.sessionTimeout || 120;
 
                     // System Name
                     const sysNameEl = document.getElementById('systemName');
@@ -1637,13 +1651,16 @@
             async function saveSettings() {
                 const settings = {
                     max_distance: document.getElementById('gpsRadius')?.value || 50,
-                    qr_expiry: document.getElementById('qrExpiry')?.value || 15,
-                    system_name: document.getElementById('systemName')?.value || 'GeoQR Attendance'
+                    qr_expiry: document.getElementById('qrExpiry')?.value || 60,
+                    system_name: document.getElementById('systemName')?.value || 'GeoQR Attendance',
+                    session_timeout: document.getElementById('sessionTimeout')?.value || 120,
+                    enable_gps_validation: document.getElementById('enableGpsValidation')?.checked ? 'true' : 'false',
+                    enable_otp: document.getElementById('enableOtp')?.checked ? 'true' : 'false'
                 };
 
                 try {
                     await AdminAPI.updateSettings(settings);
-                    AdminCore.toast('Settings saved', 'success');
+                    AdminCore.toast('Settings saved successfully', 'success');
                 } catch (err) {
                     AdminCore.toast('Failed to save settings', 'error');
                 }
@@ -1804,10 +1821,12 @@
                         locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
                 }
 
+                // For device location dropdown, only show active locations from DB
+                const activeLocations = await AdminAPI.getLocations('active');
                 const deviceLocSelect = document.getElementById('deviceLocationSession');
                 if (deviceLocSelect) {
                     deviceLocSelect.innerHTML = '<option value="">Select Location</option>' +
-                        locations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                        activeLocations.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
                 }
             }
 
