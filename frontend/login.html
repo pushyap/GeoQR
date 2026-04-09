@@ -221,18 +221,29 @@
 
                 const data = response.data;
 
+                console.log('✅ Login response:', {
+                    success: data.success,
+                    requiresOtp: data.requiresOtp,
+                    hasToken: !!data.token,
+                    hasUser: !!data.user
+                });
+
                 // Student requires OTP
-                if (data.requiresOtp) {
+                if (data.requiresOtp === true) {
+                    console.log('📧 OTP required, redirecting to OTP page...');
                     sessionStorage.setItem('login_temp_token', data.tempToken);
                     sessionStorage.setItem('login_email', email);
 
                     Toast.success('OTP sent to your email');
-                    window.location.href = 'otp.html';
+                    setTimeout(() => {
+                        window.location.href = 'otp.html';
+                    }, 500);
                     return;
                 }
 
                 // Direct login (Faculty/Admin)
-                if (data.success) {
+                if (data.success && data.token && data.user) {
+                    console.log('✅ Direct login successful, saving session...');
                     // Store session
                     if (rememberMe) {
                         localStorage.setItem('geoqr_remember', 'true');
@@ -247,12 +258,16 @@
                             'faculty': 'faculty-dashboard.html',
                             'admin': 'admin-dashboard.html'
                         };
+                        console.log('🔄 Redirecting to:', dashboards[data.user.role]);
                         window.location.href = dashboards[data.user.role] || 'dashboard.html';
                     }, 800);
+                } else {
+                    throw new Error('Invalid login response');
                 }
 
             } catch (error) {
                 const message = error.response?.data?.error || error.message || 'Login failed';
+                console.error('❌ Login error:', message);
                 Toast.error(message);
                 loginBtn.classList.remove('loading');
                 loginBtn.disabled = false;

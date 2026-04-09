@@ -82,8 +82,12 @@ router.post('/login', [
         // CHECK IF OTP IS ENABLED (from DB settings)
         // ===============================
         const otpEnabled = await getSetting('enable_otp');
+        console.log('🔍 OTP Setting value:', otpEnabled, 'Type:', typeof otpEnabled);
 
-        if (otpEnabled === 'false') {
+        // Normalize the comparison - handle both boolean and string values
+        const isOtpDisabled = otpEnabled === 'false' || otpEnabled === false;
+
+        if (isOtpDisabled) {
             // OTP DISABLED → Direct login
             const token = jwt.sign(
                 { userId: user.id, role: user.role },
@@ -95,6 +99,7 @@ router.post('/login', [
 
             return res.json({
                 success: true,
+                requiresOtp: false,
                 token,
                 user: {
                     id: user.id,
@@ -118,7 +123,7 @@ router.post('/login', [
 
         // Send OTP email
         console.log(`📧 Sending OTP to ${user.email}...`);
-        console.log(`🔑 OTP: ${otp}`); // Visible in Render logs
+        console.log(`🔑 OTP: ${otp}`); // Visible in logs
 
         const emailResult = await sendEmail(user.email, 'loginOtp', user.name, otp);
         if (emailResult.success) {
@@ -126,6 +131,8 @@ router.post('/login', [
         } else {
             console.warn('⚠️ Email send failed (Allowing login to proceed):', emailResult.error);
         }
+
+        console.log(`📤 Sending response with requiresOtp=true for ${user.email}`);
 
         return res.json({
             success: true,

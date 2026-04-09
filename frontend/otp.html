@@ -122,11 +122,11 @@
         const email = sessionStorage.getItem('login_email');
 
         console.log('📝 OTP Page loaded');
-        console.log('   tempToken:', tempToken ? 'exists' : 'MISSING');
-        console.log('   email:', email);
+        console.log('   tempToken:', tempToken ? `✅ (${tempToken.substring(0, 8)}...)` : '❌ MISSING');
+        console.log('   email:', email || '❌ MISSING');
 
-        if (!tempToken) {
-            console.log('❌ No temp token found, redirecting to login...');
+        if (!tempToken || !email) {
+            console.log('❌ No temp token/email found, redirecting to login...');
             Toast.error('Session expired. Please login again.');
             setTimeout(() => window.location.href = 'login.html', 2000);
         }
@@ -204,16 +204,21 @@
                 return;
             }
 
+            console.log('✅ Verifying OTP with tempToken:', tempToken.substring(0, 8) + '...');
+
             const verifyBtn = document.getElementById('verifyBtn');
             verifyBtn.classList.add('loading');
             verifyBtn.disabled = true;
 
             try {
                 // Try real API
+                console.log('📤 Sending OTP verification request...');
                 const response = await axios.post(`${API_BASE_URL}/auth/verify-email-otp`, {
                     tempToken,
                     otp
                 });
+
+                console.log('✅ OTP verification response:', response.data);
 
                 if (response.data.success) {
                     sessionStorage.removeItem('login_temp_token');
@@ -221,39 +226,46 @@
 
                     Session.save(response.data.token, response.data.user);
                     Toast.success('Login successful! Redirecting...');
+                    console.log('✅ Session saved, user role:', response.data.user.role);
 
                     // Enforce passkey setup for students — STRICT
                     setTimeout(async () => {
                         const user = Session.getUser();
                         if (user && user.role === 'student') {
                             try {
+                                console.log('🔒 Checking if passkey is required for student...');
                                 const resp = await fetch(`${API_BASE_URL}/auth/security-status`, {
                                     headers: { 'Authorization': `Bearer ${Session.getToken()}` }
                                 });
                                 if (resp.ok) {
                                     const data = await resp.json();
+                                    console.log('🔐 Passkey status:', data.passkey_enabled);
                                     if (!data.passkey_enabled) {
+                                        console.log('⚠️ Passkey not enabled, redirecting to setup...');
                                         window.location.href = 'passkey-setup.html';
                                         return;
                                     }
                                 } else {
+                                    console.warn('⚠️ Security status check failed, redirecting to passkey setup...');
                                     // API error — redirect to passkey setup to be safe
                                     window.location.href = 'passkey-setup.html';
                                     return;
                                 }
                             } catch (e) {
-                                console.warn('Security status check failed', e);
+                                console.warn('⚠️ Security status check error:', e);
                                 // On failure, redirect to passkey setup to be safe
                                 window.location.href = 'passkey-setup.html';
                                 return;
                             }
                         }
 
+                        console.log('🔄 Redirecting to user dashboard...');
                         RoleGuard.redirect();
                     }, 800);
                 }
             } catch (error) {
-                const message = error.response?.data?.error || 'Verification failed';
+                const message = error.response?.data?.error || error.message || 'Verification failed';
+                console.error('❌ OTP verification error:', message, error);
                 Toast.error(message);
                 verifyBtn.classList.remove('loading');
                 verifyBtn.disabled = false;
@@ -264,6 +276,7 @@
 
         // Resend OTP
         resendBtn.addEventListener('click', async () => {
+            console.log('🔄 Attempting to resend OTP...');
             resendBtn.disabled = true;
             resendBtn.textContent = 'Sending...';
 
@@ -275,11 +288,13 @@
 
                 if (response.data.success) {
                     Toast.success('New OTP sent! Check your email (or server logs)');
+                    console.log('✅ OTP resent successfully');
                     timeLeft = 300;
                     timerEl.style.color = '';
                 }
             } catch (error) {
-                const message = error.response?.data?.error || 'Failed to resend OTP';
+                const message = error.response?.data?.error || error.message || 'Failed to resend OTP';
+                console.error('❌ Resend OTP error:', message, error);
                 Toast.error(message);
 
                 // Re-enable after 30 seconds cooldown

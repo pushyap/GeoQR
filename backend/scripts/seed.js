@@ -103,6 +103,32 @@ async function seed() {
 
         console.log('   ✅ Created devices with passwords');
 
+        // Initialize System Settings
+        console.log('⚙️ Initializing system settings...');
+
+        const settings = [
+            { key: 'enable_otp', value: 'true' },
+            { key: 'qr_expiry', value: '60' },
+            { key: 'max_distance', value: '50' },
+            { key: 'system_name', value: 'GeoQR Attendance' },
+            { key: 'late_threshold', value: '10' },
+            { key: 'session_timeout', value: '120' },
+            { key: 'enable_gps_validation', value: 'true' },
+            { key: 'allow_multiple_scans', value: 'false' },
+            { key: 'timezone', value: 'Asia/Kolkata' }
+        ];
+
+        for (const setting of settings) {
+            await db.query(
+                `INSERT INTO system_settings (key, value) 
+                 VALUES ($1, $2) 
+                 ON CONFLICT (key) DO UPDATE SET value = $2`,
+                [setting.key, setting.value]
+            );
+        }
+
+        console.log('   ✅ System settings initialized');
+
         console.log('\n✨ Seed completed successfully!\n');
         console.log('📋 Test Credentials:');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
